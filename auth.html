@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acceder - GLPFinder</title>
+    <link rel="icon" type="image/png" href="LogoPequeño.png">
+    
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <header>
+        <a href="index.html" class="logo">
+            <img src="Logo.png" alt="Logo GLPFinder">
+        </a>
+        <div class="nav-links">
+            <a href="index.html">Inicio</a>
+            <a href="contacto.html">Contacto</a>
+        </div>
+    </header>
+
+    <main class="form-main auth-main">
+        <div class="card">
+            
+            <div class="form-column">
+                <h2 class="section-title">Inicio Sesión</h2>
+                <form id="form-login">
+                    <div class="form-group">
+                        <label>Correo electrónico:</label>
+                        <input type="email" id="login-email" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Contraseña:</label>
+                        <input type="password" id="login-password" required>
+                    </div>
+                    
+                    <div class="form-options">
+                        <label><input type="checkbox"> Recordar contraseña</label>
+                    </div>
+
+                    <button type="submit" class="btn-secondary" id="btn-login">Inicio Sesión</button>
+                    
+                    <div class="forgot-password">
+                        <a href="#">¿Has olvidado tu contraseña?</a>
+                    </div>
+                </form>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="form-column">
+                <h2 class="section-title">Registrarse</h2>
+                <form id="form-register">
+                    <div class="form-group">
+                        <label>Nombre completo:</label>
+                        <input type="text" id="register-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Correo electrónico:</label>
+                        <input type="email" id="register-email" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Contraseña:</label>
+                        <input type="password" id="register-password" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Repetir Contraseña:</label>
+                        <input type="password" id="register-password-repeat" required>
+                    </div>
+
+                    <button type="submit" class="btn-secondary" id="btn-register">Registrarse</button>
+                </form>
+            </div>
+
+        </div>
+    </main>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+
+        // Tu configuración de Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyD7lO3z241bBBPqi33pPnUt8Eaxhyb6W3I",
+            authDomain: "glpfinder.firebaseapp.com",
+            projectId: "glpfinder",
+            storageBucket: "glpfinder.firebasestorage.app",
+            messagingSenderId: "173596798895",
+            appId: "1:173596798895:web:d883035f89fa2c139fc95a",
+            measurementId: "G-XKYS61F0DC"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        // =========================================
+        // LÓGICA DE REGISTRO
+        // =========================================
+        const formRegister = document.getElementById('form-register');
+        formRegister.addEventListener('submit', async (e) => {
+            e.preventDefault(); 
+
+            const email = document.getElementById('register-email').value;
+            const password = document.getElementById('register-password').value;
+            const passwordRepeat = document.getElementById('register-password-repeat').value;
+            const btn = document.getElementById('btn-register');
+
+            if (password !== passwordRepeat) {
+                alert("Las contraseñas no coinciden.");
+                return;
+            }
+            if (password.length < 6) {
+                alert("La contraseña debe tener al menos 6 caracteres.");
+                return;
+            }
+
+            btn.textContent = "Cargando...";
+            btn.disabled = true;
+
+            try {
+                await createUserWithEmailAndPassword(auth, email, password);
+                alert("¡Cuenta creada con éxito! Serás redirigido al mapa.");
+                window.location.href = "index.html"; 
+            } catch (error) {
+                console.error("Error en registro:", error.code);
+                if (error.code === 'auth/email-already-in-use') {
+                    alert("Ese correo ya está registrado. Inicia sesión.");
+                } else {
+                    alert("Hubo un error al crear la cuenta. Inténtalo de nuevo.");
+                }
+            } finally {
+                btn.textContent = "Registrarse";
+                btn.disabled = false;
+            }
+        });
+
+        // =========================================
+        // LÓGICA DE INICIO DE SESIÓN
+        // =========================================
+        const formLogin = document.getElementById('form-login');
+        formLogin.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            const btn = document.getElementById('btn-login');
+
+            btn.textContent = "Cargando...";
+            btn.disabled = true;
+
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+                window.location.href = "index.html"; 
+            } catch (error) {
+                console.error("Error en login:", error.code);
+                if (error.code === 'auth/invalid-credential') {
+                    alert("El correo o la contraseña son incorrectos.");
+                } else {
+                    alert("Error al iniciar sesión. Comprueba tus datos.");
+                }
+            } finally {
+                btn.textContent = "Inicio Sesión";
+                btn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

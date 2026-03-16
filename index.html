@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GLPFinder - Mapa</title>
+    
+    <link rel="icon" type="image/png" href="LogoPequeño.png">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+</head>
+<body>
+
+    <header>
+        <a href="index.html" class="logo">
+            <img src="Logo.png" alt="Logo GLPFinder">
+        </a>
+        <div class="nav-links">
+            <a href="contacto.html">Contacto</a>
+            <a href="auth.html" id="nav-auth">Acceder / Registro</a>
+            <a href="#" id="nav-logout" style="display: none;">Cerrar sesión</a>
+        </div>
+    </header>
+
+    <main class="map-main">
+        <div class="search-wrapper">
+            <div class="search-controls">
+                <input type="text" id="searchInput" placeholder="Municipio, calle, CP..." oninput="manejarEntrada()" autocomplete="off">
+                <button onclick="buscarUbicacion()">Buscar</button>
+            </div>
+            <ul id="searchResults" class="search-results"></ul>
+        </div>
+        
+        <button class="btn-geo" onclick="localizarUsuario()" title="Centrar en mi ubicación">
+            <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+        </button>
+
+        <div id="map"></div>
+    </main>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        const map = L.map('map', { zoomControl: false }).setView([40.4168, -3.7038], 6);
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 20 }).addTo(map);
+
+        let marcadorUbicacionUsuario;
+        let marcadorBusquedaDireccion;
+
+        async function cargarGasolinerasGLP() {
+            const fechaHoy = new Date().toISOString().split('T')[0];
+            const cacheFecha = localStorage.getItem('glp_fecha');
+            const cacheDatos = localStorage.getItem('glp_datos');
+
+            let estacionesGLP;
+
+            if (cacheFecha === fechaHoy && cacheDatos) {
+                console.log("Cargando datos desde la caché local...");
+                estacionesGLP = JSON.parse(cacheDatos);
+            } else {
+                console.log("Descargando datos frescos del Ministerio...");
+                try {
+                    const url = 'https://sedeaplicaciones.minetur.gob.es/ServiciosRESTCarburantes/PreciosCarburantes/EstacionesTerrestres/';
+                    const respuesta = await fetch(url);
+                    const datos = await respuesta.json();
+                    
+                    estacionesGLP = datos.ListaEESSPrecio.filter(estacion => estacion['Precio Gases licuados del petróleo'] !== "");
+                    
+                    localStorage.setItem('glp_fecha', fechaHoy);
+                    localStorage.setItem('glp_datos', JSON.stringify(estacionesGLP));
+                } catch (error) {
+                    console.error("Error al cargar la API del Gobierno:", error);
+                    return; 
+                }
+            }
+
+            estacionesGLP.forEach(estacion => {
+                const marca = estacion['Rótulo'];
+                const precio = estacion['Precio Gases licuados del petróleo'].replace(',', '.');
+                const direccion = estacion['Dirección'] + ', ' + estacion['Localidad'];
+                const lat = parseFloat(estacion['Latitud'].replace(',', '.'));
+                const lng = parseFloat(estacion['Longitud (WGS84)'].replace(',', '.'));
+
+                const popupHTML = `
+                    <div class="popup-header">
+                        <h3>${marca}</h3>
+                        <span class="popup-price">${precio} €/L</span>
+                    </div>
+                    <div class="popup-address">${direccion}</div>
+                    <div class="nav-buttons">
+                        <a href="https://waze.com/ul?ll=${lat},${lng}&navigate=yes" target="_blank" class="btn-nav btn-waze">Waze</a>
+                        <a href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}" target="_blank" class="btn-nav btn-gmaps">Maps</a>
+                    </div>`;
+                
+                L.marker([lat, lng]).addTo(map).bindPopup(popupHTML);
+            });
+        }
+
+        cargarGasolinerasGLP();
+
+        function localizarUsuario() {
+            if (!navigator.geolocation) {
+                alert("Tu navegador no soporta la geolocalización.");
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition((posicion) => {
+                const lat = posicion.coords.latitude;
+                const lng = posicion.coords.longitude;
+                
+                map.flyTo([lat, lng], 13, { duration: 1.5 });
+                
+                if (marcadorUbicacionUsuario) {
+                    map.removeLayer(marcadorUbicacionUsuario);
+                }
+                
+                marcadorUbicacionUsuario = L.circleMarker([lat, lng], {
+                    radius: 8, fillColor: "#2563eb", color: "#ffffff", weight: 3, opacity: 1, fillOpacity: 0.9
+                }).addTo(map).bindPopup("<b>Estás aquí</b>").openPopup();
+
+            }, (error) => {
+                console.error("Error de geolocalización:", error);
+                alert("No hemos podido obtener tu ubicación. Revisa los permisos de tu navegador.");
+            });
+        }
+
+        let temporizadorBusqueda;
+
+        function manejarEntrada() {
+            const query = document.getElementById('searchInput').value;
+            const resultsContainer = document.getElementById('searchResults');
+            
+            clearTimeout(temporizadorBusqueda);
+            
+            if (query.length < 3) {
+                resultsContainer.style.display = 'none';
+                return; 
+            }
+
+            temporizadorBusqueda = setTimeout(() => {
+                ejecutarBusquedaEnVivo(query);
+            }, 500);
+        }
+
+        async function ejecutarBusquedaEnVivo(query) {
+            const resultsContainer = document.getElementById('searchResults');
+            
+            try {
+                const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=es&limit=5`;
+                const res = await fetch(url);
+                const data = await res.json();
+
+                resultsContainer.innerHTML = '';
+
+                if (data.length > 0) {
+                    data.forEach(item => {
+                        const li = document.createElement('li');
+                        li.textContent = item.display_name;
+                        li.onclick = () => irAUbicacion(item.lat, item.lon, item.display_name);
+                        resultsContainer.appendChild(li);
+                    });
+                    resultsContainer.style.display = 'block';
+                } else {
+                    resultsContainer.innerHTML = '<li style="color: #ef4444;">No se ha encontrado ninguna ubicación.</li>';
+                    resultsContainer.style.display = 'block';
+                }
+            } catch (e) { 
+                console.error("Error en la búsqueda:", e); 
+            }
+        }
+
+        function irAUbicacion(lat, lon, nombreCompleto) {
+            map.flyTo([parseFloat(lat), parseFloat(lon)], 14, { duration: 1.5 });
+            
+            if (marcadorBusquedaDireccion) {
+                map.removeLayer(marcadorBusquedaDireccion);
+            }
+
+            marcadorBusquedaDireccion = L.marker([parseFloat(lat), parseFloat(lon)])
+                .addTo(map)
+                .bindPopup(`<b>Resultados cerca de:</b><br>${nombreCompleto}`)
+                .openPopup();
+
+            if (marcadorBusquedaDireccion._icon) {
+                marcadorBusquedaDireccion._icon.style.filter = "hue-rotate(140deg) brightness(0.9) saturate(2)";
+            }
+
+            const nombreCorto = nombreCompleto.split(',')[0];
+            document.getElementById('searchInput').value = nombreCorto; 
+            document.getElementById('searchResults').style.display = 'none';
+        }
+
+        map.on('click', function() {
+            document.getElementById('searchResults').style.display = 'none';
+        });
+        
+        function buscarUbicacion() {
+            const query = document.getElementById('searchInput').value;
+            if (query.length >= 3) {
+                clearTimeout(temporizadorBusqueda);
+                ejecutarBusquedaEnVivo(query);
+            }
+        }
+    </script>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+
+        // Tu configuración
+        const firebaseConfig = {
+            apiKey: "AIzaSyD7lO3z241bBBPqi33pPnUt8Eaxhyb6W3I",
+            authDomain: "glpfinder.firebaseapp.com",
+            projectId: "glpfinder",
+            storageBucket: "glpfinder.firebasestorage.app",
+            messagingSenderId: "173596798895",
+            appId: "1:173596798895:web:d883035f89fa2c139fc95a",
+            measurementId: "G-XKYS61F0DC"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        const navAuth = document.getElementById('nav-auth');
+        const navLogout = document.getElementById('nav-logout');
+
+        // Escuchador en tiempo real del estado de autenticación
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                // Usuario logueado
+                navAuth.style.display = 'none';
+                navLogout.style.display = 'inline-block';
+            } else {
+                // Usuario sin loguear
+                navAuth.style.display = 'inline-block';
+                navLogout.style.display = 'none';
+            }
+        });
+
+        // Lógica para cerrar sesión
+        navLogout.addEventListener('click', (e) => {
+            e.preventDefault();
+            signOut(auth).then(() => {
+                // Forzamos la recarga de la página para limpiar datos si fuera necesario
+                window.location.reload();
+            }).catch((error) => {
+                console.error("Error al cerrar sesión:", error);
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contacto - GLPFinder</title>
+    <link rel="icon" type="image/png" href="LogoPequeño.png">
+    
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+</head>
+<body>
+
+    <header>
+        <a href="index.html" class="logo">
+            <img src="Logo.png" alt="Logo GLPFinder">
+        </a>
+        <div class="nav-links">
+            <a href="index.html">Inicio</a>
+            <a href="auth.html">Acceder / Registro</a>
+        </div>
+    </header>
+
+    <main class="form-main">
+        <h1 class="page-title">CONTACTO</h1>
+        <div class="card contact-card">
+            
+            <div class="form-column contact-form-col">
+                <form action="#" method="POST" onsubmit="event.preventDefault(); alert('Mensaje enviado correctamente.');">
+                    <div class="form-group"><label>Nombre Completo</label><input type="text" placeholder="Ej. Juan Pérez" required></div>
+                    <div class="form-group"><label>Correo electrónico</label><input type="email" placeholder="tu@email.com" required></div>
+                    <div class="form-group"><label>Asunto</label><input type="text" placeholder="¿De qué trata tu mensaje?" required></div>
+                    <div class="form-group"><label>Mensaje</label><textarea placeholder="Escribe aquí tu duda, sugerencia o problema..." required></textarea></div>
+                    <button type="submit" class="btn-primary">Enviar Mensaje</button>
+                </form>
+            </div>
+            
+            <div class="divider"></div>
+            
+            <div class="details-column">
+                <h2>Detalles de contacto</h2>
+                <p><strong>Dirección:</strong><br>Campus Sur UPM, C. Mercator, 2, Puente de Vallecas, 28031 Madrid</p>
+                <p><strong>Teléfono:</strong><br>+34 611 54 32 81</p>
+                <p><strong>Correo electrónico:</strong><br>contacto@glpfinder.es</p>
+                <div id="contact-map"></div>
+            </div>
+            
+        </div>
+    </main>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        const lat = 40.3892; 
+        const lng = -3.6300;
+        const contactMap = L.map('contact-map', { zoomControl: false, scrollWheelZoom: false }).setView([lat, lng], 15);
+        L.control.zoom({ position: 'bottomright' }).addTo(contactMap);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 20 }).addTo(contactMap);
+        L.marker([lat, lng]).addTo(contactMap).bindPopup('<b>Sede GLPFinder</b><br>Campus Sur UPM, C. Mercator, 2, Puente de Vallecas, 28031 Madrid').openPopup();
+    </script>
+</body>
+</html>
