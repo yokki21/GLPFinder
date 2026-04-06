@@ -1,4 +1,4 @@
-/*  VARIABLES */
+/* VARIABLES */
 :root { 
     --primary-color: #2563eb; 
     --primary-hover: #1d4ed8; 
@@ -27,17 +27,20 @@ header {
 .nav-links a { text-decoration: none; color: var(--text-main); font-weight: 600; font-size: 15px; transition: color 0.2s ease; }
 .nav-links a:hover { color: var(--primary-color); }
 
-/*  PÁGINA PRINCIPAL */
+/* PÁGINA PRINCIPAL */
 .map-main { position: relative; flex: 1; display: flex; flex-direction: column; }
 #map { flex: 1; width: 100%; z-index: 1; }
 
 .search-wrapper { 
     position: absolute; top: 20px; left: 20px; z-index: 999; 
+    display: flex; flex-direction: column; 
+    width: 380px; 
+}
+
+.search-container-box {
     background: white; padding: 8px; border-radius: 12px; 
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); 
-    display: flex; flex-direction: column; 
-    border: 1px solid var(--border-color); 
-    width: 380px; 
+    border: 1px solid var(--border-color);
 }
 
 .search-controls { display: flex; gap: 8px; }
@@ -53,6 +56,31 @@ header {
     border: none; border-radius: 8px; cursor: pointer; font-weight: 600; 
 }
 .search-controls button:hover { background-color: var(--primary-hover); }
+
+/* Botón Icono (Filtros) */
+.btn-icon {
+    padding: 10px 12px;
+    background-color: white !important;
+    color: var(--text-main) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 8px;
+    display: flex; justify-content: center; align-items: center;
+    transition: all 0.2s;
+}
+.btn-icon:hover { background-color: #f1f5f9 !important; color: var(--primary-color) !important; }
+
+/* Panel de Filtros */
+.filter-panel {
+    background: white; border-radius: 12px; border: 1px solid var(--border-color);
+    padding: 15px; margin-top: 10px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    display: flex; flex-direction: column; gap: 15px;
+}
+.filter-panel h4 { margin: 0; font-size: 16px; color: var(--text-main); border-bottom: 1px solid var(--border-color); padding-bottom: 8px; }
+.filter-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 5px; color: var(--text-main); }
+.filter-group input[type="range"] { width: 100%; accent-color: var(--primary-color); cursor: pointer; }
+.filter-val { color: var(--primary-color); float: right; }
+.brand-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.brand-grid label { font-weight: normal; font-size: 13px; display: flex; align-items: center; gap: 5px; margin: 0; cursor: pointer; }
 
 /* Estilos de la lista de resultados */
 .search-results {
@@ -81,7 +109,7 @@ header {
 .btn-waze { background-color: var(--waze-color); color: #000; }
 .btn-gmaps { background-color: var(--gmaps-color); }
 
-/*  DISEÑO DE FORMULARIOS */
+/* DISEÑO DE FORMULARIOS */
 .form-main { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 40px 20px; }
 .auth-main { justify-content: center; padding: 60px 20px; } 
 
@@ -98,7 +126,6 @@ header {
 .contact-form-col { padding-left: 0; padding-right: 40px; }
 .divider { width: 1px; background-color: var(--border-color); margin: 0 10px; }
 
-/* Controles de formulario */
 .form-group { margin-bottom: 20px; }
 .form-group label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px; color: var(--text-main); }
 .form-group input, .form-group textarea { 
@@ -110,14 +137,12 @@ header {
 }
 .form-group textarea { resize: vertical; min-height: 180px; }
 
-/* Casillas de verificación y enlaces */
 .form-options { display: flex; align-items: center; margin-bottom: 25px; font-size: 14px; color: var(--text-main); }
 .form-options input[type="checkbox"] { margin-right: 8px; cursor: pointer; width: auto; }
 .forgot-password { text-align: center; margin-top: 20px; }
 .forgot-password a { font-size: 14px; color: var(--text-muted); text-decoration: underline; transition: color 0.2s; }
 .forgot-password a:hover { color: var(--primary-color); }
 
-/* Botones */
 .btn-primary { 
     width: 100%; padding: 12px 20px; background-color: var(--primary-color); 
     color: white; border: none; border-radius: 8px; cursor: pointer; 
@@ -132,14 +157,12 @@ header {
 }
 .btn-secondary:hover { background-color: var(--primary-color); color: white; border-color: var(--primary-color); }
 
-/* Detalles Contacto */
 .details-column { flex: 1; padding-left: 40px; display: flex; flex-direction: column; }
 .details-column h2 { font-size: 20px; font-weight: 700; margin-bottom: 24px; color: var(--text-main); }
 .details-column p { font-size: 15px; margin-bottom: 16px; color: var(--text-muted); line-height: 1.5; }
 .details-column strong { color: var(--text-main); font-weight: 600; }
 #contact-map { width: 100%; height: 250px; margin-top: auto; border-radius: 12px; border: 1px solid var(--border-color); z-index: 1; }
 
-/* DISEÑO MÓVILES Y TABLETS */
 @media (max-width: 850px) {
     .card { flex-direction: column; padding: 30px 20px; }
     .form-column, .contact-form-col { padding: 0; padding-bottom: 30px; }
@@ -147,6 +170,7 @@ header {
     .details-column { padding-left: 0; padding-top: 10px; }
     #contact-map { margin-top: 30px; }
 }
+
 .btn-geo {
     position: absolute;
     bottom: 30px;
@@ -169,3 +193,45 @@ header {
     background-color: #f1f5f9;
     color: var(--primary-color);
 }
+
+/* --- ETIQUETAS DE PRECIO CON LOGO Y HOVER --- */
+.custom-div-icon {
+    background: transparent;
+    border: none;
+}
+
+.custom-price-pin {
+    background: white;
+    border: 2px solid;
+    border-radius: 8px;
+    font-weight: 800;
+    font-size: 13px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    white-space: nowrap;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 2px 6px;
+    box-sizing: border-box;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.custom-div-icon:hover .custom-price-pin {
+    transform: scale(1.15);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.5);
+}
+
+.pin-mini-logo {
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+    margin-right: 5px;
+    flex-shrink: 0;
+}
+
+.custom-price-pin.pin-verde { border-color: #22c55e; color: #166534; }
+.custom-price-pin.pin-amarillo { border-color: #eab308; color: #854d0e; }
+.custom-price-pin.pin-rojo { border-color: #ef4444; color: #991b1b; }
