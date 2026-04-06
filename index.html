@@ -24,13 +24,46 @@
 
     <main class="map-main">
         <div class="search-wrapper">
-            <div class="search-controls">
-                <input type="text" id="searchInput" placeholder="Municipio, calle, CP..." oninput="manejarEntrada()" autocomplete="off">
-                <button onclick="buscarUbicacion()">Buscar</button>
+            <div class="search-container-box">
+                <div class="search-controls">
+                    <input type="text" id="searchInput" placeholder="Municipio, calle, CP..." oninput="manejarEntrada()" autocomplete="off">
+                    <button onclick="buscarUbicacion()">Buscar</button>
+                    <button class="btn-icon" onclick="toggleFiltros()" title="Filtrar resultados">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+                    </button>
+                </div>
+                <ul id="searchResults" class="search-results"></ul>
             </div>
-            <ul id="searchResults" class="search-results"></ul>
+            
+            <div id="panelFiltros" class="filter-panel" style="display: none;">
+                <h4>Filtros</h4>
+                
+                <div class="filter-group">
+                    <label>Precio Máximo: <span id="priceLabel" class="filter-val">1.50 €/L</span></label>
+                    <input type="range" id="filterPrice" min="0.50" max="1.50" step="0.01" value="1.50" oninput="aplicarFiltros()">
+                </div>
+
+                <div class="filter-group">
+                    <label>Distancia Máxima: <span id="distanceLabel" class="filter-val">Cualquiera</span></label>
+                    <input type="range" id="filterDistance" min="0" max="50" step="1" value="0" oninput="aplicarFiltros()">
+                </div>
+
+                <div class="filter-group">
+                    <label>Marcas</label>
+                    <div class="brand-grid">
+                        <label><input type="checkbox" value="REPSOL" onchange="aplicarFiltros()"> Repsol</label>
+                        <label><input type="checkbox" value="CEPSA" onchange="aplicarFiltros()"> Cepsa/Moeve</label>
+                        <label><input type="checkbox" value="GALP" onchange="aplicarFiltros()"> Galp</label>
+                        <label><input type="checkbox" value="PLENOIL" onchange="aplicarFiltros()"> Plenoil</label>
+                        <label><input type="checkbox" value="PETROPRIX" onchange="aplicarFiltros()"> Petroprix</label>
+                        <label><input type="checkbox" value="BP" onchange="aplicarFiltros()"> BP</label>
+                        <label><input type="checkbox" value="SHELL" onchange="aplicarFiltros()"> Shell</label>
+                        <label><input type="checkbox" value="BALLENOIL" onchange="aplicarFiltros()"> Ballenoil</label>
+                    </div>
+                </div>
+            </div>
         </div>
-        
+
         <button class="btn-geo" onclick="localizarUsuario()" title="Centrar en mi ubicación">
             <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="10"></circle>
@@ -45,49 +78,130 @@
     <script>
         const map = L.map('map', { zoomControl: false }).setView([40.4168, -3.7038], 6);
         L.control.zoom({ position: 'bottomright' }).addTo(map);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 20 }).addTo(map);
+        L.tileLayer('https://mt1.google.com/vt/lyrs=s&hl=es&x={x}&y={y}&z={z}', { maxZoom: 20, attribution: '© Google' }).addTo(map);
 
         let marcadorUbicacionUsuario;
+        let puntoReferenciaDistancia = null; 
         let marcadorBusquedaDireccion;
+        let todasLasEstaciones = [];
+        let capaPinesVisibles = L.layerGroup().addTo(map);
 
-        async function cargarGasolinerasGLP() {
-            const fechaHoy = new Date().toISOString().split('T')[0];
-            const cacheFecha = localStorage.getItem('glp_fecha');
-            const cacheDatos = localStorage.getItem('glp_datos');
+        // MAPEO DE LOGOS 
+        const FALLBACK_LOGO = "Default.png";
+        const brandLogos = {
+            "REPSOL": "Repsol.png",
+            "CEPSA": "Cepsa.png",
+            "MOEVE": "Moeve.png", 
+            "GALP": "Galp.png",
+            "PLENOIL": "Plenoil.png",
+            "PETROPRIX": "Petroprix.png",
+            "BP": "BP.png",
+            "SHELL": "Shell.png",
+            "BALLENOIL": "Ballenoil.png",
+            "DEFAULT": FALLBACK_LOGO
+        };
 
-            let estacionesGLP;
-
-            if (cacheFecha === fechaHoy && cacheDatos) {
-                console.log("Cargando datos desde la caché local...");
-                estacionesGLP = JSON.parse(cacheDatos);
-            } else {
-                console.log("Descargando datos frescos del Ministerio...");
-                try {
-                    const url = 'https://sedeaplicaciones.minetur.gob.es/ServiciosRESTCarburantes/PreciosCarburantes/EstacionesTerrestres/';
-                    const respuesta = await fetch(url);
-                    const datos = await respuesta.json();
-                    
-                    estacionesGLP = datos.ListaEESSPrecio.filter(estacion => estacion['Precio Gases licuados del petróleo'] !== "");
-                    
-                    localStorage.setItem('glp_fecha', fechaHoy);
-                    localStorage.setItem('glp_datos', JSON.stringify(estacionesGLP));
-                } catch (error) {
-                    console.error("Error al cargar la API del Gobierno:", error);
-                    return; 
+        function obtenerLogo(rotulo) {
+            if (!rotulo) return brandLogos["DEFAULT"];
+            const nombre = rotulo.toUpperCase();
+            for (const marca in brandLogos) {
+                if (nombre.includes(marca) && marca !== "DEFAULT") {
+                    return brandLogos[marca];
                 }
             }
+            return brandLogos["DEFAULT"];
+        }
 
-            estacionesGLP.forEach(estacion => {
-                const marca = estacion['Rótulo'];
-                const precio = estacion['Precio Gases licuados del petróleo'].replace(',', '.');
-                const direccion = estacion['Dirección'] + ', ' + estacion['Localidad'];
+        // CONTROL DE LA INTERFAZ DE FILTROS
+        function toggleFiltros() {
+            const panel = document.getElementById('panelFiltros');
+            panel.style.display = panel.style.display === 'none' ? 'flex' : 'none';
+        }
+
+        function aplicarFiltros() {
+            const priceVal = document.getElementById('filterPrice').value;
+            document.getElementById('priceLabel').innerText = priceVal + ' €/L';
+            
+            const distVal = document.getElementById('filterDistance').value;
+            document.getElementById('distanceLabel').innerText = distVal == 0 ? 'Cualquiera' : distVal + ' km';
+            
+            actualizarPinesVisibles();
+        }
+
+        // LÓGICA DE DIBUJADO Y FILTRADO
+        function actualizarPinesVisibles() {
+            if (todasLasEstaciones.length === 0) return;
+
+            capaPinesVisibles.clearLayers();
+            const limitesMapa = map.getBounds();
+
+            const maxPrice = parseFloat(document.getElementById('filterPrice').value);
+            const maxDist = parseInt(document.getElementById('filterDistance').value);
+            
+            const brandCheckboxes = document.querySelectorAll('.brand-grid input[type="checkbox"]:checked');
+            const selectedBrands = Array.from(brandCheckboxes).map(cb => cb.value);
+
+            const estacionesFiltradas = todasLasEstaciones.filter(estacion => {
                 const lat = parseFloat(estacion['Latitud'].replace(',', '.'));
                 const lng = parseFloat(estacion['Longitud (WGS84)'].replace(',', '.'));
+                const stationLatLng = L.latLng(lat, lng);
+
+                if (!limitesMapa.contains(stationLatLng)) return false;
+
+                const precio = parseFloat(estacion['Precio Gases licuados del petróleo'].replace(',', '.'));
+                const marca = estacion['Rótulo'].toUpperCase();
+
+                if (precio > maxPrice) return false;
+
+                if (maxDist > 0 && puntoReferenciaDistancia) {
+                    const distKm = puntoReferenciaDistancia.distanceTo(stationLatLng) / 1000;
+                    if (distKm > maxDist) return false;
+                }
+
+                if (selectedBrands.length > 0) {
+                    let match = false;
+                    for (let b of selectedBrands) {
+                        if (b === 'CEPSA' && (marca.includes('CEPSA') || marca.includes('MOEVE'))) {
+                            match = true; break;
+                        } else if (marca.includes(b)) {
+                            match = true; break;
+                        }
+                    }
+                    if (!match) return false;
+                }
+
+                return true;
+            });
+
+            if (estacionesFiltradas.length === 0) return;
+
+            let sumaPrecios = 0;
+            estacionesFiltradas.forEach(estacion => {
+                sumaPrecios += parseFloat(estacion['Precio Gases licuados del petróleo'].replace(',', '.'));
+            });
+            const media = sumaPrecios / estacionesFiltradas.length;
+            const margen = 0.015; 
+
+            estacionesFiltradas.forEach(estacion => {
+                const lat = parseFloat(estacion['Latitud'].replace(',', '.'));
+                const lng = parseFloat(estacion['Longitud (WGS84)'].replace(',', '.'));
+                const marca = estacion['Rótulo'];
+                const precio = parseFloat(estacion['Precio Gases licuados del petróleo'].replace(',', '.'));
+                const direccion = estacion['Dirección'] + ', ' + estacion['Localidad'];
+
+                let claseColor = 'pin-amarillo';
+                if (precio <= media - margen) {
+                    claseColor = 'pin-verde';
+                } else if (precio >= media + margen) {
+                    claseColor = 'pin-rojo';
+                }
+
+                const logoUrl = obtenerLogo(marca);
 
                 const popupHTML = `
                     <div class="popup-header">
                         <h3>${marca}</h3>
-                        <span class="popup-price">${precio} €/L</span>
+                        <span class="popup-price">${precio.toFixed(3)} €/L</span>
                     </div>
                     <div class="popup-address">${direccion}</div>
                     <div class="nav-buttons">
@@ -95,21 +209,69 @@
                         <a href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}" target="_blank" class="btn-nav btn-gmaps">Maps</a>
                     </div>`;
                 
-                L.marker([lat, lng]).addTo(map).bindPopup(popupHTML);
+                const priceIcon = L.divIcon({
+                    className: 'custom-div-icon',
+                    html: `
+                        <div class="custom-price-pin ${claseColor}">
+                            <img src="${logoUrl}" class="pin-mini-logo" onerror="this.onerror=null; this.src='${FALLBACK_LOGO}'">
+                            <span>${precio.toFixed(3)}€</span>
+                        </div>
+                    `,
+                    iconSize: [75, 28],
+                    iconAnchor: [37.5, 14], 
+                    popupAnchor: [0, -15] 
+                });
+
+                L.marker([lat, lng], { icon: priceIcon, riseOnHover: true })
+                    .bindPopup(popupHTML)
+                    .addTo(capaPinesVisibles);
             });
+        }
+
+        // EVENTOS QUE ACTUALIZAN LOS PINES AUTOMÁTICAMENTE AL MOVER EL MAPA
+        map.on('moveend', actualizarPinesVisibles);
+        map.on('zoomend', actualizarPinesVisibles);
+
+        async function cargarGasolinerasGLP() {
+            const fechaHoy = new Date().toISOString().split('T')[0];
+            const cacheFecha = localStorage.getItem('glp_fecha');
+            const cacheDatos = localStorage.getItem('glp_datos');
+
+            if (cacheFecha === fechaHoy && cacheDatos) {
+                console.log("Cargando datos desde caché...");
+                todasLasEstaciones = JSON.parse(cacheDatos);
+            } else {
+                console.log("Descargando datos frescos del Ministerio...");
+                try {
+                    const url = 'https://sedeaplicaciones.minetur.gob.es/ServiciosRESTCarburantes/PreciosCarburantes/EstacionesTerrestres/';
+                    const respuesta = await fetch(url);
+                    const datos = await respuesta.json();
+                    todasLasEstaciones = datos.ListaEESSPrecio.filter(estacion => estacion['Precio Gases licuados del petróleo'] !== "");
+                    localStorage.setItem('glp_fecha', fechaHoy);
+                    localStorage.setItem('glp_datos', JSON.stringify(todasLasEstaciones));
+                } catch (error) {
+                    console.error("Error al cargar la API:", error);
+                    return; 
+                }
+            }
+            
+            localizarUsuario(); 
         }
 
         cargarGasolinerasGLP();
 
         function localizarUsuario() {
             if (!navigator.geolocation) {
-                alert("Tu navegador no soporta la geolocalización.");
+                console.log("Tu navegador no soporta la geolocalización.");
+                actualizarPinesVisibles();
                 return;
             }
 
             navigator.geolocation.getCurrentPosition((posicion) => {
                 const lat = posicion.coords.latitude;
                 const lng = posicion.coords.longitude;
+                
+                puntoReferenciaDistancia = L.latLng(lat, lng); 
                 
                 map.flyTo([lat, lng], 13, { duration: 1.5 });
                 
@@ -122,8 +284,9 @@
                 }).addTo(map).bindPopup("<b>Estás aquí</b>").openPopup();
 
             }, (error) => {
-                console.error("Error de geolocalización:", error);
-                alert("No hemos podido obtener tu ubicación. Revisa los permisos de tu navegador.");
+                console.warn("Geolocalización rechazada o fallida.");
+                puntoReferenciaDistancia = null;
+                actualizarPinesVisibles();
             });
         }
 
@@ -173,6 +336,8 @@
         }
 
         function irAUbicacion(lat, lon, nombreCompleto) {
+            puntoReferenciaDistancia = L.latLng(parseFloat(lat), parseFloat(lon));
+            
             map.flyTo([parseFloat(lat), parseFloat(lon)], 14, { duration: 1.5 });
             
             if (marcadorBusquedaDireccion) {
@@ -191,6 +356,8 @@
             const nombreCorto = nombreCompleto.split(',')[0];
             document.getElementById('searchInput').value = nombreCorto; 
             document.getElementById('searchResults').style.display = 'none';
+            
+            setTimeout(aplicarFiltros, 1500); 
         }
 
         map.on('click', function() {
@@ -210,7 +377,6 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
-        // Tu configuración
         const firebaseConfig = {
             apiKey: "AIzaSyD7lO3z241bBBPqi33pPnUt8Eaxhyb6W3I",
             authDomain: "glpfinder.firebaseapp.com",
@@ -227,24 +393,19 @@
         const navAuth = document.getElementById('nav-auth');
         const navLogout = document.getElementById('nav-logout');
 
-        // Escuchador en tiempo real del estado de autenticación
         onAuthStateChanged(auth, (user) => {
             if (user) {
-                // Usuario logueado
                 navAuth.style.display = 'none';
                 navLogout.style.display = 'inline-block';
             } else {
-                // Usuario sin loguear
                 navAuth.style.display = 'inline-block';
                 navLogout.style.display = 'none';
             }
         });
 
-        // Lógica para cerrar sesión
         navLogout.addEventListener('click', (e) => {
             e.preventDefault();
             signOut(auth).then(() => {
-                // Forzamos la recarga de la página para limpiar datos si fuera necesario
                 window.location.reload();
             }).catch((error) => {
                 console.error("Error al cerrar sesión:", error);
