@@ -38,7 +38,9 @@
                     <input type="text" id="searchInput" placeholder="Municipio, calle, CP..." oninput="manejarEntrada()" autocomplete="off">
                     <button onclick="buscarUbicacion()">Buscar</button>
                     <button class="btn-icon" onclick="toggleFiltros()" title="Filtrar resultados">
-                        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+                        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                        </svg>
                     </button>
                 </div>
                 <ul id="searchResults" class="search-results"></ul>
@@ -85,15 +87,17 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
+        // LÓGICA DE MAPA E INTERFAZ
         const map = L.map('map', { zoomControl: false }).setView([40.4168, -3.7038], 6);
         L.control.zoom({ position: 'bottomright' }).addTo(map);
         L.tileLayer('https://mt1.google.com/vt/lyrs=s&hl=es&x={x}&y={y}&z={z}', { maxZoom: 20, attribution: '© Google' }).addTo(map);
 
         let marcadorUbicacionUsuario;
-        let puntoReferenciaDistancia = null; 
         let marcadorBusquedaDireccion;
         let todasLasEstaciones = [];
         let capaPinesVisibles = L.layerGroup().addTo(map);
+        let puntoReferenciaDistancia = null; 
+        let misFavoritosIds = []; // Aquí se guardan los IDs de las gasolineras favoritas del usuario logueado
 
         // MAPEO DE LOGOS 
         const FALLBACK_LOGO = "Default.png";
@@ -121,6 +125,7 @@
             return brandLogos["DEFAULT"];
         }
 
+        // CONTROL DE LA INTERFAZ DE FILTROS
         function toggleFiltros() {
             const panel = document.getElementById('panelFiltros');
             panel.style.display = panel.style.display === 'none' ? 'flex' : 'none';
@@ -136,6 +141,7 @@
             actualizarPinesVisibles();
         }
 
+        // LÓGICA DE DIBUJADO Y FILTRADO
         function actualizarPinesVisibles() {
             if (todasLasEstaciones.length === 0) return;
 
@@ -148,6 +154,7 @@
             const brandCheckboxes = document.querySelectorAll('.brand-grid input[type="checkbox"]:checked');
             const selectedBrands = Array.from(brandCheckboxes).map(cb => cb.value);
 
+            // 1. Filtrar estaciones
             const estacionesFiltradas = todasLasEstaciones.filter(estacion => {
                 const lat = parseFloat(estacion['Latitud'].replace(',', '.'));
                 const lng = parseFloat(estacion['Longitud (WGS84)'].replace(',', '.'));
@@ -182,6 +189,7 @@
 
             if (estacionesFiltradas.length === 0) return;
 
+            // 2. Calcular media
             let sumaPrecios = 0;
             estacionesFiltradas.forEach(estacion => {
                 sumaPrecios += parseFloat(estacion['Precio Gases licuados del petróleo'].replace(',', '.'));
@@ -189,13 +197,16 @@
             const media = sumaPrecios / estacionesFiltradas.length;
             const margen = 0.015; 
 
+            // 3. Dibujar
             estacionesFiltradas.forEach(estacion => {
+                const idUnico = estacion['IDEESS']; // ID único del Ministerio
                 const lat = parseFloat(estacion['Latitud'].replace(',', '.'));
                 const lng = parseFloat(estacion['Longitud (WGS84)'].replace(',', '.'));
                 const marca = estacion['Rótulo'];
                 const precio = parseFloat(estacion['Precio Gases licuados del petróleo'].replace(',', '.'));
                 const direccion = estacion['Dirección'] + ', ' + estacion['Localidad'];
 
+                // Seleccionar color de la etiqueta
                 let claseColor = 'pin-amarillo';
                 if (precio <= media - margen) {
                     claseColor = 'pin-verde';
@@ -205,10 +216,18 @@
 
                 const logoUrl = obtenerLogo(marca);
 
+                // Comprobar si es favorita para pintar la estrella de amarillo
+                const esFavorita = misFavoritosIds.includes(idUnico);
+                const estrellaClase = esFavorita ? 'active' : '';
+
+                // POPUP con Estrella interactiva conectada a window.gestionarFavorito
                 const popupHTML = `
                     <div class="popup-header">
                         <h3>${marca}</h3>
-                        <span class="popup-price">${precio.toFixed(3)} €/L</span>
+                        <span class="star-btn ${estrellaClase}" 
+                              id="star-${idUnico}" 
+                              onclick="window.gestionarFavorito('${idUnico}', '${marca.replace(/'/g, "\\'")}', ${lat}, ${lng}, '${estacion['Dirección'].replace(/'/g, "\\'")}', '${estacion['Localidad'].replace(/'/g, "\\'")}')" 
+                              title="Marcar como favorita">★</span>
                     </div>
                     <div class="popup-address">${direccion}</div>
                     <div class="nav-buttons">
@@ -235,6 +254,7 @@
             });
         }
 
+        // EVENTOS QUE ACTUALIZAN LOS PINES AUTOMÁTICAMENTE AL MOVER EL MAPA
         map.on('moveend', actualizarPinesVisibles);
         map.on('zoomend', actualizarPinesVisibles);
 
@@ -246,6 +266,7 @@
             if (cacheFecha === fechaHoy && cacheDatos) {
                 console.log("Cargando datos desde caché...");
                 todasLasEstaciones = JSON.parse(cacheDatos);
+                localizarUsuario(); 
             } else {
                 console.log("Descargando datos frescos del Ministerio...");
                 try {
@@ -255,13 +276,11 @@
                     todasLasEstaciones = datos.ListaEESSPrecio.filter(estacion => estacion['Precio Gases licuados del petróleo'] !== "");
                     localStorage.setItem('glp_fecha', fechaHoy);
                     localStorage.setItem('glp_datos', JSON.stringify(todasLasEstaciones));
+                    localizarUsuario(); 
                 } catch (error) {
                     console.error("Error al cargar la API:", error);
-                    return; 
                 }
             }
-            
-            localizarUsuario(); 
         }
 
         cargarGasolinerasGLP();
@@ -382,7 +401,9 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, deleteDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
+        // CON LA NUEVA API KEY APLICADA
         const firebaseConfig = {
             apiKey: "AIzaSyB_2thDoQUjLM34QYO8nmaDAB8HqQIxtIY",
             authDomain: "glpfinder.firebaseapp.com",
@@ -395,23 +416,82 @@
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
+        const db = getFirestore(app);
 
-        const navAuth = document.getElementById('nav-auth');
-        const navProfile = document.getElementById('nav-profile');
-        const btnLogout = document.getElementById('btn-logout');
+        let usuarioActual = null;
 
-        // Control dinámico de los botones de la cabecera
-        onAuthStateChanged(auth, (user) => {
+        // Control dinámico de los botones de la cabecera y carga de favoritos
+        onAuthStateChanged(auth, async (user) => {
+            const navAuth = document.getElementById('nav-auth');
+            const navProfile = document.getElementById('nav-profile');
+            
             if (user) {
+                usuarioActual = user;
                 if(navAuth) navAuth.style.display = 'none';
                 if(navProfile) navProfile.style.display = 'inline-block';
+                
+                // Cargar favoritos de la base de datos
+                await cargarFavoritosUsuario(user.uid);
             } else {
+                usuarioActual = null;
+                misFavoritosIds = []; // Limpiamos favoritos si no hay usuario
                 if(navAuth) navAuth.style.display = 'inline-block';
                 if(navProfile) navProfile.style.display = 'none';
             }
+            
+            // Refrescamos pines para que las estrellas se pinten correctamente según el usuario
+            actualizarPinesVisibles();
         });
 
+        // Función para descargar los IDs favoritos de Firebase
+        async function cargarFavoritosUsuario(uid) {
+            try {
+                const favsRef = collection(db, "users", uid, "favoritos");
+                const snapshot = await getDocs(favsRef);
+                misFavoritosIds = snapshot.docs.map(doc => doc.id);
+            } catch (error) {
+                console.error("Error cargando favoritos:", error);
+            }
+        }
+
+        // Función global para manejar el clic en la estrella
+        window.gestionarFavorito = async (id, nombre, lat, lng, direccion, localidad) => {
+            if (!usuarioActual) {
+                alert("Debes iniciar sesión para guardar gasolineras favoritas.");
+                window.location.href = "auth.html";
+                return;
+            }
+
+            const starEl = document.getElementById(`star-${id}`);
+            const docRef = doc(db, "users", usuarioActual.uid, "favoritos", id);
+
+            try {
+                if (misFavoritosIds.includes(id)) {
+                    // Quitar de favoritos
+                    await deleteDoc(docRef);
+                    misFavoritosIds = misFavoritosIds.filter(fid => fid !== id);
+                    if(starEl) starEl.classList.remove('active');
+                } else {
+                    // Añadir a favoritos
+                    await setDoc(docRef, {
+                        nombre: nombre,
+                        lat: lat,
+                        lng: lng,
+                        direccion: direccion,
+                        localidad: localidad,
+                        fechaAgregado: new Date()
+                    });
+                    misFavoritosIds.push(id);
+                    if(starEl) starEl.classList.add('active');
+                }
+            } catch (error) {
+                console.error("Error gestionando favorito:", error);
+                alert("Hubo un error al guardar. Asegúrate de que las reglas de Firestore permiten escritura.");
+            }
+        };
+
         // Lógica de cerrar sesión
+        const btnLogout = document.getElementById('btn-logout');
         if(btnLogout) {
             btnLogout.addEventListener('click', (e) => {
                 e.preventDefault();
