@@ -24,7 +24,7 @@
                 <button class="profile-btn">Perfil <span>▼</span></button>
                 <div class="dropdown-content">
                     <a href="datos.html">Mis datos</a>
-                    <a href="favoritos.html">Mis favoritas</a>
+                    <a href="favoritas.html">Mis favoritas</a>
                     <a href="#" id="btn-logout" class="logout-option">Cerrar sesión</a>
                 </div>
             </div>
@@ -48,14 +48,17 @@
             
             <div id="panelFiltros" class="filter-panel" style="display: none;">
                 <h4>Filtros</h4>
+                
                 <div class="filter-group">
                     <label>Precio Máximo: <span id="priceLabel" class="filter-val">1.50 €/L</span></label>
                     <input type="range" id="filterPrice" min="0.50" max="1.50" step="0.01" value="1.50" oninput="aplicarFiltros()">
                 </div>
+
                 <div class="filter-group">
                     <label>Distancia Máxima: <span id="distanceLabel" class="filter-val">Cualquiera</span></label>
                     <input type="range" id="filterDistance" min="0" max="50" step="1" value="0" oninput="aplicarFiltros()">
                 </div>
+
                 <div class="filter-group">
                     <label>Marcas</label>
                     <div class="brand-grid">
@@ -84,9 +87,10 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
+        // LÓGICA DE MAPA E INTERFAZ
         const map = L.map('map', { zoomControl: false }).setView([40.4168, -3.7038], 6);
         L.control.zoom({ position: 'bottomright' }).addTo(map);
-        L.tileLayer('https://mt1.google.com/vt/lyrs=m&hl=es&x={x}&y={y}&z={z}', { maxZoom: 20 }).addTo(map);
+        L.tileLayer('https://mt1.google.com/vt/lyrs=s&hl=es&x={x}&y={y}&z={z}', { maxZoom: 20, attribution: '© Google' }).addTo(map);
 
         let marcadorUbicacionUsuario;
         let marcadorBusquedaDireccion;
@@ -97,16 +101,25 @@
 
         const FALLBACK_LOGO = "Default.png";
         const brandLogos = {
-            "REPSOL": "Repsol.png", "CEPSA": "Cepsa.png", "MOEVE": "Moeve.png", 
-            "GALP": "Galp.png", "PLENOIL": "Plenoil.png", "PETROPRIX": "Petroprix.png",
-            "BP": "BP.png", "SHELL": "Shell.png", "BALLENOIL": "Ballenoil.png", "DEFAULT": FALLBACK_LOGO
+            "REPSOL": "Repsol.png",
+            "CEPSA": "Cepsa.png",
+            "MOEVE": "Moeve.png", 
+            "GALP": "Galp.png",
+            "PLENOIL": "Plenoil.png",
+            "PETROPRIX": "Petroprix.png",
+            "BP": "BP.png",
+            "SHELL": "Shell.png",
+            "BALLENOIL": "Ballenoil.png",
+            "DEFAULT": FALLBACK_LOGO
         };
 
         function obtenerLogo(rotulo) {
             if (!rotulo) return brandLogos["DEFAULT"];
             const nombre = rotulo.toUpperCase();
             for (const marca in brandLogos) {
-                if (nombre.includes(marca) && marca !== "DEFAULT") return brandLogos[marca];
+                if (nombre.includes(marca) && marca !== "DEFAULT") {
+                    return brandLogos[marca];
+                }
             }
             return brandLogos["DEFAULT"];
         }
@@ -142,9 +155,12 @@
                 const precio = parseFloat(estacion['Precio Gases licuados del petróleo'].replace(',', '.'));
                 const marca = estacion['Rótulo'].toUpperCase();
                 if (precio > maxPrice) return false;
+
                 if (maxDist > 0 && puntoReferenciaDistancia) {
-                    if (puntoReferenciaDistancia.distanceTo(stationLatLng) / 1000 > maxDist) return false;
+                    const distKm = puntoReferenciaDistancia.distanceTo(stationLatLng) / 1000;
+                    if (distKm > maxDist) return false;
                 }
+
                 if (selectedBrands.length > 0) {
                     let match = false;
                     for (let b of selectedBrands) {
@@ -157,82 +173,87 @@
                 return true;
             });
 
+            if (estacionesFiltradas.length === 0) return;
+
             let sumaPrecios = 0;
-            estacionesFiltradas.forEach(e => sumaPrecios += parseFloat(e['Precio Gases licuados del petróleo'].replace(',', '.')));
-            const media = estacionesFiltradas.length > 0 ? sumaPrecios / estacionesFiltradas.length : 0;
-            const margen = 0.015;
+            estacionesFiltradas.forEach(estacion => sumaPrecios += parseFloat(estacion['Precio Gases licuados del petróleo'].replace(',', '.')));
+            const media = sumaPrecios / estacionesFiltradas.length;
+            const margen = 0.015; 
 
             estacionesFiltradas.forEach(estacion => {
                 const idUnico = estacion['IDEESS'];
                 const lat = parseFloat(estacion['Latitud'].replace(',', '.'));
                 const lng = parseFloat(estacion['Longitud (WGS84)'].replace(',', '.'));
+                const marca = estacion['Rótulo'];
                 const precio = parseFloat(estacion['Precio Gases licuados del petróleo'].replace(',', '.'));
-                const esFavorita = misFavoritosIds.includes(idUnico);
                 
                 let claseColor = 'pin-amarillo';
                 if (precio <= media - margen) claseColor = 'pin-verde';
                 else if (precio >= media + margen) claseColor = 'pin-rojo';
 
+                const esFavorita = misFavoritosIds.includes(idUnico);
                 const starIndicator = esFavorita ? `<span class="pin-fav-indicator">★</span>` : '';
-                
-                const icon = L.divIcon({
-                    className: 'custom-div-icon',
-                    html: `<div class="custom-price-pin ${claseColor}">${starIndicator}<img src="${obtenerLogo(estacion['Rótulo'])}" class="pin-mini-logo"><span>${precio.toFixed(3)}€</span></div>`,
-                    iconSize: [75, 28], iconAnchor: [37.5, 14], popupAnchor: [0, -15]
-                });
 
-                const popup = `
+                const popupHTML = `
                     <div class="popup-header">
-                        <h3>${estacion['Rótulo']}</h3>
-                        <span class="star-btn ${esFavorita ? 'active' : ''}" onclick="window.gestionarFavorito('${idUnico}', '${estacion['Rótulo'].replace(/'/g, "\\'")}', ${lat}, ${lng}, '${estacion['Dirección'].replace(/'/g, "\\'")}', '${estacion['Localidad'].replace(/'/g, "\\'")}', '${precio}')">★</span>
+                        <h3>${marca}</h3>
+                        <span class="star-btn ${esFavorita ? 'active' : ''}" 
+                              id="star-${idUnico}" 
+                              onclick="window.gestionarFavorito('${idUnico}', '${marca.replace(/'/g, "\\'")}', ${lat}, ${lng}, '${estacion['Dirección'].replace(/'/g, "\\'")}', '${estacion['Localidad'].replace(/'/g, "\\'")}', '${precio}')">★</span>
                     </div>
                     <div class="popup-address">${estacion['Dirección']}, ${estacion['Localidad']}</div>
                     <div class="nav-buttons">
                         <a href="https://waze.com/ul?ll=${lat},${lng}&navigate=yes" target="_blank" class="btn-nav btn-waze">Waze</a>
                         <a href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}" target="_blank" class="btn-nav btn-gmaps">Maps</a>
                     </div>`;
+                
+                const priceIcon = L.divIcon({
+                    className: 'custom-div-icon',
+                    html: `<div class="custom-price-pin ${claseColor}">${starIndicator}<img src="${obtenerLogo(marca)}" class="pin-mini-logo" onerror="this.onerror=null; this.src='${FALLBACK_LOGO}'"><span>${precio.toFixed(3)}€</span></div>`,
+                    iconSize: [75, 28], iconAnchor: [37.5, 14], popupAnchor: [0, -15] 
+                });
 
-                L.marker([lat, lng], { icon }).bindPopup(popup).addTo(capaPinesVisibles);
+                L.marker([lat, lng], { icon: priceIcon, riseOnHover: true }).bindPopup(popupHTML).addTo(capaPinesVisibles);
             });
         }
 
         map.on('moveend', actualizarPinesVisibles);
+        map.on('zoomend', actualizarPinesVisibles);
 
-        async function cargarDatos() {
+        async function cargarGasolinerasGLP() {
             try {
-                const res = await fetch('https://sedeaplicaciones.minetur.gob.es/ServiciosRESTCarburantes/PreciosCarburantes/EstacionesTerrestres/');
-                const data = await res.json();
-                todasLasEstaciones = data.ListaEESSPrecio.filter(e => e['Precio Gases licuados del petróleo']);
-                localizarUsuario();
-            } catch (e) { console.error(e); }
+                const respuesta = await fetch('https://sedeaplicaciones.minetur.gob.es/ServiciosRESTCarburantes/PreciosCarburantes/EstacionesTerrestres/');
+                const datos = await respuesta.json();
+                todasLasEstaciones = datos.ListaEESSPrecio.filter(estacion => estacion['Precio Gases licuados del petróleo'] !== "");
+                localizarUsuario(); 
+            } catch (error) { console.error("Error al cargar la API:", error); }
         }
 
+        cargarGasolinerasGLP();
+
         function localizarUsuario() {
-            navigator.geolocation.getCurrentPosition(p => {
-                const lat = p.coords.latitude, lng = p.coords.longitude;
-                puntoReferenciaDistancia = L.latLng(lat, lng);
-                map.flyTo([lat, lng], 13);
+            navigator.geolocation.getCurrentPosition((posicion) => {
+                const lat = posicion.coords.latitude, lng = posicion.coords.longitude;
+                puntoReferenciaDistancia = L.latLng(lat, lng); 
+                map.flyTo([lat, lng], 13, { duration: 1.5 });
                 if (marcadorUbicacionUsuario) map.removeLayer(marcadorUbicacionUsuario);
-                marcadorUbicacionUsuario = L.circleMarker([lat, lng], { radius: 8, fillColor: "#2563eb", color: "#fff", weight: 3, fillOpacity: 0.9 }).addTo(map);
-                actualizarPinesVisibles();
+                marcadorUbicacionUsuario = L.circleMarker([lat, lng], { radius: 8, fillColor: "#2563eb", color: "#ffffff", weight: 3, opacity: 1, fillOpacity: 0.9 }).addTo(map);
             }, () => actualizarPinesVisibles());
         }
 
-        cargarDatos();
-
         function manejarEntrada() {
-            const q = document.getElementById('searchInput').value;
-            if (q.length < 3) return;
-            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}&countrycodes=es&limit=5`)
+            const query = document.getElementById('searchInput').value;
+            if (query.length < 3) return;
+            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=es&limit=5`)
                 .then(r => r.json()).then(data => {
                     const res = document.getElementById('searchResults');
                     res.innerHTML = '';
-                    data.forEach(i => {
+                    data.forEach(item => {
                         const li = document.createElement('li');
-                        li.textContent = i.display_name;
+                        li.textContent = item.display_name;
                         li.onclick = () => {
-                            puntoReferenciaDistancia = L.latLng(i.lat, i.lon);
-                            map.flyTo([i.lat, i.lon], 14);
+                            puntoReferenciaDistancia = L.latLng(item.lat, item.lon);
+                            map.flyTo([item.lat, item.lon], 14);
                             res.style.display = 'none';
                             actualizarPinesVisibles();
                         };
@@ -268,22 +289,21 @@
             const navProfile = document.getElementById('nav-profile');
             if (user) {
                 usuarioActual = user;
-                navAuth.style.display = 'none';
-                navProfile.style.display = 'inline-block';
-                await cargarFavoritos(user.uid);
-                actualizarPinesVisibles(); // Refresco tras cargar favoritos
+                if(navAuth) navAuth.style.display = 'none';
+                if(navProfile) navProfile.style.display = 'inline-block';
+                await cargarFavoritosUsuario(user.uid);
             } else {
                 usuarioActual = null;
                 misFavoritosIds = [];
-                navAuth.style.display = 'inline-block';
-                navProfile.style.display = 'none';
-                actualizarPinesVisibles();
+                if(navAuth) navAuth.style.display = 'inline-block';
+                if(navProfile) navProfile.style.display = 'none';
             }
+            actualizarPinesVisibles();
         });
 
-        async function cargarFavoritos(uid) {
+        async function cargarFavoritosUsuario(uid) {
             const snap = await getDocs(collection(db, "users", uid, "favoritos"));
-            misFavoritosIds = snap.docs.map(d => d.id);
+            misFavoritosIds = snap.docs.map(doc => doc.id);
         }
 
         window.gestionarFavorito = async (id, nombre, lat, lng, direccion, localidad, precio) => {
@@ -291,7 +311,7 @@
             const docRef = doc(db, "users", usuarioActual.uid, "favoritos", id);
             if (misFavoritosIds.includes(id)) {
                 await deleteDoc(docRef);
-                misFavoritosIds = misFavoritosIds.filter(f => f !== id);
+                misFavoritosIds = misFavoritosIds.filter(fid => fid !== id);
             } else {
                 await setDoc(docRef, { nombre, lat, lng, direccion, localidad, precio, fecha: new Date() });
                 misFavoritosIds.push(id);
@@ -299,7 +319,10 @@
             actualizarPinesVisibles();
         };
 
-        document.getElementById('btn-logout').onclick = () => signOut(auth).then(() => location.reload());
+        document.getElementById('btn-logout').onclick = (e) => {
+            e.preventDefault();
+            signOut(auth).then(() => window.location.reload());
+        };
     </script>
 </body>
 </html>
