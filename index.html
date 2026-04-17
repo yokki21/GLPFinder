@@ -24,7 +24,7 @@
                 <button class="profile-btn">Perfil <span>▼</span></button>
                 <div class="dropdown-content">
                     <a href="mis-datos.html">Mis datos</a>
-                    <a href="favoritas.html">Mis favoritas</a>
+                    <a href="mis-favoritas.html">Mis favoritas</a>
                     <a href="#" id="btn-logout" class="logout-option">Cerrar sesión</a>
                 </div>
             </div>
@@ -189,7 +189,7 @@
 
             if (estacionesFiltradas.length === 0) return;
 
-            // 2. Calcular media
+            // 2. Calcular media para los colores del pin
             let sumaPrecios = 0;
             estacionesFiltradas.forEach(estacion => {
                 sumaPrecios += parseFloat(estacion['Precio Gases licuados del petróleo'].replace(',', '.'));
@@ -216,9 +216,12 @@
 
                 const logoUrl = obtenerLogo(marca);
 
-                // Comprobar si es favorita para pintar la estrella de amarillo
+                // Comprobar si es favorita para pintar la estrella
                 const esFavorita = misFavoritosIds.includes(idUnico);
                 const estrellaClase = esFavorita ? 'active' : '';
+                
+                // Indicador visual en la esquina superior del pin si es favorita
+                const starIndicator = esFavorita ? `<span class="pin-fav-indicator">★</span>` : '';
 
                 // POPUP con Estrella interactiva conectada a window.gestionarFavorito
                 const popupHTML = `
@@ -226,7 +229,7 @@
                         <h3>${marca}</h3>
                         <span class="star-btn ${estrellaClase}" 
                               id="star-${idUnico}" 
-                              onclick="window.gestionarFavorito('${idUnico}', '${marca.replace(/'/g, "\\'")}', ${lat}, ${lng}, '${estacion['Dirección'].replace(/'/g, "\\'")}', '${estacion['Localidad'].replace(/'/g, "\\'")}')" 
+                              onclick="window.gestionarFavorito('${idUnico}', '${marca.replace(/'/g, "\\'")}', ${lat}, ${lng}, '${estacion['Dirección'].replace(/'/g, "\\'")}', '${estacion['Localidad'].replace(/'/g, "\\'")}', '${precio}')" 
                               title="Marcar como favorita">★</span>
                     </div>
                     <div class="popup-address">${direccion}</div>
@@ -239,6 +242,7 @@
                     className: 'custom-div-icon',
                     html: `
                         <div class="custom-price-pin ${claseColor}">
+                            ${starIndicator}
                             <img src="${logoUrl}" class="pin-mini-logo" onerror="this.onerror=null; this.src='${FALLBACK_LOGO}'">
                             <span>${precio.toFixed(3)}€</span>
                         </div>
@@ -403,7 +407,7 @@
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, deleteDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-        // CON LA NUEVA API KEY APLICADA
+        // CONFIGURACIÓN CON TU API KEY
         const firebaseConfig = {
             apiKey: "AIzaSyB_2thDoQUjLM34QYO8nmaDAB8HqQIxtIY",
             authDomain: "glpfinder.firebaseapp.com",
@@ -455,7 +459,7 @@
         }
 
         // Función global para manejar el clic en la estrella
-        window.gestionarFavorito = async (id, nombre, lat, lng, direccion, localidad) => {
+        window.gestionarFavorito = async (id, nombre, lat, lng, direccion, localidad, precio) => {
             if (!usuarioActual) {
                 alert("Debes iniciar sesión para guardar gasolineras favoritas.");
                 window.location.href = "auth.html";
@@ -472,21 +476,25 @@
                     misFavoritosIds = misFavoritosIds.filter(fid => fid !== id);
                     if(starEl) starEl.classList.remove('active');
                 } else {
-                    // Añadir a favoritos
+                    // Añadir a favoritos guardando el precio
                     await setDoc(docRef, {
                         nombre: nombre,
                         lat: lat,
                         lng: lng,
                         direccion: direccion,
                         localidad: localidad,
+                        precio: precio,
                         fechaAgregado: new Date()
                     });
                     misFavoritosIds.push(id);
                     if(starEl) starEl.classList.add('active');
                 }
+                
+                // Refrescamos los pines para que aparezca/desaparezca la estrella en el mapa
+                actualizarPinesVisibles();
             } catch (error) {
                 console.error("Error gestionando favorito:", error);
-                alert("Hubo un error al guardar. Asegúrate de que las reglas de Firestore permiten escritura.");
+                alert("Hubo un error al guardar en la base de datos.");
             }
         };
 
