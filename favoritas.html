@@ -57,6 +57,7 @@
             font-weight: 700;
             color: var(--text-main);
             margin: 0;
+            line-height: 1.2;
         }
 
         .fav-address {
@@ -131,9 +132,9 @@
         </div>
 
         <div id="fav-container" class="fav-grid">
-            <div class="empty-state">
+            <div class="empty-state" style="grid-column: 1 / -1;">
                 <h3>Cargando tus favoritas...</h3>
-                <p>Conectando con la base de datos.</p>
+                <p>Conectando con la base de datos y obteniendo los precios en tiempo real.</p>
             </div>
         </div>
     </main>
@@ -143,7 +144,7 @@
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
         import { getFirestore, collection, getDocs, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-        // CON LA NUEVA API KEY
+        // CON LA NUEVA API KEY APLICADA
         const firebaseConfig = {
             apiKey: "AIzaSyB_2thDoQUjLM34QYO8nmaDAB8HqQIxtIY",
             authDomain: "glpfinder.firebaseapp.com",
@@ -158,6 +159,7 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
+        // MAPEO DE LOGOS
         const FALLBACK_LOGO = "Default.png";
         const brandLogos = {
             "REPSOL": "Repsol.png", "CEPSA": "Cepsa.png", "MOEVE": "Moeve.png", 
@@ -185,10 +187,10 @@
             if (user) {
                 usuarioActual = user;
                 if(navProfile) navProfile.style.display = 'inline-block';
-                // Descargar y pintar las favoritas
+                // Descargar y pintar las favoritas con precios actualizados
                 await cargarYRenderizarFavoritas(user.uid);
             } else {
-                // Si alguien entra sin loguear, lo echamos a la página de login
+                // Si alguien entra sin loguear, lo redirigimos al login
                 window.location.href = "auth.html";
             }
         });
@@ -204,11 +206,12 @@
             });
         }
 
-        // DESCARGAR Y PINTAR DATOS DE FIRESTORE
+        // DESCARGAR DATOS DE FIRESTORE Y CRUZARLOS CON LA API
         async function cargarYRenderizarFavoritas(uid) {
             const container = document.getElementById('fav-container');
             
             try {
+                // 1. Descargamos la lista de favoritas del usuario desde Firebase
                 const favsRef = collection(db, "users", uid, "favoritos");
                 const snapshot = await getDocs(favsRef);
 
@@ -216,32 +219,57 @@
                     container.innerHTML = `
                         <div class="empty-state" style="grid-column: 1 / -1;">
                             <h3>Aún no tienes gasolineras favoritas</h3>
-                            <p>Ve al mapa, busca tus estaciones de confianza y pulsa la estrella amarilla para guardarlas aquí.</p>
+                            <p>Ve al mapa, busca tus estaciones de confianza y pulsa la estrella para guardarlas aquí.</p>
                             <a href="index.html" class="btn-primary" style="display: inline-block; width: auto; margin-top: 15px; text-decoration: none;">Ir al mapa</a>
                         </div>
                     `;
                     return;
                 }
 
+                // 2. Descargamos los datos actualizados del Ministerio
+                let todasLasEstacionesAPI = [];
+                try {
+                    const res = await fetch('https://sedeaplicaciones.minetur.gob.es/ServiciosRESTCarburantes/PreciosCarburantes/EstacionesTerrestres/');
+                    const apiData = await res.json();
+                    todasLasEstacionesAPI = apiData.ListaEESSPrecio;
+                } catch (apiError) {
+                    console.error("Error obteniendo datos en vivo del Ministerio:", apiError);
+                    // Si la API falla, continuaremos usando el precio guardado en Firebase como respaldo
+                }
+
                 container.innerHTML = ''; // Limpiar el estado de carga
 
+                // 3. Cruzar datos y dibujar tarjetas
                 snapshot.forEach(docSnap => {
                     const data = docSnap.data();
                     const idUnico = docSnap.id;
                     const logoUrl = obtenerLogo(data.nombre);
+                    
+                    // Buscar si la gasolinera está en los datos frescos de la API
+                    const datosFresco = todasLasEstacionesAPI.find(estacion => estacion['IDEESS'] === idUnico);
+                    
+                    // Si está en la API, usamos el precio actual. Si no, usamos el que guardamos en la base de datos
+                    let precioMostrar = data.precio; // Fallback al precio guardado
+                    if (datosFresco && datosFresco['Precio Gases licuados del petróleo']) {
+                        precioMostrar = datosFresco['Precio Gases licuados del petróleo'].replace(',', '.');
+                    }
 
-                    // Crear la tarjeta
+                    const precioFormateado = parseFloat(precioMostrar).toFixed(3);
+
+                    // Crear la tarjeta HTML
                     const cardHTML = `
                         <div class="fav-card" id="card-${idUnico}">
                             <div class="fav-card-header">
                                 <img src="${logoUrl}" alt="Logo" class="fav-logo" onerror="this.onerror=null; this.src='${FALLBACK_LOGO}'">
                                 <h3 class="fav-title">${data.nombre}</h3>
                             </div>
+                            
+                            <span class="fav-price-tag">${precioFormateado} €/L</span>
                             <p class="fav-address">📍 ${data.direccion}, ${data.localidad}</p>
                             
                             <div class="fav-actions">
                                 <a href="https://waze.com/ul?ll=${data.lat},${data.lng}&navigate=yes" target="_blank" class="btn-nav btn-waze">Waze</a>
-                                <a href="https://www.google.com/maps/dir/?api=1&destination=$${data.lat},${data.lng}" target="_blank" class="btn-nav btn-gmaps">Maps</a>
+                                <a href="https://www.google.com/maps/search/?api=1&query=${data.lat},${data.lng}" target="_blank" class="btn-nav btn-gmaps">Maps</a>
                                 <button class="btn-remove" onclick="window.eliminarFavorita('${idUnico}')" title="Eliminar de favoritas">
                                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <polyline points="3 6 5 6 21 6"></polyline>
@@ -277,13 +305,16 @@
                 const docRef = doc(db, "users", usuarioActual.uid, "favoritos", idUnico);
                 await deleteDoc(docRef);
 
-                // Hacer desaparecer la tarjeta con un efecto suave
+                // Hacer desaparecer la tarjeta visualmente
                 const card = document.getElementById(`card-${idUnico}`);
                 if (card) {
                     card.style.opacity = '0';
+                    card.style.transform = 'scale(0.9)';
+                    card.style.transition = 'all 0.3s ease';
+                    
                     setTimeout(() => {
                         card.remove();
-                        // Si nos quedamos sin favoritas, recargamos para mostrar el mensaje de vacío
+                        // Si nos quedamos sin favoritas, recargamos la vista para mostrar el mensaje de vacío
                         const container = document.getElementById('fav-container');
                         if (container.children.length === 0) {
                             cargarYRenderizarFavoritas(usuarioActual.uid);
