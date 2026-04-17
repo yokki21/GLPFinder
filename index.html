@@ -18,7 +18,15 @@
         <div class="nav-links">
             <a href="contacto.html">Contacto</a>
             <a href="auth.html" id="nav-auth">Acceder / Registro</a>
-            <a href="#" id="nav-logout" style="display: none;">Cerrar sesión</a>
+            
+            <div class="profile-dropdown" id="nav-profile" style="display: none;">
+                <button class="profile-btn">Perfil <span>▼</span></button>
+                <div class="dropdown-content">
+                    <a href="mis-datos.html">Mis datos</a>
+                    <a href="mis-favoritas.html">Mis favoritas</a>
+                    <a href="#" id="btn-logout" class="logout-option">Cerrar sesión</a>
+                </div>
+            </div>
         </div>
     </header>
 
@@ -378,7 +386,7 @@
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
         const firebaseConfig = {
-            apiKey: "AIzaSyB_2thDoQUjLM34QYO8nmaDAB8HqQIxtIY",
+            apiKey: "AIzaSyD7lO3z241bBBPqi33pPnUt8Eaxhyb6W3I",
             authDomain: "glpfinder.firebaseapp.com",
             projectId: "glpfinder",
             storageBucket: "glpfinder.firebasestorage.app",
@@ -391,19 +399,22 @@
         const auth = getAuth(app);
 
         const navAuth = document.getElementById('nav-auth');
-        const navLogout = document.getElementById('nav-logout');
+        const navProfile = document.getElementById('nav-profile');
+        const btnLogout = document.getElementById('btn-logout');
 
+        // Control de visibilidad del botón de Perfil / Login según Firebase
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 navAuth.style.display = 'none';
-                navLogout.style.display = 'inline-block';
+                navProfile.style.display = 'inline-block';
             } else {
                 navAuth.style.display = 'inline-block';
-                navLogout.style.display = 'none';
+                navProfile.style.display = 'none';
             }
         });
 
-        navLogout.addEventListener('click', (e) => {
+        // Lógica del botón cerrar sesión integrado en el menú
+        btnLogout.addEventListener('click', (e) => {
             e.preventDefault();
             signOut(auth).then(() => {
                 window.location.reload();
