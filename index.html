@@ -24,7 +24,7 @@
                 <button class="profile-btn">Perfil <span>▼</span></button>
                 <div class="dropdown-content">
                     <a href="datos.html">Mis datos</a>
-                    <a href="favoritas.html">Mis favoritas</a>
+                    <a href="favoritos.html">Mis favoritas</a>
                     <a href="#" id="btn-logout" class="logout-option">Cerrar sesión</a>
                 </div>
             </div>
@@ -48,17 +48,14 @@
             
             <div id="panelFiltros" class="filter-panel" style="display: none;">
                 <h4>Filtros</h4>
-                
                 <div class="filter-group">
                     <label>Precio Máximo: <span id="priceLabel" class="filter-val">1.50 €/L</span></label>
                     <input type="range" id="filterPrice" min="0.50" max="1.50" step="0.01" value="1.50" oninput="aplicarFiltros()">
                 </div>
-
                 <div class="filter-group">
                     <label>Distancia Máxima: <span id="distanceLabel" class="filter-val">Cualquiera</span></label>
                     <input type="range" id="filterDistance" min="0" max="50" step="1" value="0" oninput="aplicarFiltros()">
                 </div>
-
                 <div class="filter-group">
                     <label>Marcas</label>
                     <div class="brand-grid">
@@ -87,45 +84,33 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // LÓGICA DE MAPA E INTERFAZ
         const map = L.map('map', { zoomControl: false }).setView([40.4168, -3.7038], 6);
         L.control.zoom({ position: 'bottomright' }).addTo(map);
-        L.tileLayer('https://mt1.google.com/vt/lyrs=s&hl=es&x={x}&y={y}&z={z}', { maxZoom: 20, attribution: '© Google' }).addTo(map);
+        L.tileLayer('https://mt1.google.com/vt/lyrs=m&hl=es&x={x}&y={y}&z={z}', { maxZoom: 20 }).addTo(map);
 
         let marcadorUbicacionUsuario;
         let marcadorBusquedaDireccion;
         let todasLasEstaciones = [];
         let capaPinesVisibles = L.layerGroup().addTo(map);
         let puntoReferenciaDistancia = null; 
-        let misFavoritosIds = []; // Aquí se guardan los IDs de las gasolineras favoritas del usuario logueado
+        let misFavoritosIds = []; 
 
-        // MAPEO DE LOGOS 
         const FALLBACK_LOGO = "Default.png";
         const brandLogos = {
-            "REPSOL": "Repsol.png",
-            "CEPSA": "Cepsa.png",
-            "MOEVE": "Moeve.png", 
-            "GALP": "Galp.png",
-            "PLENOIL": "Plenoil.png",
-            "PETROPRIX": "Petroprix.png",
-            "BP": "BP.png",
-            "SHELL": "Shell.png",
-            "BALLENOIL": "Ballenoil.png",
-            "DEFAULT": FALLBACK_LOGO
+            "REPSOL": "Repsol.png", "CEPSA": "Cepsa.png", "MOEVE": "Moeve.png", 
+            "GALP": "Galp.png", "PLENOIL": "Plenoil.png", "PETROPRIX": "Petroprix.png",
+            "BP": "BP.png", "SHELL": "Shell.png", "BALLENOIL": "Ballenoil.png", "DEFAULT": FALLBACK_LOGO
         };
 
         function obtenerLogo(rotulo) {
             if (!rotulo) return brandLogos["DEFAULT"];
             const nombre = rotulo.toUpperCase();
             for (const marca in brandLogos) {
-                if (nombre.includes(marca) && marca !== "DEFAULT") {
-                    return brandLogos[marca];
-                }
+                if (nombre.includes(marca) && marca !== "DEFAULT") return brandLogos[marca];
             }
             return brandLogos["DEFAULT"];
         }
 
-        // CONTROL DE LA INTERFAZ DE FILTROS
         function toggleFiltros() {
             const panel = document.getElementById('panelFiltros');
             panel.style.display = panel.style.display === 'none' ? 'flex' : 'none';
@@ -134,271 +119,127 @@
         function aplicarFiltros() {
             const priceVal = document.getElementById('filterPrice').value;
             document.getElementById('priceLabel').innerText = priceVal + ' €/L';
-            
             const distVal = document.getElementById('filterDistance').value;
             document.getElementById('distanceLabel').innerText = distVal == 0 ? 'Cualquiera' : distVal + ' km';
-            
             actualizarPinesVisibles();
         }
 
-        // LÓGICA DE DIBUJADO Y FILTRADO
         function actualizarPinesVisibles() {
             if (todasLasEstaciones.length === 0) return;
-
             capaPinesVisibles.clearLayers();
             const limitesMapa = map.getBounds();
-
             const maxPrice = parseFloat(document.getElementById('filterPrice').value);
             const maxDist = parseInt(document.getElementById('filterDistance').value);
-            
             const brandCheckboxes = document.querySelectorAll('.brand-grid input[type="checkbox"]:checked');
             const selectedBrands = Array.from(brandCheckboxes).map(cb => cb.value);
 
-            // 1. Filtrar estaciones
             const estacionesFiltradas = todasLasEstaciones.filter(estacion => {
                 const lat = parseFloat(estacion['Latitud'].replace(',', '.'));
                 const lng = parseFloat(estacion['Longitud (WGS84)'].replace(',', '.'));
                 const stationLatLng = L.latLng(lat, lng);
-
                 if (!limitesMapa.contains(stationLatLng)) return false;
 
                 const precio = parseFloat(estacion['Precio Gases licuados del petróleo'].replace(',', '.'));
                 const marca = estacion['Rótulo'].toUpperCase();
-
                 if (precio > maxPrice) return false;
-
                 if (maxDist > 0 && puntoReferenciaDistancia) {
-                    const distKm = puntoReferenciaDistancia.distanceTo(stationLatLng) / 1000;
-                    if (distKm > maxDist) return false;
+                    if (puntoReferenciaDistancia.distanceTo(stationLatLng) / 1000 > maxDist) return false;
                 }
-
                 if (selectedBrands.length > 0) {
                     let match = false;
                     for (let b of selectedBrands) {
-                        if (b === 'CEPSA' && (marca.includes('CEPSA') || marca.includes('MOEVE'))) {
-                            match = true; break;
-                        } else if (marca.includes(b)) {
+                        if ((b === 'CEPSA' && (marca.includes('CEPSA') || marca.includes('MOEVE'))) || marca.includes(b)) {
                             match = true; break;
                         }
                     }
                     if (!match) return false;
                 }
-
                 return true;
             });
 
-            if (estacionesFiltradas.length === 0) return;
-
-            // 2. Calcular media para los colores del pin
             let sumaPrecios = 0;
-            estacionesFiltradas.forEach(estacion => {
-                sumaPrecios += parseFloat(estacion['Precio Gases licuados del petróleo'].replace(',', '.'));
-            });
-            const media = sumaPrecios / estacionesFiltradas.length;
-            const margen = 0.015; 
+            estacionesFiltradas.forEach(e => sumaPrecios += parseFloat(e['Precio Gases licuados del petróleo'].replace(',', '.')));
+            const media = estacionesFiltradas.length > 0 ? sumaPrecios / estacionesFiltradas.length : 0;
+            const margen = 0.015;
 
-            // 3. Dibujar
             estacionesFiltradas.forEach(estacion => {
-                const idUnico = estacion['IDEESS']; // ID único del Ministerio
+                const idUnico = estacion['IDEESS'];
                 const lat = parseFloat(estacion['Latitud'].replace(',', '.'));
                 const lng = parseFloat(estacion['Longitud (WGS84)'].replace(',', '.'));
-                const marca = estacion['Rótulo'];
                 const precio = parseFloat(estacion['Precio Gases licuados del petróleo'].replace(',', '.'));
-                const direccion = estacion['Dirección'] + ', ' + estacion['Localidad'];
-
-                // Seleccionar color de la etiqueta
-                let claseColor = 'pin-amarillo';
-                if (precio <= media - margen) {
-                    claseColor = 'pin-verde';
-                } else if (precio >= media + margen) {
-                    claseColor = 'pin-rojo';
-                }
-
-                const logoUrl = obtenerLogo(marca);
-
-                // Comprobar si es favorita para pintar la estrella
                 const esFavorita = misFavoritosIds.includes(idUnico);
-                const estrellaClase = esFavorita ? 'active' : '';
                 
-                // Indicador visual en la esquina superior del pin si es favorita
-                const starIndicator = esFavorita ? `<span class="pin-fav-indicator">★</span>` : '';
+                let claseColor = 'pin-amarillo';
+                if (precio <= media - margen) claseColor = 'pin-verde';
+                else if (precio >= media + margen) claseColor = 'pin-rojo';
 
-                // POPUP con Estrella interactiva conectada a window.gestionarFavorito
-                const popupHTML = `
+                const starIndicator = esFavorita ? `<span class="pin-fav-indicator">★</span>` : '';
+                
+                const icon = L.divIcon({
+                    className: 'custom-div-icon',
+                    html: `<div class="custom-price-pin ${claseColor}">${starIndicator}<img src="${obtenerLogo(estacion['Rótulo'])}" class="pin-mini-logo"><span>${precio.toFixed(3)}€</span></div>`,
+                    iconSize: [75, 28], iconAnchor: [37.5, 14], popupAnchor: [0, -15]
+                });
+
+                const popup = `
                     <div class="popup-header">
-                        <h3>${marca}</h3>
-                        <span class="star-btn ${estrellaClase}" 
-                              id="star-${idUnico}" 
-                              onclick="window.gestionarFavorito('${idUnico}', '${marca.replace(/'/g, "\\'")}', ${lat}, ${lng}, '${estacion['Dirección'].replace(/'/g, "\\'")}', '${estacion['Localidad'].replace(/'/g, "\\'")}', '${precio}')" 
-                              title="Marcar como favorita">★</span>
+                        <h3>${estacion['Rótulo']}</h3>
+                        <span class="star-btn ${esFavorita ? 'active' : ''}" onclick="window.gestionarFavorito('${idUnico}', '${estacion['Rótulo'].replace(/'/g, "\\'")}', ${lat}, ${lng}, '${estacion['Dirección'].replace(/'/g, "\\'")}', '${estacion['Localidad'].replace(/'/g, "\\'")}', '${precio}')">★</span>
                     </div>
-                    <div class="popup-address">${direccion}</div>
+                    <div class="popup-address">${estacion['Dirección']}, ${estacion['Localidad']}</div>
                     <div class="nav-buttons">
                         <a href="https://waze.com/ul?ll=${lat},${lng}&navigate=yes" target="_blank" class="btn-nav btn-waze">Waze</a>
                         <a href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}" target="_blank" class="btn-nav btn-gmaps">Maps</a>
                     </div>`;
-                
-                const priceIcon = L.divIcon({
-                    className: 'custom-div-icon',
-                    html: `
-                        <div class="custom-price-pin ${claseColor}">
-                            ${starIndicator}
-                            <img src="${logoUrl}" class="pin-mini-logo" onerror="this.onerror=null; this.src='${FALLBACK_LOGO}'">
-                            <span>${precio.toFixed(3)}€</span>
-                        </div>
-                    `,
-                    iconSize: [75, 28],
-                    iconAnchor: [37.5, 14], 
-                    popupAnchor: [0, -15] 
-                });
 
-                L.marker([lat, lng], { icon: priceIcon, riseOnHover: true })
-                    .bindPopup(popupHTML)
-                    .addTo(capaPinesVisibles);
+                L.marker([lat, lng], { icon }).bindPopup(popup).addTo(capaPinesVisibles);
             });
         }
 
-        // EVENTOS QUE ACTUALIZAN LOS PINES AUTOMÁTICAMENTE AL MOVER EL MAPA
         map.on('moveend', actualizarPinesVisibles);
-        map.on('zoomend', actualizarPinesVisibles);
 
-        async function cargarGasolinerasGLP() {
-            const fechaHoy = new Date().toISOString().split('T')[0];
-            const cacheFecha = localStorage.getItem('glp_fecha');
-            const cacheDatos = localStorage.getItem('glp_datos');
-
-            if (cacheFecha === fechaHoy && cacheDatos) {
-                console.log("Cargando datos desde caché...");
-                todasLasEstaciones = JSON.parse(cacheDatos);
-                localizarUsuario(); 
-            } else {
-                console.log("Descargando datos frescos del Ministerio...");
-                try {
-                    const url = 'https://sedeaplicaciones.minetur.gob.es/ServiciosRESTCarburantes/PreciosCarburantes/EstacionesTerrestres/';
-                    const respuesta = await fetch(url);
-                    const datos = await respuesta.json();
-                    todasLasEstaciones = datos.ListaEESSPrecio.filter(estacion => estacion['Precio Gases licuados del petróleo'] !== "");
-                    localStorage.setItem('glp_fecha', fechaHoy);
-                    localStorage.setItem('glp_datos', JSON.stringify(todasLasEstaciones));
-                    localizarUsuario(); 
-                } catch (error) {
-                    console.error("Error al cargar la API:", error);
-                }
-            }
+        async function cargarDatos() {
+            try {
+                const res = await fetch('https://sedeaplicaciones.minetur.gob.es/ServiciosRESTCarburantes/PreciosCarburantes/EstacionesTerrestres/');
+                const data = await res.json();
+                todasLasEstaciones = data.ListaEESSPrecio.filter(e => e['Precio Gases licuados del petróleo']);
+                localizarUsuario();
+            } catch (e) { console.error(e); }
         }
-
-        cargarGasolinerasGLP();
 
         function localizarUsuario() {
-            if (!navigator.geolocation) {
-                console.log("Tu navegador no soporta la geolocalización.");
+            navigator.geolocation.getCurrentPosition(p => {
+                const lat = p.coords.latitude, lng = p.coords.longitude;
+                puntoReferenciaDistancia = L.latLng(lat, lng);
+                map.flyTo([lat, lng], 13);
+                if (marcadorUbicacionUsuario) map.removeLayer(marcadorUbicacionUsuario);
+                marcadorUbicacionUsuario = L.circleMarker([lat, lng], { radius: 8, fillColor: "#2563eb", color: "#fff", weight: 3, fillOpacity: 0.9 }).addTo(map);
                 actualizarPinesVisibles();
-                return;
-            }
-
-            navigator.geolocation.getCurrentPosition((posicion) => {
-                const lat = posicion.coords.latitude;
-                const lng = posicion.coords.longitude;
-                
-                puntoReferenciaDistancia = L.latLng(lat, lng); 
-                
-                map.flyTo([lat, lng], 13, { duration: 1.5 });
-                
-                if (marcadorUbicacionUsuario) {
-                    map.removeLayer(marcadorUbicacionUsuario);
-                }
-                
-                marcadorUbicacionUsuario = L.circleMarker([lat, lng], {
-                    radius: 8, fillColor: "#2563eb", color: "#ffffff", weight: 3, opacity: 1, fillOpacity: 0.9
-                }).addTo(map).bindPopup("<b>Estás aquí</b>").openPopup();
-
-            }, (error) => {
-                console.warn("Geolocalización rechazada o fallida.");
-                puntoReferenciaDistancia = null;
-                actualizarPinesVisibles();
-            });
+            }, () => actualizarPinesVisibles());
         }
 
-        let temporizadorBusqueda;
+        cargarDatos();
 
         function manejarEntrada() {
-            const query = document.getElementById('searchInput').value;
-            const resultsContainer = document.getElementById('searchResults');
-            
-            clearTimeout(temporizadorBusqueda);
-            
-            if (query.length < 3) {
-                resultsContainer.style.display = 'none';
-                return; 
-            }
-
-            temporizadorBusqueda = setTimeout(() => {
-                ejecutarBusquedaEnVivo(query);
-            }, 500);
-        }
-
-        async function ejecutarBusquedaEnVivo(query) {
-            const resultsContainer = document.getElementById('searchResults');
-            
-            try {
-                const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=es&limit=5`;
-                const res = await fetch(url);
-                const data = await res.json();
-
-                resultsContainer.innerHTML = '';
-
-                if (data.length > 0) {
-                    data.forEach(item => {
+            const q = document.getElementById('searchInput').value;
+            if (q.length < 3) return;
+            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}&countrycodes=es&limit=5`)
+                .then(r => r.json()).then(data => {
+                    const res = document.getElementById('searchResults');
+                    res.innerHTML = '';
+                    data.forEach(i => {
                         const li = document.createElement('li');
-                        li.textContent = item.display_name;
-                        li.onclick = () => irAUbicacion(item.lat, item.lon, item.display_name);
-                        resultsContainer.appendChild(li);
+                        li.textContent = i.display_name;
+                        li.onclick = () => {
+                            puntoReferenciaDistancia = L.latLng(i.lat, i.lon);
+                            map.flyTo([i.lat, i.lon], 14);
+                            res.style.display = 'none';
+                            actualizarPinesVisibles();
+                        };
+                        res.appendChild(li);
                     });
-                    resultsContainer.style.display = 'block';
-                } else {
-                    resultsContainer.innerHTML = '<li style="color: #ef4444;">No se ha encontrado ninguna ubicación.</li>';
-                    resultsContainer.style.display = 'block';
-                }
-            } catch (e) { 
-                console.error("Error en la búsqueda:", e); 
-            }
-        }
-
-        function irAUbicacion(lat, lon, nombreCompleto) {
-            puntoReferenciaDistancia = L.latLng(parseFloat(lat), parseFloat(lon));
-            
-            map.flyTo([parseFloat(lat), parseFloat(lon)], 14, { duration: 1.5 });
-            
-            if (marcadorBusquedaDireccion) {
-                map.removeLayer(marcadorBusquedaDireccion);
-            }
-
-            marcadorBusquedaDireccion = L.marker([parseFloat(lat), parseFloat(lon)])
-                .addTo(map)
-                .bindPopup(`<b>Resultados cerca de:</b><br>${nombreCompleto}`)
-                .openPopup();
-
-            if (marcadorBusquedaDireccion._icon) {
-                marcadorBusquedaDireccion._icon.style.filter = "hue-rotate(140deg) brightness(0.9) saturate(2)";
-            }
-
-            const nombreCorto = nombreCompleto.split(',')[0];
-            document.getElementById('searchInput').value = nombreCorto; 
-            document.getElementById('searchResults').style.display = 'none';
-            
-            setTimeout(aplicarFiltros, 1500); 
-        }
-
-        map.on('click', function() {
-            document.getElementById('searchResults').style.display = 'none';
-        });
-        
-        function buscarUbicacion() {
-            const query = document.getElementById('searchInput').value;
-            if (query.length >= 3) {
-                clearTimeout(temporizadorBusqueda);
-                ejecutarBusquedaEnVivo(query);
-            }
+                    res.style.display = 'block';
+                });
         }
     </script>
 
@@ -407,15 +248,13 @@
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, deleteDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-        // CONFIGURACIÓN CON TU API KEY
         const firebaseConfig = {
             apiKey: "AIzaSyB_2thDoQUjLM34QYO8nmaDAB8HqQIxtIY",
             authDomain: "glpfinder.firebaseapp.com",
             projectId: "glpfinder",
             storageBucket: "glpfinder.firebasestorage.app",
             messagingSenderId: "173596798895",
-            appId: "1:173596798895:web:d883035f89fa2c139fc95a",
-            measurementId: "G-XKYS61F0DC"
+            appId: "1:173596798895:web:d883035f89fa2c139fc95a"
         };
 
         const app = initializeApp(firebaseConfig);
@@ -424,92 +263,43 @@
 
         let usuarioActual = null;
 
-        // Control dinámico de los botones de la cabecera y carga de favoritos
         onAuthStateChanged(auth, async (user) => {
             const navAuth = document.getElementById('nav-auth');
             const navProfile = document.getElementById('nav-profile');
-            
             if (user) {
                 usuarioActual = user;
-                if(navAuth) navAuth.style.display = 'none';
-                if(navProfile) navProfile.style.display = 'inline-block';
-                
-                // Cargar favoritos de la base de datos
-                await cargarFavoritosUsuario(user.uid);
+                navAuth.style.display = 'none';
+                navProfile.style.display = 'inline-block';
+                await cargarFavoritos(user.uid);
+                actualizarPinesVisibles(); // Refresco tras cargar favoritos
             } else {
                 usuarioActual = null;
-                misFavoritosIds = []; // Limpiamos favoritos si no hay usuario
-                if(navAuth) navAuth.style.display = 'inline-block';
-                if(navProfile) navProfile.style.display = 'none';
+                misFavoritosIds = [];
+                navAuth.style.display = 'inline-block';
+                navProfile.style.display = 'none';
+                actualizarPinesVisibles();
             }
-            
-            // Refrescamos pines para que las estrellas se pinten correctamente según el usuario
-            actualizarPinesVisibles();
         });
 
-        // Función para descargar los IDs favoritos de Firebase
-        async function cargarFavoritosUsuario(uid) {
-            try {
-                const favsRef = collection(db, "users", uid, "favoritos");
-                const snapshot = await getDocs(favsRef);
-                misFavoritosIds = snapshot.docs.map(doc => doc.id);
-            } catch (error) {
-                console.error("Error cargando favoritos:", error);
-            }
+        async function cargarFavoritos(uid) {
+            const snap = await getDocs(collection(db, "users", uid, "favoritos"));
+            misFavoritosIds = snap.docs.map(d => d.id);
         }
 
-        // Función global para manejar el clic en la estrella
         window.gestionarFavorito = async (id, nombre, lat, lng, direccion, localidad, precio) => {
-            if (!usuarioActual) {
-                alert("Debes iniciar sesión para guardar gasolineras favoritas.");
-                window.location.href = "auth.html";
-                return;
-            }
-
-            const starEl = document.getElementById(`star-${id}`);
+            if (!usuarioActual) return window.location.href = "auth.html";
             const docRef = doc(db, "users", usuarioActual.uid, "favoritos", id);
-
-            try {
-                if (misFavoritosIds.includes(id)) {
-                    // Quitar de favoritos
-                    await deleteDoc(docRef);
-                    misFavoritosIds = misFavoritosIds.filter(fid => fid !== id);
-                    if(starEl) starEl.classList.remove('active');
-                } else {
-                    // Añadir a favoritos guardando el precio
-                    await setDoc(docRef, {
-                        nombre: nombre,
-                        lat: lat,
-                        lng: lng,
-                        direccion: direccion,
-                        localidad: localidad,
-                        precio: precio,
-                        fechaAgregado: new Date()
-                    });
-                    misFavoritosIds.push(id);
-                    if(starEl) starEl.classList.add('active');
-                }
-                
-                // Refrescamos los pines para que aparezca/desaparezca la estrella en el mapa
-                actualizarPinesVisibles();
-            } catch (error) {
-                console.error("Error gestionando favorito:", error);
-                alert("Hubo un error al guardar en la base de datos.");
+            if (misFavoritosIds.includes(id)) {
+                await deleteDoc(docRef);
+                misFavoritosIds = misFavoritosIds.filter(f => f !== id);
+            } else {
+                await setDoc(docRef, { nombre, lat, lng, direccion, localidad, precio, fecha: new Date() });
+                misFavoritosIds.push(id);
             }
+            actualizarPinesVisibles();
         };
 
-        // Lógica de cerrar sesión
-        const btnLogout = document.getElementById('btn-logout');
-        if(btnLogout) {
-            btnLogout.addEventListener('click', (e) => {
-                e.preventDefault();
-                signOut(auth).then(() => {
-                    window.location.reload();
-                }).catch((error) => {
-                    console.error("Error al cerrar sesión:", error);
-                });
-            });
-        }
+        document.getElementById('btn-logout').onclick = () => signOut(auth).then(() => location.reload());
     </script>
 </body>
 </html>
