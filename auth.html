@@ -16,7 +16,7 @@
         </a>
         <div class="nav-links">
             <a href="contacto.html">Contacto</a>
-        </div>
+            </div>
     </header>
 
     <main class="form-main auth-main">
@@ -67,10 +67,9 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        // AÑADIDO: updateProfile para guardar el nombre del usuario en Firebase
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
-        // Asegúrate de que esta apiKey es exactamente la nueva que generaste
+        // Configuración con tu nueva API Key
         const firebaseConfig = {
             apiKey: "AIzaSyB_2thDoQUjLM34QYO8nmaDAB8HqQIxtIY", 
             authDomain: "glpfinder.firebaseapp.com",
@@ -99,6 +98,7 @@
 
                 signInWithEmailAndPassword(auth, email, pass)
                     .then((userCredential) => {
+                        // Login exitoso -> Redirige al mapa
                         window.location.href = "index.html"; 
                     })
                     .catch((error) => {
@@ -108,7 +108,7 @@
             });
         }
 
-        // LÓGICA DE REGISTRO ACTUALIZADA
+        // LÓGICA DE REGISTRO
         const btnRegister = document.getElementById('btn-register');
         if (btnRegister) {
             btnRegister.addEventListener('click', (e) => {
