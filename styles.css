@@ -154,7 +154,7 @@ header {
     z-index: 1; 
 }
 
-/* --- BUSCADOR --- */
+/* --- BUSCADOR Y FILTROS --- */
 .search-wrapper { 
     position: absolute; 
     top: 20px; 
@@ -255,7 +255,7 @@ header {
     color: var(--primary-color); 
 }
 
-/* --- PANEL FILTROS --- */
+/* --- PANEL DE FILTROS --- */
 .filter-panel { 
     background: white; 
     border-radius: 12px; 
@@ -311,7 +311,7 @@ header {
     cursor: pointer; 
 }
 
-/* --- POPUP Y FAVORITOS --- */
+/* --- POPUP Y ESTRELLAS --- */
 .leaflet-popup-content-wrapper { 
     border-radius: 12px; 
 }
@@ -380,7 +380,7 @@ header {
     background-color: var(--gmaps-color); 
 }
 
-/* --- PINES DINÁMICOS --- */
+/* --- PINES DINÁMICOS DEL MAPA --- */
 .custom-div-icon { 
     background: transparent; 
     border: none; 
@@ -403,6 +403,7 @@ header {
     box-sizing: border-box; 
     cursor: pointer; 
     transition: transform 0.2s ease, box-shadow 0.2s ease; 
+    position: relative; /* Necesario para colocar la estrella del indicador */
 }
 
 .custom-div-icon:hover .custom-price-pin { 
@@ -422,6 +423,17 @@ header {
 .custom-price-pin.pin-amarillo { border-color: #eab308; color: #854d0e; }
 .custom-price-pin.pin-rojo { border-color: #ef4444; color: #991b1b; }
 
+/* INDICADOR DE ESTRELLA EN EL PIN DEL MAPA */
+.pin-fav-indicator {
+    position: absolute;
+    top: -10px;
+    right: -8px;
+    color: var(--fav-color);
+    font-size: 16px;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+    z-index: 10;
+}
+
 .btn-geo { 
     position: absolute; 
     bottom: 30px; 
@@ -438,6 +450,15 @@ header {
     cursor: pointer; 
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); 
     color: var(--text-main); 
+}
+
+/* --- ETIQUETA PRECIO EN PÁGINA FAVORITAS --- */
+.fav-price-tag {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--primary-color);
+    margin-bottom: 10px;
+    display: block;
 }
 
 /* --- DISEÑO DE FORMULARIOS (AUTH / CONTACTO) --- */
