@@ -17,6 +17,7 @@
         </a>
         <div class="nav-links">
             <a href="contacto.html">Contacto</a>
+            
             <a href="auth.html" id="nav-auth">Acceder / Registro</a>
             
             <div class="profile-dropdown" id="nav-profile" style="display: none;">
@@ -120,7 +121,6 @@
             return brandLogos["DEFAULT"];
         }
 
-        // CONTROL DE LA INTERFAZ DE FILTROS
         function toggleFiltros() {
             const panel = document.getElementById('panelFiltros');
             panel.style.display = panel.style.display === 'none' ? 'flex' : 'none';
@@ -136,7 +136,6 @@
             actualizarPinesVisibles();
         }
 
-        // LÓGICA DE DIBUJADO Y FILTRADO
         function actualizarPinesVisibles() {
             if (todasLasEstaciones.length === 0) return;
 
@@ -236,7 +235,6 @@
             });
         }
 
-        // EVENTOS QUE ACTUALIZAN LOS PINES AUTOMÁTICAMENTE AL MOVER EL MAPA
         map.on('moveend', actualizarPinesVisibles);
         map.on('zoomend', actualizarPinesVisibles);
 
@@ -402,26 +400,28 @@
         const navProfile = document.getElementById('nav-profile');
         const btnLogout = document.getElementById('btn-logout');
 
-        // Control de visibilidad del botón de Perfil / Login según Firebase
+        // Control dinámico de los botones de la cabecera
         onAuthStateChanged(auth, (user) => {
             if (user) {
-                navAuth.style.display = 'none';
-                navProfile.style.display = 'inline-block';
+                if(navAuth) navAuth.style.display = 'none';
+                if(navProfile) navProfile.style.display = 'inline-block';
             } else {
-                navAuth.style.display = 'inline-block';
-                navProfile.style.display = 'none';
+                if(navAuth) navAuth.style.display = 'inline-block';
+                if(navProfile) navProfile.style.display = 'none';
             }
         });
 
-        // Lógica del botón cerrar sesión integrado en el menú
-        btnLogout.addEventListener('click', (e) => {
-            e.preventDefault();
-            signOut(auth).then(() => {
-                window.location.reload();
-            }).catch((error) => {
-                console.error("Error al cerrar sesión:", error);
+        // Lógica de cerrar sesión
+        if(btnLogout) {
+            btnLogout.addEventListener('click', (e) => {
+                e.preventDefault();
+                signOut(auth).then(() => {
+                    window.location.reload();
+                }).catch((error) => {
+                    console.error("Error al cerrar sesión:", error);
+                });
             });
-        });
+        }
     </script>
 </body>
 </html>
