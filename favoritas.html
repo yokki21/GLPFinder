@@ -1,1 +1,300 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GLPFinder - Mis Favoritas</title>
+    
+    <link rel="icon" type="image/png" href="LogoPequeño.png">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Estilos específicos para la cuadrícula de favoritas */
+        .fav-main {
+            padding: 40px 32px;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
 
+        .fav-header {
+            margin-bottom: 30px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 15px;
+        }
+
+        .fav-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .fav-card {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .fav-card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+
+        .fav-logo {
+            width: 40px;
+            height: 40px;
+            object-fit: contain;
+        }
+
+        .fav-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-main);
+            margin: 0;
+        }
+
+        .fav-address {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-bottom: 20px;
+            flex-grow: 1; /* Empuja los botones hacia abajo */
+        }
+
+        .fav-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-remove {
+            background-color: #fef2f2;
+            color: #ef4444;
+            border: 1px solid #f87171;
+            border-radius: 8px;
+            padding: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .btn-remove:hover {
+            background-color: #ef4444;
+            color: white;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            background: white;
+            border-radius: 12px;
+            border: 1px dashed var(--border-color);
+            color: var(--text-muted);
+        }
+        
+        .empty-state h3 {
+            font-size: 20px;
+            color: var(--text-main);
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <a href="index.html" class="logo">
+            <img src="Logo.png" alt="Logo GLPFinder">
+        </a>
+        <div class="nav-links">
+            <a href="index.html">Volver al Mapa</a>
+            
+            <div class="profile-dropdown" id="nav-profile" style="display: none;">
+                <button class="profile-btn">Perfil <span>▼</span></button>
+                <div class="dropdown-content">
+                    <a href="mis-datos.html">Mis datos</a>
+                    <a href="mis-favoritas.html" style="color: var(--primary-color); font-weight: bold;">Mis favoritas</a>
+                    <a href="#" id="btn-logout" class="logout-option">Cerrar sesión</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="fav-main">
+        <div class="fav-header">
+            <h1 class="page-title" style="margin-bottom: 0;">Mis Gasolineras Favoritas</h1>
+        </div>
+
+        <div id="fav-container" class="fav-grid">
+            <div class="empty-state">
+                <h3>Cargando tus favoritas...</h3>
+                <p>Conectando con la base de datos.</p>
+            </div>
+        </div>
+    </main>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+        import { getFirestore, collection, getDocs, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+        // CON LA NUEVA API KEY
+        const firebaseConfig = {
+            apiKey: "AIzaSyB_2thDoQUjLM34QYO8nmaDAB8HqQIxtIY",
+            authDomain: "glpfinder.firebaseapp.com",
+            projectId: "glpfinder",
+            storageBucket: "glpfinder.firebasestorage.app",
+            messagingSenderId: "173596798895",
+            appId: "1:173596798895:web:d883035f89fa2c139fc95a",
+            measurementId: "G-XKYS61F0DC"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        const FALLBACK_LOGO = "Default.png";
+        const brandLogos = {
+            "REPSOL": "Repsol.png", "CEPSA": "Cepsa.png", "MOEVE": "Moeve.png", 
+            "GALP": "Galp.png", "PLENOIL": "Plenoil.png", "PETROPRIX": "Petroprix.png",
+            "BP": "BP.png", "SHELL": "Shell.png", "BALLENOIL": "Ballenoil.png", "DEFAULT": FALLBACK_LOGO
+        };
+
+        function obtenerLogo(rotulo) {
+            if (!rotulo) return brandLogos["DEFAULT"];
+            const nombre = rotulo.toUpperCase();
+            for (const marca in brandLogos) {
+                if (nombre.includes(marca) && marca !== "DEFAULT") {
+                    return brandLogos[marca];
+                }
+            }
+            return brandLogos["DEFAULT"];
+        }
+
+        let usuarioActual = null;
+
+        // Comprobar si el usuario está logueado
+        onAuthStateChanged(auth, async (user) => {
+            const navProfile = document.getElementById('nav-profile');
+            
+            if (user) {
+                usuarioActual = user;
+                if(navProfile) navProfile.style.display = 'inline-block';
+                // Descargar y pintar las favoritas
+                await cargarYRenderizarFavoritas(user.uid);
+            } else {
+                // Si alguien entra sin loguear, lo echamos a la página de login
+                window.location.href = "auth.html";
+            }
+        });
+
+        // CERRAR SESIÓN
+        const btnLogout = document.getElementById('btn-logout');
+        if(btnLogout) {
+            btnLogout.addEventListener('click', (e) => {
+                e.preventDefault();
+                signOut(auth).then(() => {
+                    window.location.href = "index.html";
+                });
+            });
+        }
+
+        // DESCARGAR Y PINTAR DATOS DE FIRESTORE
+        async function cargarYRenderizarFavoritas(uid) {
+            const container = document.getElementById('fav-container');
+            
+            try {
+                const favsRef = collection(db, "users", uid, "favoritos");
+                const snapshot = await getDocs(favsRef);
+
+                if (snapshot.empty) {
+                    container.innerHTML = `
+                        <div class="empty-state" style="grid-column: 1 / -1;">
+                            <h3>Aún no tienes gasolineras favoritas</h3>
+                            <p>Ve al mapa, busca tus estaciones de confianza y pulsa la estrella amarilla para guardarlas aquí.</p>
+                            <a href="index.html" class="btn-primary" style="display: inline-block; width: auto; margin-top: 15px; text-decoration: none;">Ir al mapa</a>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = ''; // Limpiar el estado de carga
+
+                snapshot.forEach(docSnap => {
+                    const data = docSnap.data();
+                    const idUnico = docSnap.id;
+                    const logoUrl = obtenerLogo(data.nombre);
+
+                    // Crear la tarjeta
+                    const cardHTML = `
+                        <div class="fav-card" id="card-${idUnico}">
+                            <div class="fav-card-header">
+                                <img src="${logoUrl}" alt="Logo" class="fav-logo" onerror="this.onerror=null; this.src='${FALLBACK_LOGO}'">
+                                <h3 class="fav-title">${data.nombre}</h3>
+                            </div>
+                            <p class="fav-address">📍 ${data.direccion}, ${data.localidad}</p>
+                            
+                            <div class="fav-actions">
+                                <a href="https://waze.com/ul?ll=${data.lat},${data.lng}&navigate=yes" target="_blank" class="btn-nav btn-waze">Waze</a>
+                                <a href="https://www.google.com/maps/dir/?api=1&destination=$${data.lat},${data.lng}" target="_blank" class="btn-nav btn-gmaps">Maps</a>
+                                <button class="btn-remove" onclick="window.eliminarFavorita('${idUnico}')" title="Eliminar de favoritas">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="3 6 5 6 21 6"></polyline>
+                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    container.innerHTML += cardHTML;
+                });
+
+            } catch (error) {
+                console.error("Error al cargar favoritas:", error);
+                container.innerHTML = `
+                    <div class="empty-state" style="grid-column: 1 / -1; color: #ef4444; border-color: #f87171;">
+                        <h3>Error de conexión</h3>
+                        <p>No hemos podido cargar tus favoritas. Revisa los permisos de Firestore.</p>
+                    </div>
+                `;
+            }
+        }
+
+        // FUNCIÓN GLOBAL PARA ELIMINAR UNA FAVORITA DESDE LA TARJETA
+        window.eliminarFavorita = async (idUnico) => {
+            if (!usuarioActual) return;
+
+            const confirmacion = confirm("¿Seguro que quieres eliminar esta gasolinera de tus favoritas?");
+            if (!confirmacion) return;
+
+            try {
+                // Borrar documento de Firebase
+                const docRef = doc(db, "users", usuarioActual.uid, "favoritos", idUnico);
+                await deleteDoc(docRef);
+
+                // Hacer desaparecer la tarjeta con un efecto suave
+                const card = document.getElementById(`card-${idUnico}`);
+                if (card) {
+                    card.style.opacity = '0';
+                    setTimeout(() => {
+                        card.remove();
+                        // Si nos quedamos sin favoritas, recargamos para mostrar el mensaje de vacío
+                        const container = document.getElementById('fav-container');
+                        if (container.children.length === 0) {
+                            cargarYRenderizarFavoritas(usuarioActual.uid);
+                        }
+                    }, 300);
+                }
+            } catch (error) {
+                console.error("Error al eliminar favorita:", error);
+                alert("Hubo un error al eliminarla de la nube.");
+            }
+        };
+    </script>
+</body>
+</html>
