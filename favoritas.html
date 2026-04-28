@@ -2,31 +2,15 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>GLPFinder - Mis Favoritas</title>
     
     <link rel="icon" type="image/png" href="LogoPequeño.png">
     <link rel="stylesheet" href="styles.css">
     <style>
-        /* Estilos específicos para la cuadrícula de favoritas */
-        .fav-main {
-            padding: 40px 32px;
-            max-width: 1200px;
-            margin: 0 auto;
-            width: 100%;
-        }
-
-        .fav-header {
-            margin-bottom: 30px;
-            border-bottom: 2px solid var(--border-color);
-            padding-bottom: 15px;
-        }
-
-        .fav-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 20px;
-        }
+        .fav-main { padding: 40px 32px; max-width: 1200px; margin: 0 auto; width: 100%; }
+        .fav-header { margin-bottom: 30px; border-bottom: 2px solid var(--border-color); padding-bottom: 15px; }
+        .fav-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px; }
 
         .fav-card {
             background: white;
@@ -36,74 +20,72 @@
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
             display: flex;
             flex-direction: column;
-            position: relative;
         }
 
-        .fav-card-header {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 15px;
-        }
+        .fav-card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+        .fav-logo { width: 40px; height: 40px; object-fit: contain; }
+        .fav-title { font-size: 17px; font-weight: 700; color: var(--text-main); margin: 0; }
+        .fav-price-tag { font-size: 20px; font-weight: 800; color: var(--primary-color); margin: 5px 0; display: block; }
+        .fav-address { font-size: 13px; color: var(--text-muted); margin-bottom: 15px; }
 
-        .fav-logo {
-            width: 40px;
-            height: 40px;
-            object-fit: contain;
-        }
-
-        .fav-title {
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--text-main);
-            margin: 0;
-            line-height: 1.2;
-        }
-
-        .fav-address {
-            font-size: 14px;
-            color: var(--text-muted);
-            margin-bottom: 20px;
-            flex-grow: 1; /* Empuja los botones hacia abajo */
-        }
-
-        .fav-actions {
-            display: flex;
-            gap: 10px;
-        }
-
-        .btn-remove {
-            background-color: #fef2f2;
-            color: #ef4444;
-            border: 1px solid #f87171;
-            border-radius: 8px;
+        .chart-wrapper {
+            margin-top: 15px;
             padding: 10px;
+            background: #f8fafc;
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+            display: none;
+        }
+        .chart-scroll-container {
+            width: 100%;
+            overflow-x: auto; 
+            margin-top: 10px;
+            padding-bottom: 5px;
+        }
+        .chart-scroll-container::-webkit-scrollbar { height: 6px; }
+        .chart-scroll-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .chart-svg { display: block; overflow: visible; }
+
+        .fav-actions { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; margin-top: auto; padding-top: 15px; }
+        
+        .btn-action {
+            padding: 8px;
+            border-radius: 8px;
             cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            text-align: center;
+            text-decoration: none;
+            border: 1px solid #cbd5e1;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.2s;
-        }
-
-        .btn-remove:hover {
-            background-color: #ef4444;
-            color: white;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            background: white;
-            border-radius: 12px;
-            border: 1px dashed var(--border-color);
-            color: var(--text-muted);
+            gap: 5px;
         }
         
-        .empty-state h3 {
-            font-size: 20px;
-            color: var(--text-main);
-            margin-bottom: 10px;
-        }
+        .btn-map { background: #2563eb; color: white; border: none; }
+        .btn-map:hover { background: #1d4ed8; }
+        .btn-chart-toggle { background: #f1f5f9; color: #1e293b; }
+        .btn-chart-toggle:hover { background: #e2e8f0; }
+        .btn-remove { background: #fef2f2; color: #ef4444; border-color: #fecaca; }
+        .btn-remove:hover { background: #ef4444; color: white; }
+
+        .empty-state { text-align: center; padding: 60px 20px; background: white; border-radius: 12px; border: 1px dashed #cbd5e1; color: #64748b; }
+    @media (max-width: 768px) {
+    .fav-main { 
+        padding: 20px 15px; 
+    }
+    .fav-grid { 
+        grid-template-columns: 1fr; /* Tarjetas en una sola columna */
+    }
+    .fav-actions { 
+        grid-template-columns: 1fr; /* Botones apilados uno sobre otro */
+    }
+    .btn-action { 
+        padding: 12px; /* Zonas táctiles más grandes */
+        font-size: 14px;
+    }
+}
     </style>
 </head>
 <body>
@@ -114,12 +96,10 @@
         </a>
         <div class="nav-links">
             <a href="index.html">Volver al Mapa</a>
-            
             <div class="profile-dropdown" id="nav-profile" style="display: none;">
                 <button class="profile-btn">Perfil <span>▼</span></button>
                 <div class="dropdown-content">
-                    <a href="mis-datos.html">Mis datos</a>
-                    <a href="mis-favoritas.html" style="color: var(--primary-color); font-weight: bold;">Mis favoritas</a>
+                    <a href="datos.html">Mis datos</a>
                     <a href="#" id="btn-logout" class="logout-option">Cerrar sesión</a>
                 </div>
             </div>
@@ -133,8 +113,7 @@
 
         <div id="fav-container" class="fav-grid">
             <div class="empty-state" style="grid-column: 1 / -1;">
-                <h3>Cargando tus favoritas...</h3>
-                <p>Conectando con la base de datos y obteniendo los precios en tiempo real.</p>
+                <h3>Cargando favoritas...</h3>
             </div>
         </div>
     </main>
@@ -142,189 +121,212 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-        import { getFirestore, collection, getDocs, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, doc, deleteDoc, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-        // CON LA NUEVA API KEY APLICADA
         const firebaseConfig = {
             apiKey: "AIzaSyB_2thDoQUjLM34QYO8nmaDAB8HqQIxtIY",
             authDomain: "glpfinder.firebaseapp.com",
             projectId: "glpfinder",
             storageBucket: "glpfinder.firebasestorage.app",
             messagingSenderId: "173596798895",
-            appId: "1:173596798895:web:d883035f89fa2c139fc95a",
-            measurementId: "G-XKYS61F0DC"
+            appId: "1:173596798895:web:d883035f89fa2c139fc95a"
         };
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // MAPEO DE LOGOS
-        const FALLBACK_LOGO = "Default.png";
+        let usuarioActual = null;
+
         const brandLogos = {
             "REPSOL": "Repsol.png", "CEPSA": "Cepsa.png", "MOEVE": "Moeve.png", 
             "GALP": "Galp.png", "PLENOIL": "Plenoil.png", "PETROPRIX": "Petroprix.png",
-            "BP": "BP.png", "SHELL": "Shell.png", "BALLENOIL": "Ballenoil.png", "DEFAULT": FALLBACK_LOGO
+            "BP": "BP.png", "SHELL": "Shell.png", "BALLENOIL": "Ballenoil.png", "DEFAULT": "Default.png"
         };
 
         function obtenerLogo(rotulo) {
-            if (!rotulo) return brandLogos["DEFAULT"];
-            const nombre = rotulo.toUpperCase();
-            for (const marca in brandLogos) {
-                if (nombre.includes(marca) && marca !== "DEFAULT") {
-                    return brandLogos[marca];
-                }
+            const r = rotulo ? rotulo.toUpperCase() : "";
+            for (const m in brandLogos) {
+                if (r.includes(m) && m !== "DEFAULT") return brandLogos[m];
             }
             return brandLogos["DEFAULT"];
         }
 
-        let usuarioActual = null;
-
-        // Comprobar si el usuario está logueado
         onAuthStateChanged(auth, async (user) => {
-            const navProfile = document.getElementById('nav-profile');
-            
             if (user) {
                 usuarioActual = user;
-                if(navProfile) navProfile.style.display = 'inline-block';
-                // Descargar y pintar las favoritas con precios actualizados
+                document.getElementById('nav-profile').style.display = 'inline-block';
                 await cargarYRenderizarFavoritas(user.uid);
-            } else {
-                // Si alguien entra sin loguear, lo redirigimos al login
-                window.location.href = "auth.html";
+            } else { 
+                window.location.href = "auth.html"; 
             }
         });
 
-        // CERRAR SESIÓN
-        const btnLogout = document.getElementById('btn-logout');
-        if(btnLogout) {
-            btnLogout.addEventListener('click', (e) => {
-                e.preventDefault();
-                signOut(auth).then(() => {
-                    window.location.href = "index.html";
-                });
-            });
-        }
-
-        // DESCARGAR DATOS DE FIRESTORE Y CRUZARLOS CON LA API
         async function cargarYRenderizarFavoritas(uid) {
             const container = document.getElementById('fav-container');
-            
             try {
-                // 1. Descargamos la lista de favoritas del usuario desde Firebase
-                const favsRef = collection(db, "users", uid, "favoritos");
-                const snapshot = await getDocs(favsRef);
-
-                if (snapshot.empty) {
-                    container.innerHTML = `
-                        <div class="empty-state" style="grid-column: 1 / -1;">
-                            <h3>Aún no tienes gasolineras favoritas</h3>
-                            <p>Ve al mapa, busca tus estaciones de confianza y pulsa la estrella para guardarlas aquí.</p>
-                            <a href="index.html" class="btn-primary" style="display: inline-block; width: auto; margin-top: 15px; text-decoration: none;">Ir al mapa</a>
-                        </div>
-                    `;
+                const favsSnap = await getDocs(collection(db, "users", uid, "favoritos"));
+                if (favsSnap.empty) {
+                    container.innerHTML = `<div class="empty-state" style="grid-column: 1 / -1;"><h3>Lista vacía</h3><p>Guarda gasolineras desde el mapa pulsando la estrella.</p></div>`;
                     return;
                 }
 
-                // 2. Descargamos los datos actualizados del Ministerio
-                let todasLasEstacionesAPI = [];
-                try {
+                let preciosEnVivo = [];
+                const cache = localStorage.getItem('glp_datos');
+                if (cache) {
+                    preciosEnVivo = JSON.parse(cache);
+                } else {
                     const res = await fetch('https://sedeaplicaciones.minetur.gob.es/ServiciosRESTCarburantes/PreciosCarburantes/EstacionesTerrestres/');
-                    const apiData = await res.json();
-                    todasLasEstacionesAPI = apiData.ListaEESSPrecio;
-                } catch (apiError) {
-                    console.error("Error obteniendo datos en vivo del Ministerio:", apiError);
-                    // Si la API falla, continuaremos usando el precio guardado en Firebase como respaldo
+                    const d = await res.json();
+                    preciosEnVivo = d.ListaEESSPrecio;
                 }
 
-                container.innerHTML = ''; // Limpiar el estado de carga
-
-                // 3. Cruzar datos y dibujar tarjetas
-                snapshot.forEach(docSnap => {
+                container.innerHTML = '';
+                favsSnap.forEach(docSnap => {
                     const data = docSnap.data();
-                    const idUnico = docSnap.id;
-                    const logoUrl = obtenerLogo(data.nombre);
+                    const id = docSnap.id;
                     
-                    // Buscar si la gasolinera está en los datos frescos de la API
-                    const datosFresco = todasLasEstacionesAPI.find(estacion => estacion['IDEESS'] === idUnico);
+                    let pActual = parseFloat(data.precio);
+                    let latSegura = data.lat;
+                    let lngSegura = data.lng;
                     
-                    // Si está en la API, usamos el precio actual. Si no, usamos el que guardamos en la base de datos
-                    let precioMostrar = data.precio; // Fallback al precio guardado
-                    if (datosFresco && datosFresco['Precio Gases licuados del petróleo']) {
-                        precioMostrar = datosFresco['Precio Gases licuados del petróleo'].replace(',', '.');
+                    const fresco = preciosEnVivo.find(e => e['IDEESS'] === id);
+                    if (fresco) {
+                        if (fresco['Precio Gases licuados del petróleo']) {
+                            pActual = parseFloat(fresco['Precio Gases licuados del petróleo'].replace(',', '.'));
+                        }
+                        if (latSegura === undefined || lngSegura === undefined || isNaN(latSegura)) {
+                            latSegura = parseFloat(fresco['Latitud'].replace(',', '.'));
+                            lngSegura = parseFloat(fresco['Longitud (WGS84)'].replace(',', '.'));
+                        }
                     }
 
-                    const precioFormateado = parseFloat(precioMostrar).toFixed(3);
-
-                    // Crear la tarjeta HTML
-                    const cardHTML = `
-                        <div class="fav-card" id="card-${idUnico}">
-                            <div class="fav-card-header">
-                                <img src="${logoUrl}" alt="Logo" class="fav-logo" onerror="this.onerror=null; this.src='${FALLBACK_LOGO}'">
-                                <h3 class="fav-title">${data.nombre}</h3>
+                    const card = document.createElement('div');
+                    card.className = 'fav-card';
+                    card.id = `card-${id}`;
+                    card.innerHTML = `
+                        <div class="fav-card-header">
+                            <img src="${obtenerLogo(data.nombre)}" class="fav-logo">
+                            <h3 class="fav-title">${data.nombre}</h3>
+                        </div>
+                        <span class="fav-price-tag">${pActual.toFixed(3)} €/L</span>
+                        <p class="fav-address">📍 ${data.direccion}</p>
+                        
+                        <div id="chart-wrapper-${id}" class="chart-wrapper">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                                <strong style="font-size:12px">Evolución lineal</strong>
+                                <select onchange="window.cargarGraficaLineal('${id}', this.value)" style="font-size:11px; padding:3px; border-radius:4px;">
+                                    <option value="7">7 días</option>
+                                    <option value="30">1 mes</option>
+                                    <option value="90">3 meses</option>
+                                </select>
                             </div>
-                            
-                            <span class="fav-price-tag">${precioFormateado} €/L</span>
-                            <p class="fav-address">📍 ${data.direccion}, ${data.localidad}</p>
-                            
-                            <div class="fav-actions">
-                                <a href="https://waze.com/ul?ll=${data.lat},${data.lng}&navigate=yes" target="_blank" class="btn-nav btn-waze">Waze</a>
-                                <a href="https://www.google.com/maps/search/?api=1&query=${data.lat},${data.lng}" target="_blank" class="btn-nav btn-gmaps">Maps</a>
-                                <button class="btn-remove" onclick="window.eliminarFavorita('${idUnico}')" title="Eliminar de favoritas">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <polyline points="3 6 5 6 21 6"></polyline>
-                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                    </svg>
-                                </button>
+                            <div class="chart-scroll-container" id="scroll-${id}">
+                                <svg id="svg-${id}" class="chart-svg" width="0" height="160"></svg>
                             </div>
                         </div>
-                    `;
-                    container.innerHTML += cardHTML;
-                });
 
-            } catch (error) {
-                console.error("Error al cargar favoritas:", error);
-                container.innerHTML = `
-                    <div class="empty-state" style="grid-column: 1 / -1; color: #ef4444; border-color: #f87171;">
-                        <h3>Error de conexión</h3>
-                        <p>No hemos podido cargar tus favoritas. Revisa los permisos de Firestore.</p>
-                    </div>
-                `;
-            }
+                        <div class="fav-actions">
+                            <button class="btn-action btn-map" onclick="window.saltarAlMapa('${id}', ${latSegura}, ${lngSegura})">📍 Ver en mapa</button>
+                            <button class="btn-action btn-chart-toggle" onclick="window.toggleGrafica('${id}')">📈 Historial</button>
+                            <button class="btn-action btn-remove" onclick="window.eliminarFavorita('${id}')" title="Eliminar de favoritas">🗑️</button>
+                        </div>
+                    `;
+                    container.appendChild(card);
+                });
+            } catch (e) { console.error(e); }
         }
 
-        // FUNCIÓN GLOBAL PARA ELIMINAR UNA FAVORITA DESDE LA TARJETA
-        window.eliminarFavorita = async (idUnico) => {
-            if (!usuarioActual) return;
+        // LA MAGIA: Guardar la orden en el buzón y redirigir
+        window.saltarAlMapa = (id, lat, lng) => {
+            const orden = { id: id, lat: lat, lng: lng };
+            localStorage.setItem('orden_ir_a_gasolinera', JSON.stringify(orden));
+            window.location.href = "index.html"; // Redirección limpia
+        };
 
-            const confirmacion = confirm("¿Seguro que quieres eliminar esta gasolinera de tus favoritas?");
-            if (!confirmacion) return;
+        window.toggleGrafica = (id) => {
+            const wrapper = document.getElementById(`chart-wrapper-${id}`);
+            const visible = wrapper.style.display === 'block';
+            wrapper.style.display = visible ? 'none' : 'block';
+            if (!visible) window.cargarGraficaLineal(id, 7);
+        };
+
+        window.cargarGraficaLineal = async (id, dias) => {
+            const svg = document.getElementById(`svg-${id}`);
+            svg.innerHTML = '<text x="10" y="20" font-size="10" fill="#64748b">Cargando...</text>';
 
             try {
-                // Borrar documento de Firebase
-                const docRef = doc(db, "users", usuarioActual.uid, "favoritos", idUnico);
-                await deleteDoc(docRef);
+                const q = query(collection(db, "historial_precios", id, "registros"), orderBy("fecha", "desc"), limit(parseInt(dias)));
+                const snap = await getDocs(q);
 
-                // Hacer desaparecer la tarjeta visualmente
-                const card = document.getElementById(`card-${idUnico}`);
-                if (card) {
-                    card.style.opacity = '0';
-                    card.style.transform = 'scale(0.9)';
-                    card.style.transition = 'all 0.3s ease';
-                    
-                    setTimeout(() => {
-                        card.remove();
-                        // Si nos quedamos sin favoritas, recargamos la vista para mostrar el mensaje de vacío
-                        const container = document.getElementById('fav-container');
-                        if (container.children.length === 0) {
-                            cargarYRenderizarFavoritas(usuarioActual.uid);
-                        }
-                    }, 300);
+                if (snap.empty) { 
+                    svg.innerHTML = '<text x="10" y="20" font-size="10" fill="#ef4444">Sin datos en el historial</text>'; 
+                    return; 
                 }
-            } catch (error) {
-                console.error("Error al eliminar favorita:", error);
-                alert("Hubo un error al eliminarla de la nube.");
+
+                const datos = snap.docs.map(d => d.data()).reverse();
+                const precios = datos.map(d => d.precio);
+                const min = Math.min(...precios);
+                const max = Math.max(...precios);
+                const rango = (max - min) || 0.05;
+
+                const widthPerPoint = 70; 
+                const svgWidth = Math.max(300, datos.length * widthPerPoint); 
+                const svgHeight = 160;
+                const paddingVertical = 30;
+
+                svg.setAttribute('width', svgWidth);
+                
+                let pathData = "";
+                let dots = "";
+                let labels = "";
+
+                datos.forEach((d, i) => {
+                    const x = (i * widthPerPoint) + 30; 
+                    const y = svgHeight - paddingVertical - ((d.precio - min) / rango * (svgHeight - paddingVertical * 2.5));
+                    
+                    pathData += (i === 0 ? "M" : "L") + `${x},${y} `;
+                    dots += `<circle cx="${x}" cy="${y}" r="4" fill="#2563eb" />`;
+                    
+                    const partesFecha = d.fecha.split('-');
+                    const fechaCorta = `${partesFecha[2]}/${partesFecha[1]}`;
+
+                    labels += `
+                        <text x="${x}" y="${y - 12}" font-size="10" font-weight="bold" text-anchor="middle" fill="#1e293b">${d.precio.toFixed(3)}</text>
+                        <text x="${x}" y="${svgHeight - 5}" font-size="10" text-anchor="middle" fill="#64748b">${fechaCorta}</text>
+                    `;
+                });
+
+                svg.innerHTML = `
+                    <path d="${pathData}" fill="none" stroke="#2563eb" stroke-width="2" />
+                    ${dots}
+                    ${labels}
+                `;
+                
+                const scrollContainer = document.getElementById(`scroll-${id}`);
+                scrollContainer.scrollLeft = scrollContainer.scrollWidth;
+                
+            } catch(e) {
+                console.error("Error al pintar gráfica", e);
+                svg.innerHTML = '<text x="10" y="20" font-size="10" fill="#ef4444">Error al cargar datos</text>';
             }
+        };
+
+        window.eliminarFavorita = async (id) => {
+            if (confirm("¿Estás seguro de que quieres eliminar esta gasolinera de tu lista?")) {
+                await deleteDoc(doc(db, "users", usuarioActual.uid, "favoritos", id));
+                document.getElementById(`card-${id}`).remove();
+                
+                const container = document.getElementById('fav-container');
+                if (container.children.length === 0) {
+                    container.innerHTML = `<div class="empty-state" style="grid-column: 1 / -1;"><h3>Lista vacía</h3><p>Guarda gasolineras desde el mapa pulsando la estrella.</p></div>`;
+                }
+            }
+        };
+
+        document.getElementById('btn-logout').onclick = (e) => { 
+            e.preventDefault(); 
+            signOut(auth).then(() => location.href = "index.html"); 
         };
     </script>
 </body>

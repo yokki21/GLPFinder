@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Contacto - GLPFinder</title>
     <link rel="icon" type="image/png" href="LogoPequeño.png">
     
@@ -54,7 +54,7 @@
         const lng = -3.6300;
         const contactMap = L.map('contact-map', { zoomControl: false, scrollWheelZoom: false }).setView([lat, lng], 15);
         L.control.zoom({ position: 'bottomright' }).addTo(contactMap);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 20 }).addTo(contactMap);
+       L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, attribution: 'Tiles © Esri' }).addTo(map);
         L.marker([lat, lng]).addTo(contactMap).bindPopup('<b>Sede GLPFinder</b><br>Campus Sur UPM, C. Mercator, 2, Puente de Vallecas, 28031 Madrid').openPopup();
     </script>
 </body>
