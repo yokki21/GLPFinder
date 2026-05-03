@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GLPFinder - Acceder</title>
+    
+    <link rel="icon" type="image/png" href="LogoPequeño.png">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <header>
+        <a href="index.html" class="logo">
+            <img src="Logo.png" alt="Logo GLPFinder">
+        </a>
+        <div class="nav-links">
+            <a href="contacto.html">Contacto</a>
+            </div>
+    </header>
+
+    <main class="form-main auth-main">
+        <h1 class="page-title">Accede o regístrate</h1>
+        
+        <div class="card">
+            <div class="form-column">
+                <h2 class="section-title">Inicia Sesión</h2>
+                <form id="login-form">
+                    <div class="form-group">
+                        <label for="login-email">Correo Electrónico</label>
+                        <input type="email" id="login-email" placeholder="tu@email.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="login-password">Contraseña</label>
+                        <input type="password" id="login-password" placeholder="••••••••" required>
+                    </div>
+                    <button type="submit" id="btn-login" class="btn-primary">Entrar</button>
+                </form>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="form-column">
+                <h2 class="section-title">Crear Cuenta</h2>
+                <form id="register-form">
+                    <div class="form-group">
+                        <label for="register-name">Nombre completo</label>
+                        <input type="text" id="register-name" placeholder="Tu nombre" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-email">Correo Electrónico</label>
+                        <input type="email" id="register-email" placeholder="tu@email.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-password">Contraseña (Mínimo 6 caracteres)</label>
+                        <input type="password" id="register-password" placeholder="••••••••" required minlength="6">
+                    </div>
+                    <div class="form-group">
+                        <label for="register-password-confirm">Repetir Contraseña</label>
+                        <input type="password" id="register-password-confirm" placeholder="••••••••" required minlength="6">
+                    </div>
+                    <button type="submit" id="btn-register" class="btn-secondary">Registrarse</button>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+
+        // Configuración con tu nueva API Key
+        const firebaseConfig = {
+            apiKey: "AIzaSyB_2thDoQUjLM34QYO8nmaDAB8HqQIxtIY", 
+            authDomain: "glpfinder.firebaseapp.com",
+            projectId: "glpfinder",
+            storageBucket: "glpfinder.firebasestorage.app",
+            messagingSenderId: "173596798895",
+            appId: "1:173596798895:web:d883035f89fa2c139fc95a",
+            measurementId: "G-XKYS61F0DC"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        // LÓGICA DE INICIO DE SESIÓN
+        const btnLogin = document.getElementById('btn-login');
+        if (btnLogin) {
+            btnLogin.addEventListener('click', (e) => {
+                e.preventDefault();
+                const email = document.getElementById('login-email').value;
+                const pass = document.getElementById('login-password').value;
+
+                if (!email || !pass) {
+                    alert("Por favor, rellena todos los campos para iniciar sesión.");
+                    return;
+                }
+
+                signInWithEmailAndPassword(auth, email, pass)
+                    .then((userCredential) => {
+                        // Login exitoso -> Redirige al mapa
+                        window.location.href = "index.html"; 
+                    })
+                    .catch((error) => {
+                        console.error("Error en login:", error.message);
+                        alert("Error al iniciar sesión. Comprueba tus datos.");
+                    });
+            });
+        }
+
+        // LÓGICA DE REGISTRO
+        const btnRegister = document.getElementById('btn-register');
+        if (btnRegister) {
+            btnRegister.addEventListener('click', (e) => {
+                e.preventDefault();
+                const name = document.getElementById('register-name').value;
+                const email = document.getElementById('register-email').value;
+                const pass = document.getElementById('register-password').value;
+                const passConfirm = document.getElementById('register-password-confirm').value;
+
+                // 1. Comprobar que no hay campos vacíos
+                if (!name || !email || !pass || !passConfirm) {
+                    alert("Por favor, rellena todos los campos para registrarte.");
+                    return;
+                }
+
+                // 2. Comprobar que las contraseñas coinciden
+                if (pass !== passConfirm) {
+                    alert("Las contraseñas no coinciden. Por favor, escríbelas de nuevo.");
+                    return;
+                }
+
+                // 3. Crear el usuario en Firebase
+                createUserWithEmailAndPassword(auth, email, pass)
+                    .then((userCredential) => {
+                        const user = userCredential.user;
+                        
+                        // 4. Guardar el nombre en el perfil del usuario
+                        updateProfile(user, {
+                            displayName: name
+                        }).then(() => {
+                            // Registro y guardado de nombre exitosos -> Redirige al mapa
+                            window.location.href = "index.html"; 
+                        });
+                    })
+                    .catch((error) => {
+                        console.error("Error en registro:", error.message);
+                        alert("Error al crear cuenta. Revisa el correo o asegúrate de que la contraseña tiene al menos 6 caracteres.");
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
