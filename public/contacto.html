@@ -2,117 +2,110 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Contacto - GLPFinder</title>
-
+    
+    <link rel="icon" type="image/png" href="LogoPequeño.png">
     <link rel="stylesheet" href="styles.css">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <!-- LEAFLET CSS para el mapa -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
 <body>
 
-    <!-- BARRA DE NAVEGACIÓN -->
-    <nav class="navbar">
-        <div class="nav-logo">
-            <a href="index.html">GLPFinder</a>
-        </div>
+    <!-- TU CABECERA REAL (Idéntica a la de index.html) -->
+    <header>
+        <a href="index.html" class="logo">
+            <img src="Logo.png" alt="Logo GLPFinder">
+        </a>
         <div class="nav-links">
-            <a href="index.html">Mapa</a>
             <a href="contacto.html">Contacto</a>
-        </div>
-        
-        <div class="auth-container">
-            <button id="btn-login" class="btn-login">Iniciar Sesión / Registrarse</button>
-            <div id="user-profile" style="display: none; align-items: center; gap: 10px;">
-                <!-- Añadido un estilo básico a la foto para que no se desmadre el tamaño -->
-                <img id="user-pic" src="" alt="Perfil" class="profile-pic" style="width: 32px; height: 32px; border-radius: 50%;">
-                <button id="btn-logout">Salir</button>
+            <a href="auth.html" id="nav-auth">Acceder / Registro</a>
+            
+            <div class="profile-dropdown" id="nav-profile" style="display: none;">
+                <button class="profile-btn">Perfil <span>▼</span></button>
+                <div class="dropdown-content">
+                    <a href="datos.html">Mis datos</a>
+                    <a href="favoritas.html">Mis favoritas</a>
+                    <a href="#" id="btn-logout" class="logout-option">Cerrar sesión</a>
+                </div>
             </div>
         </div>
-    </nav>
+    </header>
 
-    <!-- CONTENIDO -->
-    <main style="padding: 20px; max-width: 800px; margin: 0 auto;">
-        <h1>Contacta con nosotros</h1>
-        <p>Encuéntranos en nuestras oficinas.</p>
+    <!-- CONTENIDO DE LA PÁGINA DE CONTACTO -->
+    <main class="contacto-container" style="padding: 20px; max-width: 1000px; margin: 0 auto; text-align: center;">
+        <h1 style="color: #1e293b; margin-bottom: 10px;">Contacta con GLPFinder</h1>
+        <p style="color: #64748b; margin-bottom: 20px;">Encuentra nuestras oficinas centrales en el mapa o escríbenos para cualquier consulta.</p>
 
-        <!-- MAPA -->
-        <div id="mapa-contacto" style="width: 100%; height: 400px; border-radius: 12px; margin: 20px 0; border: 2px solid #ccc; z-index: 1;"></div>
+        <!-- MAPA DE CONTACTO -->
+        <div id="mapa-contacto" style="width: 100%; height: 400px; border-radius: 12px; margin-top: 20px; border: 2px solid #e2e8f0; z-index: 1;"></div>
     </main>
 
-    <!-- 1. SCRIPT DE LEAFLET -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <!-- 1. SCRIPT DEL MAPA DE CONTACTO (LEAFLET) -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
+        // Inicializa el mapa en las coordenadas de contacto (puedes cambiarlas por tu ciudad)
         const mapaContacto = L.map('mapa-contacto').setView([40.4168, -3.7038], 15);
+        
+        // Capa de Google Calles
         L.tileLayer('https://mt1.google.com/vt/lyrs=m&hl=es&x={x}&y={y}&z={z}', {
             maxZoom: 20,
             attribution: '© Google'
         }).addTo(mapaContacto);
 
+        // Marcador con Popup
         L.marker([40.4168, -3.7038]).addTo(mapaContacto)
-            .bindPopup('<b>GLPFinder</b><br>Nuestra ubicación.')
+            .bindPopup('<b style="color:#2563eb;">GLPFinder</b><br>Nuestras oficinas centrales.')
             .openPopup();
     </script>
 
-    <!-- 2. SCRIPT DE FIREBASE -->
+    <!-- 2. SCRIPT DE SESIÓN (FIREBASE) -->
     <script type="module">
-        // Importamos Firebase Auth directamente desde el CDN de Google
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
-        // ¡ATENCIÓN! -> SUSTITUYE ESTO POR TU CONFIGURACIÓN REAL DE FIREBASE (La misma que tienes en index.html)
+        // TUS CREDENCIALES REALES
         const firebaseConfig = {
-            apiKey: "TU_API_KEY",
+            apiKey: "AIzaSyB_2thDoQUjLM34QYO8nmaDAB8HqQIxtIY",
             authDomain: "glpfinder.firebaseapp.com",
             projectId: "glpfinder",
-            storageBucket: "glpfinder.appspot.com",
-            messagingSenderId: "TU_ID",
-            appId: "TU_APP_ID"
+            storageBucket: "glpfinder.firebasestorage.app",
+            messagingSenderId: "173596798895",
+            appId: "1:173596798895:web:d883035f89fa2c139fc95a"
         };
 
-        // Inicializamos la app y la autenticación
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
 
-        // Capturamos los elementos del menú
-        const btnLogin = document.getElementById('btn-login');
-        const userProfile = document.getElementById('user-profile');
-        const userPic = document.getElementById('user-pic');
+        // Control de los botones de la cabecera
+        const navAuth = document.getElementById('nav-auth');
+        const navProfile = document.getElementById('nav-profile');
         const btnLogout = document.getElementById('btn-logout');
 
-        // Comprobamos si el usuario ya tiene la sesión iniciada
+        // Escuchador de sesión: Cambia el menú si el usuario está dentro
         onAuthStateChanged(auth, (user) => {
             if (user) {
-                // Está logueado: Ocultamos botón de login y mostramos perfil
-                btnLogin.style.display = 'none';
-                userProfile.style.display = 'flex';
-                // Si el usuario tiene foto en Google, la mostramos. Si no, dejamos un icono por defecto
-                userPic.src = user.photoURL || 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y';
+                // Usuario logueado: Oculta "Acceder" y muestra el desplegable "Perfil"
+                if(navAuth) navAuth.style.display = 'none';
+                if(navProfile) navProfile.style.display = 'inline-block';
             } else {
-                // No está logueado: Mostramos botón de login
-                btnLogin.style.display = 'block';
-                userProfile.style.display = 'none';
+                // Usuario NO logueado: Muestra "Acceder" y oculta "Perfil"
+                if(navAuth) navAuth.style.display = 'inline-block';
+                if(navProfile) navProfile.style.display = 'none';
             }
         });
 
-        // Configurar botón de Salir
+        // Configuración del botón Cerrar Sesión
         if (btnLogout) {
-            btnLogout.addEventListener('click', () => {
+            btnLogout.addEventListener('click', (e) => {
+                e.preventDefault();
                 signOut(auth).then(() => {
-                    // Al cerrar sesión, recargamos la página para que la interfaz se actualice
-                    window.location.reload();
+                    window.location.reload(); // Recarga la página al salir
                 }).catch((error) => {
-                    console.error("Error cerrando sesión:", error);
+                    console.error("Error al cerrar sesión:", error);
                 });
             });
         }
-
-        // Configurar botón de Login (Redirige al index para que haga el login ahí, es lo más limpio)
-        if (btnLogin) {
-            btnLogin.addEventListener('click', () => {
-                window.location.href = "index.html"; 
-            });
-        }
     </script>
-
 </body>
 </html>
