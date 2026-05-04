@@ -36,11 +36,12 @@
                 <div class="search-controls">
                     <input type="text" id="searchInput" placeholder="Municipio, calle, CP..." oninput="manejarEntrada()" autocomplete="off">
                     <button onclick="buscarUbicacion()">Buscar</button>
-                    <button class="btn-icon" onclick="toggleFiltros()" title="Filtrar resultados">
-                        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-                            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
-                        </svg>
-                    </button>
+                    <button class="btn-filter" onclick="toggleFiltros()" title="Filtrar resultados">
+    <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+    </svg>
+    
+</button>
                 </div>
                 <ul id="searchResults" class="search-results"></ul>
             </div>
@@ -99,9 +100,28 @@
         const startZoom = ordenFavorita ? 17 : 10;
 
         // --- 2. CREACIÓN DEL MAPA ---
-        const map = L.map('map', { zoomControl: false }).setView([startLat, startLng], startZoom);
-        L.control.zoom({ position: 'bottomright' }).addTo(map);
-        L.tileLayer('https://mt1.google.com/vt/lyrs=s&hl=es&x={x}&y={y}&z={z}', { maxZoom: 20, attribution: '© Google' }).addTo(map);
+// 1. Definimos las 4 capas de mapa (Google y CartoDB)
+const mapaSatelite = L.tileLayer('https://mt1.google.com/vt/lyrs=s&hl=es&x={x}&y={y}&z={z}', { maxZoom: 20, attribution: '© Google' });
+const mapaCalles = L.tileLayer('https://mt1.google.com/vt/lyrs=m&hl=es&x={x}&y={y}&z={z}', { maxZoom: 20, attribution: '© Google' });
+const mapaOscuro = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 20, attribution: '© CARTO' });
+const mapaClaro = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { maxZoom: 20, attribution: '© CARTO' });
+
+// 2. Iniciamos el mapa poniendo el Satélite por defecto
+const map = L.map('map', { 
+    zoomControl: false,
+    layers: [mapaSatelite] // Capa de inicio
+}).setView([startLat, startLng], startZoom);
+
+L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+// 3. Creamos el menú de selección y lo añadimos abajo a la izquierda
+const baseMaps = {
+    "🛰️ Satélite": mapaSatelite,
+    "🗺️ Calles": mapaCalles,
+    "🌙 Modo Oscuro": mapaOscuro,
+    "☀️ Modo Claro": mapaClaro
+};
+L.control.layers(baseMaps, null, { position: 'bottomleft' }).addTo(map);
 
         let marcadorUbicacionUsuario;
         let todasLasEstaciones = [];

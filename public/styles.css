@@ -160,3 +160,32 @@ header { display: flex; justify-content: space-between; align-items: center; pad
     .search-controls button { flex: 1; }
     .btn-icon { flex: 0 0 50px; }
 }
+/* NUEVO BOTÓN DE FILTROS */
+.btn-filter {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #fff;
+    border: 2px solid var(--border-color);
+    border-radius: 20px;
+    padding: 8px 16px;
+    color: var(--text-main);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+.btn-filter:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    background: #eff6ff;
+}
+.btn-filter:active {
+    transform: scale(0.95);
+}
+
+/* Ocultar el texto en móviles para que quede como un botón circular limpio */
+@media (max-width: 768px) {
+    .btn-filter { padding: 10px; border-radius: 12px; }
+    .filter-text { display: none; }
+}
