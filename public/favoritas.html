@@ -8,9 +8,11 @@
     <link rel="icon" type="image/png" href="LogoPequeño.png">
     <link rel="stylesheet" href="styles.css">
     <style>
-        .fav-main { padding: 40px 32px; max-width: 1200px; margin: 0 auto; width: 100%; }
+        .fav-main { padding: 40px 32px; max-width: 1200px; margin: 0 auto; width: 100%; box-sizing: border-box; }
         .fav-header { margin-bottom: 30px; border-bottom: 2px solid var(--border-color); padding-bottom: 15px; }
-        .fav-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px; }
+        
+        /* Ajustado el minmax a 300px para que quepa bien en móviles pequeños sin ensanchar la pantalla */
+        .fav-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
 
         .fav-card {
             background: white;
@@ -20,11 +22,14 @@
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
             display: flex;
             flex-direction: column;
+            width: 100%;
+            box-sizing: border-box;
+            overflow: hidden; /* Freno esencial: impide que la gráfica ensanche la tarjeta */
         }
 
         .fav-card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
         .fav-logo { width: 40px; height: 40px; object-fit: contain; }
-        .fav-title { font-size: 17px; font-weight: 700; color: var(--text-main); margin: 0; }
+        .fav-title { font-size: 17px; font-weight: 700; color: var(--text-main); margin: 0; line-height: 1.2; }
         .fav-price-tag { font-size: 20px; font-weight: 800; color: var(--primary-color); margin: 5px 0; display: block; }
         .fav-address { font-size: 13px; color: var(--text-muted); margin-bottom: 15px; }
 
@@ -35,13 +40,19 @@
             border-radius: 10px;
             border: 1px solid #e2e8f0;
             display: none;
+            width: 100%;
+            box-sizing: border-box;
         }
+        
         .chart-scroll-container {
             width: 100%;
+            max-width: 100%;
             overflow-x: auto; 
             margin-top: 10px;
             padding-bottom: 5px;
+            -webkit-overflow-scrolling: touch; /* Hace que el deslizamiento en móvil sea fluido */
         }
+        
         .chart-scroll-container::-webkit-scrollbar { height: 6px; }
         .chart-scroll-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         .chart-svg { display: block; overflow: visible; }
@@ -71,21 +82,14 @@
         .btn-remove:hover { background: #ef4444; color: white; }
 
         .empty-state { text-align: center; padding: 60px 20px; background: white; border-radius: 12px; border: 1px dashed #cbd5e1; color: #64748b; }
-    @media (max-width: 768px) {
-    .fav-main { 
-        padding: 20px 15px; 
-    }
-    .fav-grid { 
-        grid-template-columns: 1fr; /* Tarjetas en una sola columna */
-    }
-    .fav-actions { 
-        grid-template-columns: 1fr; /* Botones apilados uno sobre otro */
-    }
-    .btn-action { 
-        padding: 12px; /* Zonas táctiles más grandes */
-        font-size: 14px;
-    }
-}
+
+        /* AJUSTES EXTRA PARA MÓVIL */
+        @media (max-width: 768px) {
+            .fav-main { padding: 20px 15px; }
+            .fav-grid { grid-template-columns: 1fr; }
+            .fav-actions { grid-template-columns: 1fr; }
+            .btn-action { padding: 12px; font-size: 14px; }
+        }
     </style>
 </head>
 <body>
@@ -237,11 +241,10 @@
             } catch (e) { console.error(e); }
         }
 
-        // LA MAGIA: Guardar la orden en el buzón y redirigir
         window.saltarAlMapa = (id, lat, lng) => {
             const orden = { id: id, lat: lat, lng: lng };
             localStorage.setItem('orden_ir_a_gasolinera', JSON.stringify(orden));
-            window.location.href = "index.html"; // Redirección limpia
+            window.location.href = "index.html"; 
         };
 
         window.toggleGrafica = (id) => {
