@@ -16,7 +16,7 @@
         </a>
         <div class="nav-links">
             <a href="contacto.html">Contacto</a>
-            </div>
+        </div>
     </header>
 
     <main class="form-main auth-main">
@@ -34,8 +34,15 @@
                         <label for="login-password">Contraseña</label>
                         <input type="password" id="login-password" placeholder="••••••••" required>
                     </div>
-                    <button type="submit" id="btn-login" class="btn-primary">Entrar</button>
+                    <button type="submit" id="btn-login" class="btn-primary" style="margin-bottom: 15px;">Entrar</button>
                 </form>
+
+                <div style="text-align: center; margin: 15px 0; color: #64748b; font-size: 14px;">— O —</div>
+
+                <button id="btn-google" style="width: 100%; padding: 10px; background-color: #ffffff; color: #334155; border: 1px solid #cbd5e1; border-radius: 6px; cursor: pointer; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 10px; transition: background-color 0.2s;">
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google Logo" style="width: 18px; height: 18px;">
+                    Continuar con Google
+                </button>
             </div>
 
             <div class="divider"></div>
@@ -67,9 +74,10 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+        // Añadidos GoogleAuthProvider y signInWithPopup
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
-        // Configuración con tu nueva API Key
+        // Configuración con tu API Key
         const firebaseConfig = {
             apiKey: "AIzaSyB_2thDoQUjLM34QYO8nmaDAB8HqQIxtIY", 
             authDomain: "glpfinder.firebaseapp.com",
@@ -83,7 +91,30 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
 
-        // LÓGICA DE INICIO DE SESIÓN
+        // ==========================================
+        // LÓGICA DE INICIO DE SESIÓN CON GOOGLE
+        // ==========================================
+        const providerGoogle = new GoogleAuthProvider();
+        const btnGoogle = document.getElementById('btn-google');
+
+        if (btnGoogle) {
+            btnGoogle.addEventListener('click', (e) => {
+                e.preventDefault();
+                signInWithPopup(auth, providerGoogle)
+                    .then((result) => {
+                        // Login exitoso con Google -> Redirige al mapa
+                        window.location.href = "index.html"; 
+                    })
+                    .catch((error) => {
+                        console.error("Error al iniciar con Google:", error.message);
+                        alert("Hubo un error al iniciar sesión con Google. Inténtalo de nuevo.");
+                    });
+            });
+        }
+
+        // ==========================================
+        // LÓGICA DE INICIO DE SESIÓN NORMAL
+        // ==========================================
         const btnLogin = document.getElementById('btn-login');
         if (btnLogin) {
             btnLogin.addEventListener('click', (e) => {
@@ -98,7 +129,6 @@
 
                 signInWithEmailAndPassword(auth, email, pass)
                     .then((userCredential) => {
-                        // Login exitoso -> Redirige al mapa
                         window.location.href = "index.html"; 
                     })
                     .catch((error) => {
@@ -108,7 +138,9 @@
             });
         }
 
+        // ==========================================
         // LÓGICA DE REGISTRO
+        // ==========================================
         const btnRegister = document.getElementById('btn-register');
         if (btnRegister) {
             btnRegister.addEventListener('click', (e) => {
@@ -118,28 +150,23 @@
                 const pass = document.getElementById('register-password').value;
                 const passConfirm = document.getElementById('register-password-confirm').value;
 
-                // 1. Comprobar que no hay campos vacíos
                 if (!name || !email || !pass || !passConfirm) {
                     alert("Por favor, rellena todos los campos para registrarte.");
                     return;
                 }
 
-                // 2. Comprobar que las contraseñas coinciden
                 if (pass !== passConfirm) {
                     alert("Las contraseñas no coinciden. Por favor, escríbelas de nuevo.");
                     return;
                 }
 
-                // 3. Crear el usuario en Firebase
                 createUserWithEmailAndPassword(auth, email, pass)
                     .then((userCredential) => {
                         const user = userCredential.user;
                         
-                        // 4. Guardar el nombre en el perfil del usuario
                         updateProfile(user, {
                             displayName: name
                         }).then(() => {
-                            // Registro y guardado de nombre exitosos -> Redirige al mapa
                             window.location.href = "index.html"; 
                         });
                     })
