@@ -106,6 +106,7 @@ export async function calcularRuta(origen, destino) {
 
   return {
     distance: route.distance,
-    duration: route.duration
+    duration: route.duration,
+    geometry: route.geometry
   };
 }

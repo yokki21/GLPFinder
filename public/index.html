@@ -32,7 +32,6 @@
 
         <div class="search-wrapper">
 
-            <!-- Buscador principal -->
             <div class="search-container-box">
                 <div class="search-controls">
                     <input type="text" id="searchInput"
@@ -50,7 +49,6 @@
                 <ul id="searchResults" class="search-results"></ul>
             </div>
 
-            <!-- Panel de rutas -->
             <div id="routePanel" class="route-panel hidden">
                 <div class="route-panel-header">
                     <div>
@@ -71,10 +69,21 @@
                     </div>
                     <ul id="originResults" class="search-results"></ul>
                 </div>
+
+                <div class="route-field-group" style="margin-top: 15px;">
+                    <label for="routeDesvioInput" style="display: block; margin-bottom: 5px; font-weight: bold; color: #334155;">Desvío máximo permitido</label>
+                    <select id="routeDesvioInput" onchange="reaplicarFiltroRuta()" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; background-color: white;">
+                        <option value="2">Muy cerca (2 km)</option>
+                        <option value="5" selected>Normal (5 km)</option>
+                        <option value="10">Desvío moderado (10 km)</option>
+                        <option value="25">Ruta larga / Mucho desvío (25 km)</option>
+                        <option value="50">Cualquier gasolinera en la región (50 km)</option>
+                    </select>
+                </div>
+
                 <div id="routeMessage" class="route-message"></div>
             </div>
 
-            <!-- Panel de filtros -->
             <div id="panelFiltros" class="filter-panel" style="display: none;">
                 <h4>Filtros</h4>
                 <div class="filter-group">
@@ -100,10 +109,7 @@
                 </div>
             </div>
 
-        </div><!-- /search-wrapper -->
-
-        <!-- Controles de mapa: geolocalización + selector de capas -->
-        <div class="map-controls-group">
+        </div><div class="map-controls-group">
             <button class="btn-geo" onclick="localizarUsuario(true)" title="Centrar en mi ubicación">
                 <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="10"></circle>
@@ -143,6 +149,7 @@
     </main>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
 
     <script>
         // ============================================================
@@ -217,6 +224,7 @@
         let rutaActiva  = false;
         let origenRuta  = null;
         let destinoRuta = null;
+        let ultimaRutaGeoJSON = null; // NUEVO: Para guardar la geometría de la ruta
 
         const brandLogos = {
             "REPSOL": "Repsol.png", "CEPSA": "Cepsa.png", "MOEVE": "Moeve.png",
@@ -632,6 +640,7 @@
             rutaActiva  = false;
             origenRuta  = null;
             destinoRuta = null;
+            ultimaRutaGeoJSON = null;
             if (window._limpiarRuta) window._limpiarRuta();
             actualizarPinesVisibles();
         }
@@ -677,10 +686,56 @@
                 const h    = Math.floor(min / 60);
                 const m    = min % 60;
                 const dur  = h > 0 ? `${h}h ${m}min` : `${min}min`;
+                
+                // NUEVO: Guardamos la geometría en la variable global para poder reutilizarla
+                ultimaRutaGeoJSON = res.geometry;
+                filtrarGasolinerasEnRuta(ultimaRutaGeoJSON);
+                
                 mostrarMensajeRuta(`✅ ${km} km · ${dur}`, 'success');
             } catch (err) {
                 desactivarModoRuta();
                 mostrarMensajeRuta('❌ No se pudo calcular la ruta', 'error');
+            }
+        }
+        
+        // NUEVO: Función para reaplicar el filtro al cambiar el desplegable
+        window.reaplicarFiltroRuta = function() {
+            if (rutaActiva && ultimaRutaGeoJSON) {
+                filtrarGasolinerasEnRuta(ultimaRutaGeoJSON);
+            }
+        };
+
+        // ACTUALIZADO: Función matemática conectada al selector HTML
+        function filtrarGasolinerasEnRuta(rutaGeoJSON) {
+            if (todasLasEstaciones.length === 0) return;
+
+            const lineaRuta = turf.lineString(rutaGeoJSON.coordinates);
+            
+            // Leemos el valor del selector HTML
+            const distanciaMaxKm = parseFloat(document.getElementById('routeDesvioInput').value) || 5; 
+
+            const gasolinerasEnRuta = todasLasEstaciones.filter(e => {
+                const lat = parseFloat(e['Latitud'].replace(',', '.'));
+                const lng = parseFloat(e['Longitud (WGS84)'].replace(',', '.'));
+                
+                const punto = turf.point([lng, lat]); 
+                const distancia = turf.pointToLineDistance(punto, lineaRuta, { units: 'kilometers' });
+                
+                return distancia <= distanciaMaxKm;
+            });
+
+            capaPinesVisibles.clearLayers();
+            document.getElementById('routeMessage').style.display = 'none';
+
+            if (gasolinerasEnRuta.length > 0) {
+                mostrarPinesIndividuales(gasolinerasEnRuta);
+                setTimeout(() => {
+                    mostrarMensajeRuta(`✅ ${gasolinerasEnRuta.length} gasolineras a menos de ${distanciaMaxKm}km del trayecto`, 'success');
+                }, 1000); 
+            } else {
+                setTimeout(() => {
+                    mostrarMensajeRuta(`⚠️ No hay gasolineras a menos de ${distanciaMaxKm}km. Prueba a ampliar el desvío.`, 'warning');
+                }, 1000);
             }
         }
 
@@ -690,7 +745,6 @@
         cargarGasolineras();
     </script>
 
-    <!-- Script module: Firebase + routes.js (ES modules) -->
     <script type="module">
         import { initializeApp }    from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
