@@ -76,21 +76,13 @@
         .btn-remove:hover { background: #ef4444; color: white; }
 
         .empty-state { text-align: center; padding: 60px 20px; background: white; border-radius: 12px; border: 1px dashed #cbd5e1; color: #64748b; }
-    @media (max-width: 768px) {
-    .fav-main { 
-        padding: 20px 15px; 
-    }
-    .fav-grid { 
-        grid-template-columns: 1fr; /* Tarjetas en una sola columna */
-    }
-    .fav-actions { 
-        grid-template-columns: 1fr; /* Botones apilados uno sobre otro */
-    }
-    .btn-action { 
-        padding: 12px; /* Zonas táctiles más grandes */
-        font-size: 14px;
-    }
-}
+        
+        @media (max-width: 768px) {
+            .fav-main { padding: 20px 15px; }
+            .fav-grid { grid-template-columns: 1fr; }
+            .fav-actions { grid-template-columns: 1fr; }
+            .btn-action { padding: 12px; font-size: 14px; }
+        }
     </style>
 </head>
 <body>
@@ -126,7 +118,8 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-        import { getFirestore, collection, getDocs, doc, deleteDoc, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        // Añadido getDoc para poder leer la configuración del coche
+        import { getFirestore, collection, getDocs, doc, deleteDoc, query, orderBy, limit, getDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyB_2thDoQUjLM34QYO8nmaDAB8HqQIxtIY",
@@ -142,7 +135,8 @@
         const db = getFirestore(app);
 
         let usuarioActual = null;
-        window.misGraficas = {}; // Diccionario para guardar las gráficas y poder actualizarlas
+        let configVehiculo = null; // Variable para guardar los datos del coche
+        window.misGraficas = {}; 
 
         const brandLogos = {
             "REPSOL": "Repsol.png", "CEPSA": "Cepsa.png", "MOEVE": "Moeve.png", 
@@ -162,11 +156,30 @@
             if (user) {
                 usuarioActual = user;
                 document.getElementById('nav-profile').style.display = 'inline-block';
+                
+                // Cargamos la capacidad del depósito del usuario
+                const vSnap = await getDoc(doc(db, "users", user.uid, "configuracion", "vehiculo"));
+                if (vSnap.exists()) configVehiculo = vSnap.data();
+
                 await cargarYRenderizarFavoritas(user.uid);
             } else { 
                 window.location.href = "auth.html"; 
             }
         });
+
+        // NUEVO: Función para calcular el llenado igual que en index.html
+        window.calcularCosteLlenado = (id, precioLitro) => {
+            const resDiv = document.getElementById(`res-calc-${id}`);
+            if (!usuarioActual) return;
+            if (!configVehiculo || !configVehiculo.deposito) {
+                resDiv.innerHTML = "⚠️ Configura tu depósito en 'Mis Datos'";
+                resDiv.style.display = 'block';
+                return;
+            }
+            const total = configVehiculo.deposito * precioLitro;
+            resDiv.innerHTML = `Llenar depósito (${configVehiculo.deposito}L): <span style="color:#2563eb;">${total.toFixed(2)}€</span>`;
+            resDiv.style.display = 'block';
+        };
 
         async function cargarYRenderizarFavoritas(uid) {
             const container = document.getElementById('fav-container');
@@ -218,6 +231,12 @@
                         <span class="fav-price-tag">${pActual.toFixed(3)} €/L</span>
                         <p class="fav-address">📍 ${data.direccion}</p>
                         
+                        <div id="calc-container-${id}" style="margin-bottom: 15px;">
+                            <button style="width:100%; background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; padding:8px; border-radius:6px; cursor:pointer; font-weight:600; font-size: 13px;"
+                                onclick="window.calcularCosteLlenado('${id}', ${pActual})">⛽ Calcular coste de llenado</button>
+                            <div id="res-calc-${id}" style="display:none; margin-top:5px; font-size:14px; text-align:center; font-weight:bold; color:#0f172a; padding:6px; background:#f1f5f9; border-radius:4px;"></div>
+                        </div>
+                        
                         <div id="chart-wrapper-${id}" class="chart-wrapper">
                             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
                                 <strong style="font-size:12px">Evolución de precios</strong>
@@ -257,7 +276,6 @@
             if (!visible) window.cargarGraficaLineal(id, 7);
         };
 
-        // NUEVA FUNCIÓN USANDO CHART.JS
         window.cargarGraficaLineal = async (id, dias) => {
             const canvas = document.getElementById(`canvas-${id}`);
             const msgBox = document.getElementById(`msg-chart-${id}`);
@@ -276,24 +294,21 @@
                 canvas.style.display = 'block';
                 msgBox.style.display = 'none';
 
-                // Preparamos los datos
-                const datos = snap.docs.map(d => d.data()).reverse(); // Le damos la vuelta para que el más viejo vaya primero (a la izquierda)
+                const datos = snap.docs.map(d => d.data()).reverse(); 
                 
                 const fechas = datos.map(d => {
                     const partes = d.fecha.split('-');
-                    return `${partes[2]}/${partes[1]}`; // Formato Día/Mes
+                    return `${partes[2]}/${partes[1]}`; 
                 });
                 const precios = datos.map(d => d.precio);
                 
                 const minPrecio = Math.min(...precios);
                 const maxPrecio = Math.max(...precios);
 
-                // Si ya existe una gráfica anterior (por ejemplo, si cambia de 7 a 30 días), la destruimos para redibujar
                 if (window.misGraficas[id]) {
                     window.misGraficas[id].destroy();
                 }
 
-                // Creamos la nueva gráfica
                 window.misGraficas[id] = new Chart(canvas, {
                     type: 'line',
                     data: {
@@ -301,20 +316,20 @@
                         datasets: [{
                             label: 'Precio (€/L)',
                             data: precios,
-                            borderColor: '#2563eb', // Azul
-                            backgroundColor: 'rgba(37, 99, 235, 0.1)', // Azul semitransparente abajo
+                            borderColor: '#2563eb', 
+                            backgroundColor: 'rgba(37, 99, 235, 0.1)', 
                             borderWidth: 2,
                             pointBackgroundColor: '#2563eb',
                             pointRadius: 3,
-                            fill: true, // Pinta el área de abajo
-                            tension: 0.3 // Hace que la línea sea curva y suave
+                            fill: true, 
+                            tension: 0.3 
                         }]
                     },
                     options: {
                         responsive: true,
-                        maintainAspectRatio: false, // Vital para que respete los 160px de alto y llene el ancho
+                        maintainAspectRatio: false, 
                         plugins: {
-                            legend: { display: false } // Ocultamos la leyenda superior para ahorrar espacio
+                            legend: { display: false } 
                         },
                         scales: {
                             x: {
@@ -322,7 +337,6 @@
                                 ticks: { font: { size: 10 } }
                             },
                             y: {
-                                // Ajustamos la escala para que la línea no quede ni muy plana ni se salga
                                 min: minPrecio - 0.02,
                                 max: maxPrecio + 0.02,
                                 ticks: { font: { size: 10 }, stepSize: 0.02 }
