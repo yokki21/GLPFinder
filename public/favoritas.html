@@ -7,12 +7,13 @@
     
     <link rel="icon" type="image/png" href="LogoPequeño.png">
     <link rel="stylesheet" href="styles.css">
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <style>
-        .fav-main { padding: 40px 32px; max-width: 1200px; margin: 0 auto; width: 100%; box-sizing: border-box; }
+        .fav-main { padding: 40px 32px; max-width: 1200px; margin: 0 auto; width: 100%; }
         .fav-header { margin-bottom: 30px; border-bottom: 2px solid var(--border-color); padding-bottom: 15px; }
-        
-        /* Ajustado el minmax a 300px para que quepa bien en móviles pequeños sin ensanchar la pantalla */
-        .fav-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+        .fav-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px; }
 
         .fav-card {
             background: white;
@@ -22,9 +23,6 @@
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
             display: flex;
             flex-direction: column;
-            width: 100%;
-            box-sizing: border-box;
-            overflow: hidden; /* Freno esencial: impide que la gráfica ensanche la tarjeta */
         }
 
         .fav-card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
@@ -43,16 +41,12 @@
             width: 100%;
             box-sizing: border-box;
         }
-        
         .chart-scroll-container {
             width: 100%;
-            max-width: 100%;
             overflow-x: auto; 
             margin-top: 10px;
             padding-bottom: 5px;
-            -webkit-overflow-scrolling: touch; /* Hace que el deslizamiento en móvil sea fluido */
         }
-        
         .chart-scroll-container::-webkit-scrollbar { height: 6px; }
         .chart-scroll-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         .chart-svg { display: block; overflow: visible; }
@@ -82,14 +76,21 @@
         .btn-remove:hover { background: #ef4444; color: white; }
 
         .empty-state { text-align: center; padding: 60px 20px; background: white; border-radius: 12px; border: 1px dashed #cbd5e1; color: #64748b; }
-
-        /* AJUSTES EXTRA PARA MÓVIL */
-        @media (max-width: 768px) {
-            .fav-main { padding: 20px 15px; }
-            .fav-grid { grid-template-columns: 1fr; }
-            .fav-actions { grid-template-columns: 1fr; }
-            .btn-action { padding: 12px; font-size: 14px; }
-        }
+    @media (max-width: 768px) {
+    .fav-main { 
+        padding: 20px 15px; 
+    }
+    .fav-grid { 
+        grid-template-columns: 1fr; /* Tarjetas en una sola columna */
+    }
+    .fav-actions { 
+        grid-template-columns: 1fr; /* Botones apilados uno sobre otro */
+    }
+    .btn-action { 
+        padding: 12px; /* Zonas táctiles más grandes */
+        font-size: 14px;
+    }
+}
     </style>
 </head>
 <body>
@@ -141,6 +142,7 @@
         const db = getFirestore(app);
 
         let usuarioActual = null;
+        window.misGraficas = {}; // Diccionario para guardar las gráficas y poder actualizarlas
 
         const brandLogos = {
             "REPSOL": "Repsol.png", "CEPSA": "Cepsa.png", "MOEVE": "Moeve.png", 
@@ -218,20 +220,21 @@
                         
                         <div id="chart-wrapper-${id}" class="chart-wrapper">
                             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                                <strong style="font-size:12px">Evolución lineal</strong>
+                                <strong style="font-size:12px">Evolución de precios</strong>
                                 <select onchange="window.cargarGraficaLineal('${id}', this.value)" style="font-size:11px; padding:3px; border-radius:4px;">
-                                    <option value="7">7 días</option>
-                                    <option value="30">1 mes</option>
+                                    <option value="7">Últimos 7 días</option>
+                                    <option value="30">Último mes</option>
                                     <option value="90">3 meses</option>
                                 </select>
                             </div>
-                            <div class="chart-scroll-container" id="scroll-${id}">
-                                <svg id="svg-${id}" class="chart-svg" width="0" height="160"></svg>
+                            <div class="chart-canvas-container">
+                                <canvas id="canvas-${id}"></canvas>
                             </div>
+                            <div id="msg-chart-${id}" style="text-align:center; font-size:11px; color:#ef4444; margin-top:5px; display:none;"></div>
                         </div>
 
                         <div class="fav-actions">
-                            <button class="btn-action btn-map" onclick="window.saltarAlMapa('${id}', ${latSegura}, ${lngSegura})">📍 Ver en mapa</button>
+                            <button class="btn-action btn-map" onclick="window.saltarAlMapa('${id}', ${latSegura}, ${lngSegura})">📍 Ver mapa</button>
                             <button class="btn-action btn-chart-toggle" onclick="window.toggleGrafica('${id}')">📈 Historial</button>
                             <button class="btn-action btn-remove" onclick="window.eliminarFavorita('${id}')" title="Eliminar de favoritas">🗑️</button>
                         </div>
@@ -254,64 +257,85 @@
             if (!visible) window.cargarGraficaLineal(id, 7);
         };
 
+        // NUEVA FUNCIÓN USANDO CHART.JS
         window.cargarGraficaLineal = async (id, dias) => {
-            const svg = document.getElementById(`svg-${id}`);
-            svg.innerHTML = '<text x="10" y="20" font-size="10" fill="#64748b">Cargando...</text>';
-
+            const canvas = document.getElementById(`canvas-${id}`);
+            const msgBox = document.getElementById(`msg-chart-${id}`);
+            
             try {
                 const q = query(collection(db, "historial_precios", id, "registros"), orderBy("fecha", "desc"), limit(parseInt(dias)));
                 const snap = await getDocs(q);
 
                 if (snap.empty) { 
-                    svg.innerHTML = '<text x="10" y="20" font-size="10" fill="#ef4444">Sin datos en el historial</text>'; 
+                    canvas.style.display = 'none';
+                    msgBox.innerHTML = 'Sin datos en el historial';
+                    msgBox.style.display = 'block';
                     return; 
                 }
 
-                const datos = snap.docs.map(d => d.data()).reverse();
-                const precios = datos.map(d => d.precio);
-                const min = Math.min(...precios);
-                const max = Math.max(...precios);
-                const rango = (max - min) || 0.05;
+                canvas.style.display = 'block';
+                msgBox.style.display = 'none';
 
-                const widthPerPoint = 70; 
-                const svgWidth = Math.max(300, datos.length * widthPerPoint); 
-                const svgHeight = 160;
-                const paddingVertical = 30;
-
-                svg.setAttribute('width', svgWidth);
+                // Preparamos los datos
+                const datos = snap.docs.map(d => d.data()).reverse(); // Le damos la vuelta para que el más viejo vaya primero (a la izquierda)
                 
-                let pathData = "";
-                let dots = "";
-                let labels = "";
+                const fechas = datos.map(d => {
+                    const partes = d.fecha.split('-');
+                    return `${partes[2]}/${partes[1]}`; // Formato Día/Mes
+                });
+                const precios = datos.map(d => d.precio);
+                
+                const minPrecio = Math.min(...precios);
+                const maxPrecio = Math.max(...precios);
 
-                datos.forEach((d, i) => {
-                    const x = (i * widthPerPoint) + 30; 
-                    const y = svgHeight - paddingVertical - ((d.precio - min) / rango * (svgHeight - paddingVertical * 2.5));
-                    
-                    pathData += (i === 0 ? "M" : "L") + `${x},${y} `;
-                    dots += `<circle cx="${x}" cy="${y}" r="4" fill="#2563eb" />`;
-                    
-                    const partesFecha = d.fecha.split('-');
-                    const fechaCorta = `${partesFecha[2]}/${partesFecha[1]}`;
+                // Si ya existe una gráfica anterior (por ejemplo, si cambia de 7 a 30 días), la destruimos para redibujar
+                if (window.misGraficas[id]) {
+                    window.misGraficas[id].destroy();
+                }
 
-                    labels += `
-                        <text x="${x}" y="${y - 12}" font-size="10" font-weight="bold" text-anchor="middle" fill="#1e293b">${d.precio.toFixed(3)}</text>
-                        <text x="${x}" y="${svgHeight - 5}" font-size="10" text-anchor="middle" fill="#64748b">${fechaCorta}</text>
-                    `;
+                // Creamos la nueva gráfica
+                window.misGraficas[id] = new Chart(canvas, {
+                    type: 'line',
+                    data: {
+                        labels: fechas,
+                        datasets: [{
+                            label: 'Precio (€/L)',
+                            data: precios,
+                            borderColor: '#2563eb', // Azul
+                            backgroundColor: 'rgba(37, 99, 235, 0.1)', // Azul semitransparente abajo
+                            borderWidth: 2,
+                            pointBackgroundColor: '#2563eb',
+                            pointRadius: 3,
+                            fill: true, // Pinta el área de abajo
+                            tension: 0.3 // Hace que la línea sea curva y suave
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false, // Vital para que respete los 160px de alto y llene el ancho
+                        plugins: {
+                            legend: { display: false } // Ocultamos la leyenda superior para ahorrar espacio
+                        },
+                        scales: {
+                            x: {
+                                grid: { display: false },
+                                ticks: { font: { size: 10 } }
+                            },
+                            y: {
+                                // Ajustamos la escala para que la línea no quede ni muy plana ni se salga
+                                min: minPrecio - 0.02,
+                                max: maxPrecio + 0.02,
+                                ticks: { font: { size: 10 }, stepSize: 0.02 }
+                            }
+                        }
+                    }
                 });
 
-                svg.innerHTML = `
-                    <path d="${pathData}" fill="none" stroke="#2563eb" stroke-width="2" />
-                    ${dots}
-                    ${labels}
-                `;
-                
-                const scrollContainer = document.getElementById(`scroll-${id}`);
-                scrollContainer.scrollLeft = scrollContainer.scrollWidth;
-                
             } catch(e) {
-                console.error("Error al pintar gráfica", e);
-                svg.innerHTML = '<text x="10" y="20" font-size="10" fill="#ef4444">Error al cargar datos</text>';
+                console.error("Error al pintar gráfica:", e);
+                canvas.style.display = 'none';
+                msgBox.innerHTML = 'Error al cargar datos';
+                msgBox.style.display = 'block';
             }
         };
 
