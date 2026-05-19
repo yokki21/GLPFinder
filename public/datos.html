@@ -99,14 +99,14 @@
                 </div>
                 <div class="stats-box">
                     <div class="stat-item">
-                        <span class="stat-icon">🚗</span>
+                        <span class="stat-icon"></span>
                         <div>
                             <small style="display:block; color:#64748b">Autonomía teórica</small>
                             <strong id="res-autonomia">0 km</strong>
                         </div>
                     </div>
                     <div class="stat-item" style="margin-top: 15px;">
-                        <span class="stat-icon">💰</span>
+                        <span class="stat-icon"></span>
                         <div>
                             <small style="display:block; color:#64748b">Ahorro mensual estimado</small>
                             <strong id="res-ahorro" style="color: #16a34a; font-size: 1.2rem;">0.00 €</strong>
@@ -185,8 +185,9 @@
                 document.getElementById('label-media-actual').innerText = `Medias hoy: G95: ${mediaGas95.toFixed(3)}€ | Diésel: ${mediaDiesel.toFixed(3)}€`;
             } catch (e) {
                 console.error("Error cargando medias:", e);
-                document.getElementById('label-media-actual').innerText = "Usando precios estimados de mercado";
-                mediaGas95 = 1.62; mediaDiesel = 1.49;
+                mediaGas95 = 1.62; 
+                mediaDiesel = 1.49;
+                document.getElementById('label-media-actual').innerText = `Medias estimadas: G95: ${mediaGas95.toFixed(3)}€ | Diésel: ${mediaDiesel.toFixed(3)}€`;
             }
         }
 
