@@ -87,7 +87,7 @@
                     <h5 style="margin: 0 0 10px 0; font-size: 13px; color: #334155;">Paradas en ruta (<span id="stopsCount">0</span>)</h5>
                     <ul id="stopsList" style="list-style: none; padding: 0; margin: 0 0 10px 0; font-size: 12px; color: #475569;"></ul>
                     <button onclick="window.abrirRutaEnGoogleMaps()" style="width: 100%; background: #16a34a; color: white; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px;">
-                        🗺️ Abrir ruta en Google Maps
+                        Abrir ruta en Google Maps
                     </button>
                 </div>
             </div>
@@ -136,19 +136,19 @@
                 <div class="layers-dropdown" id="capasDropdown" style="display: none;">
                     <div class="layers-option" onclick="cambiarCapa('satelite')">
                         <input type="radio" name="mapLayer" id="layer-satelite" checked>
-                        <label for="layer-satelite">🛰️ Satélite</label>
+                        <label for="layer-satelite">Satélite</label>
                     </div>
                     <div class="layers-option" onclick="cambiarCapa('calles')">
                         <input type="radio" name="mapLayer" id="layer-calles">
-                        <label for="layer-calles">🗺️ Calles</label>
+                        <label for="layer-calles">Callejero</label>
                     </div>
                     <div class="layers-option" onclick="cambiarCapa('oscuro')">
                         <input type="radio" name="mapLayer" id="layer-oscuro">
-                        <label for="layer-oscuro">🌙 Modo Oscuro</label>
+                        <label for="layer-oscuro">Modo Oscuro</label>
                     </div>
                     <div class="layers-option" onclick="cambiarCapa('claro')">
                         <input type="radio" name="mapLayer" id="layer-claro">
-                        <label for="layer-claro">☀️ Modo Claro</label>
+                        <label for="layer-claro">Modo Claro</label>
                     </div>
                 </div>
             </div>
@@ -329,7 +329,7 @@
                     calculadorHTML = `
                     <div id="calc-container-${id}" style="margin-bottom:10px;">
                         <button style="width:100%;background:#2563eb;color:white;border:none;padding:6px;border-radius:4px;cursor:pointer;font-weight:600;"
-                            onclick="window.calcularCosteLlenado('${id}',${precio})">⛽ Calcular Depósito</button>
+                            onclick="window.calcularCosteLlenado('${id}',${precio})"> Calcular Depósito</button>
                         <div id="res-calc-${id}" style="display:none;margin-top:5px;font-size:12px;text-align:center;font-weight:bold;color:#1e293b;"></div>
                     </div>`;
                 }
@@ -487,7 +487,7 @@
         map.on('zoomend', actualizarPinesVisibles);
 
         // ============================================================
-        // 6. CARGA DE GASOLINERAS (caché inteligente por tramo horario)
+        // 6. CARGA DE GASOLINERAS 
         // ============================================================
         async function cargarGasolineras() {
             const ahora = new Date();
@@ -523,7 +523,7 @@
             navigator.geolocation.getCurrentPosition(p => {
                 puntoReferenciaDistancia = L.latLng(p.coords.latitude, p.coords.longitude);
                 
-                document.getElementById('routeOriginInput').placeholder = '📍 Mi ubicación actual';
+                document.getElementById('routeOriginInput').placeholder = 'Ubicación actual';
                 
                 if (marcadorUbicacionUsuario) map.removeLayer(marcadorUbicacionUsuario);
                 marcadorUbicacionUsuario = L.circleMarker([p.coords.latitude, p.coords.longitude], {
@@ -707,13 +707,13 @@
                 if (marcadorUbicacionUsuario) {
                     origen = marcadorUbicacionUsuario.getLatLng();
                 } else {
-                    mostrarMensajeRuta('📍 Activa el GPS o escribe un origen', 'warning');
+                    mostrarMensajeRuta(' Activa el GPS o escribe un origen', 'warning');
                     return;
                 }
             }
 
             if (!window._calcularRuta) {
-                mostrarMensajeRuta('⚠️ Módulo de rutas no cargado', 'error');
+                mostrarMensajeRuta(' Módulo de rutas no cargado', 'error');
                 return;
             }
 
@@ -735,10 +735,10 @@
 
                 filtrarGasolinerasEnRuta(ultimaRutaGeoJSON);
                 
-                mostrarMensajeRuta(`✅ ${km} km · ${dur}`, 'success');
+                mostrarMensajeRuta(` ${km} km · ${dur}`, 'success');
             } catch (err) {
                 desactivarModoRuta();
-                mostrarMensajeRuta('❌ No se pudo calcular la ruta', 'error');
+                mostrarMensajeRuta(' No se pudo calcular la ruta', 'error');
             }
         }
         
@@ -770,11 +770,11 @@
             if (gasolinerasEnRuta.length > 0) {
                 mostrarPinesIndividuales(gasolinerasEnRuta);
                 setTimeout(() => {
-                    mostrarMensajeRuta(`✅ ${gasolinerasEnRuta.length} gasolineras a menos de ${distanciaMaxKm}km del trayecto`, 'success');
+                    mostrarMensajeRuta(` ${gasolinerasEnRuta.length} gasolineras a menos de ${distanciaMaxKm}km del trayecto`, 'success');
                 }, 1000); 
             } else {
                 setTimeout(() => {
-                    mostrarMensajeRuta(`⚠️ No hay gasolineras a menos de ${distanciaMaxKm}km. Prueba a ampliar el desvío.`, 'warning');
+                    mostrarMensajeRuta(` No hay gasolineras a menos de ${distanciaMaxKm}km. Prueba a ampliar el desvío.`, 'warning');
                 }, 1000);
             }
         }
@@ -827,7 +827,7 @@
         window.abrirRutaEnGoogleMaps = function() {
             let origen = origenRuta;
             
-            // CORRECCIÓN: El origen por defecto siempre se extrae del punto real de GPS
+           
             if (!origen && marcadorUbicacionUsuario) {
                 origen = marcadorUbicacionUsuario.getLatLng();
             }
@@ -848,9 +848,6 @@
             window.open(url.toString(), '_blank');
         };
 
-        // ============================================================
-        // INIT
-        // ============================================================
         cargarGasolineras();
     </script>
 
@@ -911,7 +908,7 @@
             const resDiv = document.getElementById(`res-calc-${id}`);
             if (!usuarioActual) return;
             if (!configVehiculo || !configVehiculo.deposito) {
-                resDiv.innerHTML     = "⚠️ Configura tu depósito en 'Mis Datos'";
+                resDiv.innerHTML     = " Configura tu depósito en 'Mis Datos'";
                 resDiv.style.display = 'block';
                 return;
             }
