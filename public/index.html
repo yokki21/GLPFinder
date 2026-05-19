@@ -52,43 +52,48 @@
             <div id="routePanel" class="route-panel hidden">
                 <div class="route-panel-header">
                     <div>
-                        <h4>Preparar ruta</h4>
+                        <h4>   </h4>
                         <p id="routeDestinationLabel" class="route-destination-label">Destino no seleccionado</p>
                     </div>
                     <button class="route-clear-btn" onclick="cerrarPanelRuta()" title="Cerrar panel">✕</button>
                 </div>
-                <div class="route-field-group">
-                    <label for="routeOriginInput">Origen</label>
-                    <div class="route-origin-row">
-                        <input type="text" id="routeOriginInput"
-                            placeholder="Ubicación actual (por defecto)"
-                            oninput="manejarEntradaOrigen()"
-                            onkeydown="if(event.key==='Enter'){ event.preventDefault(); buscarOrigen(); }"
-                            autocomplete="off">
-                        <button class="btn-route btn-route-square" onclick="calcularRutaDesdePanel()" title="Calcular ruta">⇨</button>
+                
+                <button id="btnProgramarRuta" onclick="window.mostrarDetallesRuta()" style="width: 100%; background: #2563eb; color: white; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 10px; font-size: 14px;">Programar Ruta</button>
+
+                <div id="routeDetailsFields" class="hidden" style="margin-top: 5px;">
+                    <div class="route-field-group">
+                        <label for="routeOriginInput">Origen</label>
+                        <div class="route-origin-row">
+                            <input type="text" id="routeOriginInput"
+                                placeholder="Ubicación actual (por defecto)"
+                                oninput="manejarEntradaOrigen()"
+                                onkeydown="if(event.key==='Enter'){ event.preventDefault(); buscarOrigen(); }"
+                                autocomplete="off">
+                            <button class="btn-route btn-route-square" onclick="calcularRutaDesdePanel()" title="Calcular ruta">⇨</button>
+                        </div>
+                        <ul id="originResults" class="search-results"></ul>
                     </div>
-                    <ul id="originResults" class="search-results"></ul>
-                </div>
 
-                <div class="route-field-group" style="margin-top: 15px;">
-                    <label for="routeDesvioInput" style="display: block; margin-bottom: 5px; font-weight: bold; color: #334155;">Desvío máximo permitido</label>
-                    <select id="routeDesvioInput" onchange="reaplicarFiltroRuta()" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; background-color: white;">
-                        <option value="2">Muy cerca (2 km)</option>
-                        <option value="5" selected>Normal (5 km)</option>
-                        <option value="10">Desvío moderado (10 km)</option>
-                        <option value="25">Ruta larga / Mucho desvío (25 km)</option>
-                        <option value="50">Cualquier gasolinera en la región (50 km)</option>
-                    </select>
-                </div>
+                    <div class="route-field-group" style="margin-top: 15px;">
+                        <label for="routeDesvioInput" style="display: block; margin-bottom: 5px; font-weight: bold; color: #334155;">Desvío máximo permitido</label>
+                        <select id="routeDesvioInput" onchange="reaplicarFiltroRuta()" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; background-color: white;">
+                            <option value="2">Muy cerca (2 km)</option>
+                            <option value="5" selected>Normal (5 km)</option>
+                            <option value="10">Desvío moderado (10 km)</option>
+                            <option value="25">Ruta larga / Mucho desvío (25 km)</option>
+                            <option value="50">Cualquier gasolinera en la región (50 km)</option>
+                        </select>
+                    </div>
 
-                <div id="routeMessage" class="route-message"></div>
+                    <div id="routeMessage" class="route-message"></div>
 
-                <div id="routeStopsContainer" style="display: none; margin-top: 15px; border-top: 1px solid #cbd5e1; padding-top: 15px;">
-                    <h5 style="margin: 0 0 10px 0; font-size: 13px; color: #334155;">Paradas en ruta (<span id="stopsCount">0</span>)</h5>
-                    <ul id="stopsList" style="list-style: none; padding: 0; margin: 0 0 10px 0; font-size: 12px; color: #475569;"></ul>
-                    <button onclick="window.abrirRutaEnGoogleMaps()" style="width: 100%; background: #16a34a; color: white; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px;">
-                        Abrir ruta en Google Maps
-                    </button>
+                    <div id="routeStopsContainer" style="display: none; margin-top: 15px; border-top: 1px solid #cbd5e1; padding-top: 15px;">
+                        <h5 style="margin: 0 0 10px 0; font-size: 13px; color: #334155;">Paradas en ruta (<span id="stopsCount">0</span>)</h5>
+                        <ul id="stopsList" style="list-style: none; padding: 0; margin: 0 0 10px 0; font-size: 12px; color: #475569;"></ul>
+                        <button onclick="window.abrirRutaEnGoogleMaps()" style="width: 100%; background: #16a34a; color: white; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px;">
+                            Abrir ruta en Google Maps
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -219,6 +224,7 @@
         // 3. VARIABLES GLOBALES
         // ============================================================
         let marcadorUbicacionUsuario;
+        let marcadorBusqueda = null;
         let todasLasEstaciones       = [];
         let capaPinesVisibles        = L.layerGroup().addTo(map);
         let puntoReferenciaDistancia = null;
@@ -589,6 +595,17 @@
                         map.flyTo([i.lat, i.lon], 14);
                         document.getElementById('searchInput').value = i.display_name.split(',')[0];
                         resC.style.display = 'none';
+
+                        // Añadir pin circular en la ubicación buscada
+                        if (marcadorBusqueda) map.removeLayer(marcadorBusqueda);
+                        marcadorBusqueda = L.circleMarker([parseFloat(i.lat), parseFloat(i.lon)], {
+                            radius: 8,
+                            fillColor: "#2563eb",
+                            color: "#ffffff",
+                            weight: 3,
+                            fillOpacity: 0.9
+                        }).addTo(map).bindPopup("<b>" + i.display_name.split(',')[0] + "</b><br>").openPopup();
+
                         actualizarPanelRuta(i.display_name.split(',')[0], parseFloat(i.lat), parseFloat(i.lon));
                         actualizarPinesVisibles();
                     });
@@ -655,7 +672,15 @@
             destinoRuta = L.latLng(lat, lng);
             document.getElementById('routeDestinationLabel').textContent = nombreDestino || 'Destino seleccionado';
             document.getElementById('routePanel').classList.remove('hidden');
+
+            document.getElementById('routeDetailsFields').classList.add('hidden');
+            document.getElementById('btnProgramarRuta').style.display = 'block';
         }
+
+        window.mostrarDetallesRuta = function() {
+            document.getElementById('routeDetailsFields').classList.remove('hidden');
+            document.getElementById('btnProgramarRuta').style.display = 'none';
+        };
 
         function cerrarPanelRuta() {
             document.getElementById('routePanel').classList.add('hidden');
@@ -664,6 +689,12 @@
             const msg = document.getElementById('routeMessage');
             msg.style.display = 'none';
             msg.textContent   = '';
+            
+            if (marcadorBusqueda) {
+                map.removeLayer(marcadorBusqueda);
+                marcadorBusqueda = null;
+            }
+
             desactivarModoRuta();
         }
 
@@ -703,7 +734,6 @@
 
             let origen = origenRuta;
             if (!origen) {
-                // CORRECCIÓN: Tomamos directamente el marcador activo de geolocalización
                 if (marcadorUbicacionUsuario) {
                     origen = marcadorUbicacionUsuario.getLatLng();
                 } else {
