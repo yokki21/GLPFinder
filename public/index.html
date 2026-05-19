@@ -82,6 +82,14 @@
                 </div>
 
                 <div id="routeMessage" class="route-message"></div>
+
+                <div id="routeStopsContainer" style="display: none; margin-top: 15px; border-top: 1px solid #cbd5e1; padding-top: 15px;">
+                    <h5 style="margin: 0 0 10px 0; font-size: 13px; color: #334155;">Paradas en ruta (<span id="stopsCount">0</span>)</h5>
+                    <ul id="stopsList" style="list-style: none; padding: 0; margin: 0 0 10px 0; font-size: 12px; color: #475569;"></ul>
+                    <button onclick="window.abrirRutaEnGoogleMaps()" style="width: 100%; background: #16a34a; color: white; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px;">
+                        🗺️ Abrir ruta en Google Maps
+                    </button>
+                </div>
             </div>
 
             <div id="panelFiltros" class="filter-panel" style="display: none;">
@@ -224,7 +232,8 @@
         let rutaActiva  = false;
         let origenRuta  = null;
         let destinoRuta = null;
-        let ultimaRutaGeoJSON = null; // NUEVO: Para guardar la geometría de la ruta
+        let ultimaRutaGeoJSON = null; 
+        window.paradasSeleccionadas = []; // NUEVO: Array para guardar las paradas
 
         const brandLogos = {
             "REPSOL": "Repsol.png", "CEPSA": "Cepsa.png", "MOEVE": "Moeve.png",
@@ -261,7 +270,7 @@
         // ============================================================
         function actualizarPinesVisibles() {
             if (todasLasEstaciones.length === 0) return;
-            if (rutaActiva) return; // guard: no redibujar durante una ruta activa
+            if (rutaActiva) return; 
 
             capaPinesVisibles.clearLayers();
 
@@ -272,7 +281,7 @@
 
             const filtradas = todasLasEstaciones.filter(e => {
                 const id = e['IDEESS'];
-                if (id === idPopupForzado) return true; // protección popup forzado
+                if (id === idPopupForzado) return true; 
 
                 const lat = parseFloat(e['Latitud'].replace(',', '.'));
                 const lng = parseFloat(e['Longitud (WGS84)'].replace(',', '.'));
@@ -329,6 +338,18 @@
                 const direccion = e['Dirección'].replace(/'/g, "\\'");
                 const localidad = e['Localidad'].replace(/'/g, "\\'");
 
+                // NUEVO: Lógica del botón de añadir a ruta para Google Maps
+                let botonParadaHTML = '';
+                if (rutaActiva) {
+                    const esParada = window.paradasSeleccionadas.some(p => p.id === id);
+                    const btnParadaStyle = esParada 
+                        ? "background:#fef2f2; color:#ef4444; border: 1px solid #fecaca;" 
+                        : "background:#f0fdf4; color:#16a34a; border: 1px solid #bbf7d0;";
+                    const btnParadaText = esParada ? "➖ Quitar parada" : "➕ Añadir a la ruta";
+                    
+                    botonParadaHTML = `<button id="btn-parada-${id}" onclick="window.toggleParada('${id}', ${lat}, ${lng}, '${rotulo}')" style="width:100%; margin-bottom:10px; padding:8px; border-radius:6px; font-weight:bold; cursor:pointer; transition: all 0.2s; ${btnParadaStyle}">${btnParadaText}</button>`;
+                }
+
                 const popup = `
                     <div class="popup-header">
                         <h3>${e['Rótulo']}</h3>
@@ -340,9 +361,10 @@
                         <span style="font-weight:bold;color:#16a34a;font-size:16px;">${precio.toFixed(3)} €/L</span>
                     </div>
                     ${calculadorHTML}
+                    ${botonParadaHTML} 
                     <div class="nav-buttons">
                         <a href="https://waze.com/ul?ll=${lat},${lng}&navigate=yes" target="_blank" class="btn-nav btn-waze">Waze</a>
-                        <a href="https://www.google.com/maps/search/?api=1&query=${lat},${lng}" target="_blank" class="btn-nav btn-gmaps">Google Maps</a>
+                        <a href="https://www.google.com/maps/search/?api=1&query=$${lat},${lng}" target="_blank" class="btn-nav btn-gmaps">Google Maps</a>
                     </div>`;
 
                 const marcador = L.marker([lat, lng], {
@@ -501,21 +523,28 @@
         function localizarUsuario(moverCamara = true) {
             navigator.geolocation.getCurrentPosition(p => {
                 puntoReferenciaDistancia = L.latLng(p.coords.latitude, p.coords.longitude);
+                
+                document.getElementById('routeOriginInput').placeholder = '📍 Mi ubicación actual';
+                
                 if (marcadorUbicacionUsuario) map.removeLayer(marcadorUbicacionUsuario);
                 marcadorUbicacionUsuario = L.circleMarker([p.coords.latitude, p.coords.longitude], {
                     radius: 8, fillColor: "#2563eb", color: "#fff", weight: 3, fillOpacity: 0.9
                 }).addTo(map);
+                
                 if (moverCamara) {
                     map.flyTo([p.coords.latitude, p.coords.longitude], 13);
                 } else {
                     actualizarPinesVisibles();
                 }
-            }, () => actualizarPinesVisibles());
+            }, () => {
+                puntoReferenciaDistancia = null;
+                document.getElementById('routeOriginInput').placeholder = 'Escribe un origen...';
+                actualizarPinesVisibles();
+            });
         }
 
         // ============================================================
         // 8. BÚSQUEDA MEJORADA
-        //    AbortController, errores 429, Enter, modo dual destino/origen
         // ============================================================
         let tempBusq;
         let abortCtrlDestino = null;
@@ -581,7 +610,15 @@
             const q    = document.getElementById('routeOriginInput').value.trim();
             const resC = document.getElementById('originResults');
             clearTimeout(tempBusqOrigen);
+            
+            if (q.length === 0) {
+                origenRuta = null;
+                resC.style.display = 'none';
+                return;
+            }
+
             if (q.length < 3) { resC.style.display = 'none'; return; }
+            
             tempBusqOrigen = setTimeout(async () => {
                 if (abortCtrlOrigen) abortCtrlOrigen.abort();
                 abortCtrlOrigen = new AbortController();
@@ -641,6 +678,11 @@
             origenRuta  = null;
             destinoRuta = null;
             ultimaRutaGeoJSON = null;
+            
+            // NUEVO: Limpiamos las paradas al cancelar la ruta
+            window.paradasSeleccionadas = [];
+            actualizarPanelParadas();
+
             if (window._limpiarRuta) window._limpiarRuta();
             actualizarPinesVisibles();
         }
@@ -687,8 +729,12 @@
                 const m    = min % 60;
                 const dur  = h > 0 ? `${h}h ${m}min` : `${min}min`;
                 
-                // NUEVO: Guardamos la geometría en la variable global para poder reutilizarla
                 ultimaRutaGeoJSON = res.geometry;
+
+                // NUEVO: Si recalculamos ruta, vaciamos paradas previas
+                window.paradasSeleccionadas = [];
+                actualizarPanelParadas();
+
                 filtrarGasolinerasEnRuta(ultimaRutaGeoJSON);
                 
                 mostrarMensajeRuta(`✅ ${km} km · ${dur}`, 'success');
@@ -698,20 +744,16 @@
             }
         }
         
-        // NUEVO: Función para reaplicar el filtro al cambiar el desplegable
         window.reaplicarFiltroRuta = function() {
             if (rutaActiva && ultimaRutaGeoJSON) {
                 filtrarGasolinerasEnRuta(ultimaRutaGeoJSON);
             }
         };
 
-        // ACTUALIZADO: Función matemática conectada al selector HTML
         function filtrarGasolinerasEnRuta(rutaGeoJSON) {
             if (todasLasEstaciones.length === 0) return;
 
             const lineaRuta = turf.lineString(rutaGeoJSON.coordinates);
-            
-            // Leemos el valor del selector HTML
             const distanciaMaxKm = parseFloat(document.getElementById('routeDesvioInput').value) || 5; 
 
             const gasolinerasEnRuta = todasLasEstaciones.filter(e => {
@@ -738,6 +780,70 @@
                 }, 1000);
             }
         }
+
+        // ============================================================
+        // 10. GESTIÓN DE PARADAS (WAYPOINTS) Y GOOGLE MAPS
+        // ============================================================
+        window.toggleParada = function(id, lat, lng, nombre) {
+            const idx = window.paradasSeleccionadas.findIndex(p => p.id === id);
+            
+            if (idx >= 0) {
+                window.paradasSeleccionadas.splice(idx, 1); 
+            } else {
+                window.paradasSeleccionadas.push({id, lat, lng, nombre}); 
+            }
+            
+            actualizarPanelParadas();
+            
+            const btn = document.getElementById(`btn-parada-${id}`);
+            if (btn) {
+                const esParada = idx < 0; 
+                btn.style.cssText = esParada 
+                    ? "width:100%; margin-bottom:10px; padding:8px; border-radius:6px; font-weight:bold; cursor:pointer; transition: all 0.2s; background:#fef2f2; color:#ef4444; border: 1px solid #fecaca;"
+                    : "width:100%; margin-bottom:10px; padding:8px; border-radius:6px; font-weight:bold; cursor:pointer; transition: all 0.2s; background:#f0fdf4; color:#16a34a; border: 1px solid #bbf7d0;";
+                btn.textContent = esParada ? "➖ Quitar parada" : "➕ Añadir a la ruta";
+            }
+        };
+
+        function actualizarPanelParadas() {
+            const container = document.getElementById('routeStopsContainer');
+            if (!rutaActiva) {
+                container.style.display = 'none';
+                return;
+            }
+            
+            container.style.display = 'block';
+            document.getElementById('stopsCount').textContent = window.paradasSeleccionadas.length;
+            
+            const lista = document.getElementById('stopsList');
+            lista.innerHTML = '';
+            window.paradasSeleccionadas.forEach(p => {
+                const li = document.createElement('li');
+                li.style.cssText = "display:flex; justify-content:space-between; align-items:center; padding: 4px 0; border-bottom: 1px dashed #e2e8f0;";
+                li.innerHTML = `<span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:85%; font-weight:500;">${p.nombre}</span> 
+                                <button onclick="window.toggleParada('${p.id}', ${p.lat}, ${p.lng}, '${p.nombre}')" style="background:none; border:none; color:#ef4444; cursor:pointer; font-weight:bold; font-size:14px;">✕</button>`;
+                lista.appendChild(li);
+            });
+        }
+
+        window.abrirRutaEnGoogleMaps = function() {
+            let origen = origenRuta;
+            if (!origen && puntoReferenciaDistancia) origen = puntoReferenciaDistancia;
+            if (!origen || !destinoRuta) return;
+
+            const url = new URL('https://www.google.com/maps/dir/');
+            url.searchParams.append('api', '1');
+            url.searchParams.append('origin', `${origen.lat},${origen.lng}`);
+            url.searchParams.append('destination', `${destinoRuta.lat},${destinoRuta.lng}`);
+            url.searchParams.append('travelmode', 'driving');
+
+            if (window.paradasSeleccionadas.length > 0) {
+                const waypoints = window.paradasSeleccionadas.map(p => `${p.lat},${p.lng}`).join('|');
+                url.searchParams.append('waypoints', waypoints);
+            }
+
+            window.open(url.toString(), '_blank');
+        };
 
         // ============================================================
         // INIT
@@ -773,20 +879,6 @@
         let usuarioActual  = null;
         let configVehiculo = null;
 
-        async function registrarHistorialFavoritas(uid) {
-            const hoy  = new Date().toISOString().split('T')[0];
-            const snap = await getDocs(collection(db, "users", uid, "favoritos"));
-            snap.forEach(async (fDoc) => {
-                const info = todasLasEstaciones.find(e => e['IDEESS'] === fDoc.id);
-                if (info) {
-                    await setDoc(doc(db, "historial_precios", fDoc.id, "registros", hoy), {
-                        precio: parseFloat(info['Precio Gases licuados del petróleo'].replace(',', '.')),
-                        fecha:  hoy
-                    }, { merge: true });
-                }
-            });
-        }
-
         onAuthStateChanged(auth, async (user) => {
             const nA = document.getElementById('nav-auth');
             const nP = document.getElementById('nav-profile');
@@ -802,7 +894,6 @@
                 const vSnap = await getDoc(doc(db, "users", user.uid, "configuracion", "vehiculo"));
                 if (vSnap.exists()) configVehiculo = vSnap.data();
 
-                registrarHistorialFavoritas(user.uid);
                 actualizarPinesVisibles();
             } else {
                 usuarioActual          = null;
