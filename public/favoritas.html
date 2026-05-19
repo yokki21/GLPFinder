@@ -172,7 +172,7 @@
             const resDiv = document.getElementById(`res-calc-${id}`);
             if (!usuarioActual) return;
             if (!configVehiculo || !configVehiculo.deposito) {
-                resDiv.innerHTML = "⚠️ Configura tu depósito en 'Mis Datos'";
+                resDiv.innerHTML = " Configura tu depósito en 'Mis Datos'";
                 resDiv.style.display = 'block';
                 return;
             }
@@ -229,11 +229,11 @@
                             <h3 class="fav-title">${data.nombre}</h3>
                         </div>
                         <span class="fav-price-tag">${pActual.toFixed(3)} €/L</span>
-                        <p class="fav-address">📍 ${data.direccion}</p>
+                        <p class="fav-address"> ${data.direccion}</p>
                         
                         <div id="calc-container-${id}" style="margin-bottom: 15px;">
                             <button style="width:100%; background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; padding:8px; border-radius:6px; cursor:pointer; font-weight:600; font-size: 13px;"
-                                onclick="window.calcularCosteLlenado('${id}', ${pActual})">⛽ Calcular coste de llenado</button>
+                                onclick="window.calcularCosteLlenado('${id}', ${pActual})"> Calcular coste de llenado</button>
                             <div id="res-calc-${id}" style="display:none; margin-top:5px; font-size:14px; text-align:center; font-weight:bold; color:#0f172a; padding:6px; background:#f1f5f9; border-radius:4px;"></div>
                         </div>
                         
@@ -253,8 +253,8 @@
                         </div>
 
                         <div class="fav-actions">
-                            <button class="btn-action btn-map" onclick="window.saltarAlMapa('${id}', ${latSegura}, ${lngSegura})">📍 Ver mapa</button>
-                            <button class="btn-action btn-chart-toggle" onclick="window.toggleGrafica('${id}')">📈 Historial</button>
+                            <button class="btn-action btn-map" onclick="window.saltarAlMapa('${id}', ${latSegura}, ${lngSegura})"> Ver en mapa</button>
+                            <button class="btn-action btn-chart-toggle" onclick="window.toggleGrafica('${id}')"> Historial</button>
                             <button class="btn-action btn-remove" onclick="window.eliminarFavorita('${id}')" title="Eliminar de favoritas">🗑️</button>
                         </div>
                     `;
