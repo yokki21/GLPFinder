@@ -117,7 +117,9 @@
                 </div>
             </div>
 
-        </div><div class="map-controls-group">
+        </div>
+
+        <div class="map-controls-group">
             <button class="btn-geo" onclick="localizarUsuario(true)" title="Centrar en mi ubicación">
                 <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="10"></circle>
@@ -224,16 +226,14 @@
         window.misFavoritosIds       = [];
         window.usuarioLogueado       = false;
 
-        // Puente hacia el módulo ES de rutas (inyectado desde el script type="module")
         window._calcularRuta = null;
         window._limpiarRuta  = null;
 
-        // Estado de rutas
         let rutaActiva  = false;
         let origenRuta  = null;
         let destinoRuta = null;
         let ultimaRutaGeoJSON = null; 
-        window.paradasSeleccionadas = []; // NUEVO: Array para guardar las paradas
+        window.paradasSeleccionadas = []; 
 
         const brandLogos = {
             "REPSOL": "Repsol.png", "CEPSA": "Cepsa.png", "MOEVE": "Moeve.png",
@@ -338,7 +338,6 @@
                 const direccion = e['Dirección'].replace(/'/g, "\\'");
                 const localidad = e['Localidad'].replace(/'/g, "\\'");
 
-                // NUEVO: Lógica del botón de añadir a ruta para Google Maps
                 let botonParadaHTML = '';
                 if (rutaActiva) {
                     const esParada = window.paradasSeleccionadas.some(p => p.id === id);
@@ -650,7 +649,7 @@
         });
 
         // ============================================================
-        // 9. PANEL DE RUTAS (usa window._calcularRuta de routes.js)
+        // 9. PANEL DE RUTAS
         // ============================================================
         function actualizarPanelRuta(nombreDestino, lat, lng) {
             destinoRuta = L.latLng(lat, lng);
@@ -679,7 +678,6 @@
             destinoRuta = null;
             ultimaRutaGeoJSON = null;
             
-            // NUEVO: Limpiamos las paradas al cancelar la ruta
             window.paradasSeleccionadas = [];
             actualizarPanelParadas();
 
@@ -705,8 +703,9 @@
 
             let origen = origenRuta;
             if (!origen) {
-                if (puntoReferenciaDistancia) {
-                    origen = puntoReferenciaDistancia;
+                // CORRECCIÓN: Tomamos directamente el marcador activo de geolocalización
+                if (marcadorUbicacionUsuario) {
+                    origen = marcadorUbicacionUsuario.getLatLng();
                 } else {
                     mostrarMensajeRuta('📍 Activa el GPS o escribe un origen', 'warning');
                     return;
@@ -731,7 +730,6 @@
                 
                 ultimaRutaGeoJSON = res.geometry;
 
-                // NUEVO: Si recalculamos ruta, vaciamos paradas previas
                 window.paradasSeleccionadas = [];
                 actualizarPanelParadas();
 
@@ -828,7 +826,12 @@
 
         window.abrirRutaEnGoogleMaps = function() {
             let origen = origenRuta;
-            if (!origen && puntoReferenciaDistancia) origen = puntoReferenciaDistancia;
+            
+            // CORRECCIÓN: El origen por defecto siempre se extrae del punto real de GPS
+            if (!origen && marcadorUbicacionUsuario) {
+                origen = marcadorUbicacionUsuario.getLatLng();
+            }
+            
             if (!origen || !destinoRuta) return;
 
             const url = new URL('https://www.google.com/maps/dir/');
@@ -857,12 +860,10 @@
         import { getFirestore, doc, setDoc, deleteDoc, collection, getDocs, getDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
         import { initRouteModule, calcularRuta, limpiarRuta } from './routes.js';
 
-        // Inyectar funciones de routes.js en window para que el script principal las use
         initRouteModule(map);
         window._calcularRuta = calcularRuta;
         window._limpiarRuta  = limpiarRuta;
 
-        // ── Firebase ──
         const firebaseConfig = {
             apiKey:            "AIzaSyB_2thDoQUjLM34QYO8nmaDAB8HqQIxtIY",
             authDomain:        "glpfinder.firebaseapp.com",
