@@ -7,8 +7,6 @@
     <link rel="icon" type="image/png" href="LogoPequeño.png">
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-    <script>eruda.init();</script>
 </head>
 <body>
 
@@ -20,7 +18,7 @@
             <a href="contacto.html">Contacto</a>
             <a href="auth.html" id="nav-auth">Acceder / Registro</a>
             <div class="profile-dropdown" id="nav-profile" style="display: none;">
-                <button class="profile-btn">Perfil <span>▼</span></button>
+                <button class="profile-btn">Perfil</button>
                 <div class="dropdown-content">
                     <a href="datos.html">Mis datos</a>
                     <a href="favoritas.html">Mis favoritas</a>
@@ -52,17 +50,20 @@
             </div>
 
             <div id="routePanel" class="route-panel hidden">
-                <div class="route-panel-header">
-                    <div>
-                        <h4>   </h4>
-                        <p id="routeDestinationLabel" class="route-destination-label">Destino no seleccionado</p>
+                <div class="route-panel-header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+                    <div style="flex-grow: 1; padding-right: 10px;">
+                        <h4 style="margin: 0 0 4px 0; font-size: 13px; color: #64748b; text-transform: uppercase;">Ruta hacia</h4>
+                        <p id="routeDestinationLabel" class="route-destination-label" style="margin: 0; font-size: 16px; font-weight: bold; color: #0f172a; line-height: 1.2;">Destino no seleccionado</p>
                     </div>
-                    <button class="route-clear-btn" onclick="cerrarPanelRuta()" title="Cerrar panel">✕</button>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <button id="btnMinimizarRuta" onclick="window.toggleMinimizarRuta()" style="background: #e2e8f0; border: none; width: 32px; height: 32px; border-radius: 6px; font-weight: bold; color: #475569; cursor: pointer; display: none; font-size: 16px; line-height: 1; justify-content: center; align-items: center;">-</button>
+                        <button class="route-clear-btn" onclick="cerrarPanelRuta()" title="Cerrar panel" style="width: 32px; height: 32px; padding: 0; display: flex; justify-content: center; align-items: center; border-radius: 6px; background: #fef2f2; color: #ef4444; border: 1px solid #fecaca; font-weight: bold; cursor: pointer;">X</button>
+                    </div>
                 </div>
                 
-                <button id="btnProgramarRuta" onclick="window.mostrarDetallesRuta()" style="width: 100%; background: #2563eb; color: white; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 10px; font-size: 14px;">Programar Ruta</button>
+                <button id="btnProgramarRuta" onclick="window.mostrarDetallesRuta()" style="width: 100%; background: #2563eb; color: white; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 5px; font-size: 15px;">Programar Ruta</button>
 
-                <div id="routeDetailsFields" class="hidden" style="margin-top: 5px;">
+                <div id="routeDetailsFields" class="hidden" style="margin-top: 15px;">
                     <div class="route-field-group">
                         <label for="routeOriginInput">Origen</label>
                         <div class="route-origin-row">
@@ -71,7 +72,7 @@
                                 oninput="manejarEntradaOrigen()"
                                 onkeydown="if(event.key==='Enter'){ event.preventDefault(); buscarOrigen(); }"
                                 autocomplete="off">
-                            <button class="btn-route btn-route-square" onclick="calcularRutaDesdePanel()" title="Calcular ruta">⇨</button>
+                            <button class="btn-route btn-route-square" onclick="calcularRutaDesdePanel()" title="Calcular ruta">Ir</button>
                         </div>
                         <ul id="originResults" class="search-results"></ul>
                     </div>
@@ -92,11 +93,12 @@
                     <div id="routeStopsContainer" style="display: none; margin-top: 15px; border-top: 1px solid #cbd5e1; padding-top: 15px;">
                         <h5 style="margin: 0 0 10px 0; font-size: 13px; color: #334155;">Paradas en ruta (<span id="stopsCount">0</span>)</h5>
                         <ul id="stopsList" style="list-style: none; padding: 0; margin: 0 0 10px 0; font-size: 12px; color: #475569;"></ul>
-                        <button onclick="window.abrirRutaEnGoogleMaps()" style="width: 100%; background: #16a34a; color: white; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px;">
-                            Abrir ruta en Google Maps
-                        </button>
                     </div>
                 </div>
+
+                <button id="btnRutaGoogleMaps" onclick="window.abrirRutaEnGoogleMaps()" style="width: 100%; background: #16a34a; color: white; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 15px; font-size: 15px; display: none;">
+                    Abrir ruta en Google Maps
+                </button>
             </div>
 
             <div id="panelFiltros" class="filter-panel" style="display: none;">
@@ -184,12 +186,12 @@
         const startZoom = ordenFavorita ? 17 : 10;
 
         // ============================================================
-        // 2. MAPA Y CAPAS (4 capas + dropdown personalizado)
+        // 2. MAPA Y CAPAS
         // ============================================================
         const mapaSatelite = L.tileLayer('https://mt1.google.com/vt/lyrs=s&hl=es&x={x}&y={y}&z={z}', { maxZoom: 20, attribution: '© Google' });
         const mapaCalles   = L.tileLayer('https://mt1.google.com/vt/lyrs=m&hl=es&x={x}&y={y}&z={z}', { maxZoom: 20, attribution: '© Google' });
-        const mapaOscuro   = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',  { maxZoom: 20, attribution: '© CARTO' });
-        const mapaClaro    = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { maxZoom: 20, attribution: '© CARTO' });
+        const mapaOscuro = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 20, attribution: '© CARTO' });
+        const mapaClaro = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { maxZoom: 20, attribution: '© CARTO' });
 
         const map = L.map('map', { zoomControl: false, layers: [mapaSatelite] })
                      .setView([startLat, startLng], startZoom);
@@ -242,6 +244,7 @@
         let destinoRuta = null;
         let ultimaRutaGeoJSON = null; 
         window.paradasSeleccionadas = []; 
+        window.isRutaMinimizada = false;
 
         const brandLogos = {
             "REPSOL": "Repsol.png", "CEPSA": "Cepsa.png", "MOEVE": "Moeve.png",
@@ -274,7 +277,7 @@
         }
 
         // ============================================================
-        // 5. PINES: actualizar, individuales y clusters por provincia
+        // 5. PINES: actualizar, individuales y clusters de precios
         // ============================================================
         function actualizarPinesVisibles() {
             if (todasLasEstaciones.length === 0) return;
@@ -337,7 +340,7 @@
                     calculadorHTML = `
                     <div id="calc-container-${id}" style="margin-bottom:10px;">
                         <button style="width:100%;background:#2563eb;color:white;border:none;padding:6px;border-radius:4px;cursor:pointer;font-weight:600;"
-                            onclick="window.calcularCosteLlenado('${id}',${precio})"> Calcular Depósito</button>
+                            onclick="window.calcularCosteLlenado('${id}',${precio})">Calcular Depósito</button>
                         <div id="res-calc-${id}" style="display:none;margin-top:5px;font-size:12px;text-align:center;font-weight:bold;color:#1e293b;"></div>
                     </div>`;
                 }
@@ -352,7 +355,7 @@
                     const btnParadaStyle = esParada 
                         ? "background:#fef2f2; color:#ef4444; border: 1px solid #fecaca;" 
                         : "background:#f0fdf4; color:#16a34a; border: 1px solid #bbf7d0;";
-                    const btnParadaText = esParada ? "➖ Quitar parada" : "➕ Añadir a la ruta";
+                    const btnParadaText = esParada ? "Quitar parada" : "Añadir a la ruta";
                     
                     botonParadaHTML = `<button id="btn-parada-${id}" onclick="window.toggleParada('${id}', ${lat}, ${lng}, '${rotulo}')" style="width:100%; margin-bottom:10px; padding:8px; border-radius:6px; font-weight:bold; cursor:pointer; transition: all 0.2s; ${btnParadaStyle}">${btnParadaText}</button>`;
                 }
@@ -465,28 +468,50 @@
                 clusters[prov].push(est);
             });
 
+            // 1. Calculamos la media de cada provincia y la media total de lo visible
+            const clustersDatos = [];
+            let sumaTotalVisible = 0;
+
             Object.entries(clusters).forEach(([prov, lista]) => {
                 const coords = capitalesProvincias[prov];
                 if (!coords) return;
+                
+                const mediaProv = lista.reduce((sum, e) => sum + parseFloat(e['Precio Gases licuados del petróleo'].replace(',', '.')), 0) / lista.length;
+                clustersDatos.push({ prov, lista, coords, mediaProv });
+                sumaTotalVisible += mediaProv;
+            });
 
-                if (lista.length === 1) { mostrarPinesIndividuales(lista); return; }
+            const mediaPantalla = clustersDatos.length > 0 ? sumaTotalVisible / clustersDatos.length : 0;
 
-                const radio = prov === 'Madrid' ? 0.8 : prov === 'Barcelona' ? 0.6 : prov === 'Valencia' ? 0.5 : 0.4;
-                L.circle(coords, {
+            // 2. Pintamos los pines agrupados con colores dinámicos
+            clustersDatos.forEach(c => {
+                if (c.lista.length === 1) { mostrarPinesIndividuales(c.lista); return; }
+
+                let colorClass = 'pin-amarillo';
+                if (c.mediaProv <= mediaPantalla - 0.015) colorClass = 'pin-verde';
+                else if (c.mediaProv >= mediaPantalla + 0.015) colorClass = 'pin-rojo';
+
+                const radio = c.prov === 'Madrid' ? 0.8 : c.prov === 'Barcelona' ? 0.6 : c.prov === 'Valencia' ? 0.5 : 0.4;
+                const circleColor = colorClass === 'pin-verde' ? '#16a34a' : (colorClass === 'pin-rojo' ? '#ef4444' : '#d97706');
+                
+                L.circle(c.coords, {
                     radius: radio * 111000,
-                    color: 'rgba(16,185,129,0.3)', fillColor: 'rgba(16,185,129,0.1)',
+                    color: circleColor, fillColor: circleColor,
                     fillOpacity: 0.1, weight: 2, dashArray: '5,5'
                 }).addTo(capaPinesVisibles);
 
                 const clusterIcon = L.divIcon({
                     className: 'custom-div-icon',
-                    html: `<div class="custom-cluster-pin-provincia"><span>${lista.length}</span><br><small>${prov}</small></div>`,
-                    iconSize: [80, 60], iconAnchor: [40, 30], popupAnchor: [0, -30]
+                    html: `<div class="custom-price-pin ${colorClass}" style="flex-direction: column; height: auto; padding: 6px 12px; border-radius: 8px;">
+                               <span style="font-size: 15px; font-weight: bold;">${c.mediaProv.toFixed(3)}€</span>
+                               <span style="font-size: 11px; font-weight: normal; opacity: 0.9;">${c.prov}</span>
+                           </div>`,
+                    iconSize: [80, 50], iconAnchor: [40, 25], popupAnchor: [0, -25]
                 });
 
-                L.marker(coords, { icon: clusterIcon, riseOnHover: true })
-                    .bindPopup(`<div class="cluster-popup-simple"><h4>${lista.length} gasolineras en ${prov}</h4><p>Haz clic para ver individualmente</p></div>`)
-                    .on('click', () => map.flyTo(coords, 10, { duration: 1 }))
+                L.marker(c.coords, { icon: clusterIcon, riseOnHover: true })
+                    .bindPopup(`<div class="cluster-popup-simple"><h4>Media en ${c.prov}: ${c.mediaProv.toFixed(3)}€</h4><p>${c.lista.length} gasolineras. Haz clic para acercarte.</p></div>`)
+                    .on('click', () => map.flyTo(c.coords, 10, { duration: 1 }))
                     .addTo(capaPinesVisibles);
             });
         }
@@ -495,26 +520,32 @@
         map.on('zoomend', actualizarPinesVisibles);
 
         // ============================================================
-        // 6. CARGA DE GASOLINERAS 
+        // 6. CARGA DE GASOLINERAS
         // ============================================================
         async function cargarGasolineras() {
             const ahora = new Date();
-            const hora  = ahora.getHours();
             const hoy   = ahora.toISOString().split('T')[0];
-            const tramo = hora < 4 ? "noche" : (hora < 16 ? "mañana" : "tarde");
 
-            if (localStorage.getItem('glp_fecha_carga') !== hoy || localStorage.getItem('glp_tramo_carga') !== tramo) {
+            usarCache();
+
+            if (localStorage.getItem('glp_fecha_carga') !== hoy) {
                 try {
-                    const res = await fetch('https://sedeaplicaciones.minetur.gob.es/ServiciosRESTCarburantes/PreciosCarburantes/EstacionesTerrestres/');
-                    const d   = await res.json();
-                    todasLasEstaciones = d.ListaEESSPrecio.filter(e => e['Precio Gases licuados del petróleo']);
-                    localStorage.setItem('glp_datos',       JSON.stringify(todasLasEstaciones));
-                    localStorage.setItem('glp_fecha_carga', hoy);
-                    localStorage.setItem('glp_tramo_carga', tramo);
-                    actualizarPinesVisibles();
-                } catch (e) { usarCache(); }
-            } else {
-                usarCache();
+                    const controller = new AbortController();
+                    const id = setTimeout(() => controller.abort(), 5000); 
+
+                    const res = await fetch('https://sedeaplicaciones.minetur.gob.es/ServiciosRESTCarburantes/PreciosCarburantes/EstacionesTerrestres/', { signal: controller.signal });
+                    clearTimeout(id);
+
+                    if (res.ok) {
+                        const d = await res.json();
+                        todasLasEstaciones = d.ListaEESSPrecio.filter(e => e['Precio Gases licuados del petróleo']);
+                        localStorage.setItem('glp_datos', JSON.stringify(todasLasEstaciones));
+                        localStorage.setItem('glp_fecha_carga', hoy);
+                        actualizarPinesVisibles();
+                    }
+                } catch (e) {
+                    console.warn("Fallo de carga (posible mantenimiento):", e);
+                }
             }
             if (!ordenFavorita) localizarUsuario(true);
         }
@@ -598,7 +629,6 @@
                         document.getElementById('searchInput').value = i.display_name.split(',')[0];
                         resC.style.display = 'none';
 
-                        // Añadir pin circular en la ubicación buscada
                         if (marcadorBusqueda) map.removeLayer(marcadorBusqueda);
                         marcadorBusqueda = L.circleMarker([parseFloat(i.lat), parseFloat(i.lon)], {
                             radius: 8,
@@ -606,7 +636,7 @@
                             color: "#ffffff",
                             weight: 3,
                             fillOpacity: 0.9
-                        }).addTo(map).bindPopup("<b>" + i.display_name.split(',')[0] + "</b><br>").openPopup();
+                        }).addTo(map).bindPopup("<b>" + i.display_name.split(',')[0] + "</b><br>Destino seleccionado").openPopup();
 
                         actualizarPanelRuta(i.display_name.split(',')[0], parseFloat(i.lat), parseFloat(i.lon));
                         actualizarPinesVisibles();
@@ -668,26 +698,52 @@
         });
 
         // ============================================================
-        // 9. PANEL DE RUTAS
+        // 9. PANEL DE RUTAS Y GESTIÓN DE MINIMIZADO
         // ============================================================
         function actualizarPanelRuta(nombreDestino, lat, lng) {
             destinoRuta = L.latLng(lat, lng);
             document.getElementById('routeDestinationLabel').textContent = nombreDestino || 'Destino seleccionado';
             document.getElementById('routePanel').classList.remove('hidden');
 
-            document.getElementById('routeDetailsFields').classList.add('hidden');
+            document.getElementById('routeDetailsFields').style.display = 'none';
             document.getElementById('btnProgramarRuta').style.display = 'block';
+            document.getElementById('btnMinimizarRuta').style.display = 'none';
+            document.getElementById('btnRutaGoogleMaps').style.display = 'none';
+            window.isRutaMinimizada = false;
         }
 
         window.mostrarDetallesRuta = function() {
             document.getElementById('routeDetailsFields').classList.remove('hidden');
+            document.getElementById('routeDetailsFields').style.display = 'block';
             document.getElementById('btnProgramarRuta').style.display = 'none';
+            
+            if (rutaActiva) {
+                document.getElementById('btnMinimizarRuta').style.display = 'flex';
+                document.getElementById('btnMinimizarRuta').textContent = '-';
+                window.isRutaMinimizada = false;
+            }
+        };
+
+        window.toggleMinimizarRuta = function() {
+            window.isRutaMinimizada = !window.isRutaMinimizada;
+            const details = document.getElementById('routeDetailsFields');
+            const btn = document.getElementById('btnMinimizarRuta');
+            
+            if (window.isRutaMinimizada) {
+                details.style.display = 'none';
+                btn.textContent = '+';
+            } else {
+                details.style.display = 'block';
+                btn.textContent = '-';
+            }
         };
 
         function cerrarPanelRuta() {
             document.getElementById('routePanel').classList.add('hidden');
             document.getElementById('routeOriginInput').value = '';
             document.getElementById('originResults').style.display = 'none';
+            document.getElementById('btnMinimizarRuta').style.display = 'none';
+            document.getElementById('btnRutaGoogleMaps').style.display = 'none';
             const msg = document.getElementById('routeMessage');
             msg.style.display = 'none';
             msg.textContent   = '';
@@ -730,7 +786,7 @@
 
         async function calcularRutaDesdePanel() {
             if (!destinoRuta) {
-                mostrarMensajeRuta('⚠️ Busca primero un destino en el buscador', 'warning');
+                mostrarMensajeRuta('Aviso: Busca primero un destino en el buscador', 'warning');
                 return;
             }
 
@@ -739,17 +795,17 @@
                 if (marcadorUbicacionUsuario) {
                     origen = marcadorUbicacionUsuario.getLatLng();
                 } else {
-                    mostrarMensajeRuta(' Activa el GPS o escribe un origen', 'warning');
+                    mostrarMensajeRuta('Aviso: Activa el GPS o escribe un origen', 'warning');
                     return;
                 }
             }
 
             if (!window._calcularRuta) {
-                mostrarMensajeRuta(' Módulo de rutas no cargado', 'error');
+                mostrarMensajeRuta('Error: Módulo de rutas no cargado', 'error');
                 return;
             }
 
-            mostrarMensajeRuta('Calculando ruta…', 'info');
+            mostrarMensajeRuta('Calculando ruta...', 'info');
             activarModoRuta();
 
             try {
@@ -767,10 +823,20 @@
 
                 filtrarGasolinerasEnRuta(ultimaRutaGeoJSON);
                 
-                mostrarMensajeRuta(` ${km} km · ${dur}`, 'success');
+                mostrarMensajeRuta(`OK: ${km} km · ${dur}`, 'success');
+
+                document.getElementById('routeDetailsFields').style.display = 'none';
+                window.isRutaMinimizada = true;
+                
+                const btnMin = document.getElementById('btnMinimizarRuta');
+                btnMin.style.display = 'flex';
+                btnMin.textContent = '+';
+                
+                document.getElementById('btnRutaGoogleMaps').style.display = 'block';
+
             } catch (err) {
                 desactivarModoRuta();
-                mostrarMensajeRuta(' No se pudo calcular la ruta', 'error');
+                mostrarMensajeRuta('Error: No se pudo calcular la ruta', 'error');
             }
         }
         
@@ -802,11 +868,11 @@
             if (gasolinerasEnRuta.length > 0) {
                 mostrarPinesIndividuales(gasolinerasEnRuta);
                 setTimeout(() => {
-                    mostrarMensajeRuta(` ${gasolinerasEnRuta.length} gasolineras a menos de ${distanciaMaxKm}km del trayecto`, 'success');
+                    mostrarMensajeRuta(`OK: ${gasolinerasEnRuta.length} gasolineras a menos de ${distanciaMaxKm}km del trayecto`, 'success');
                 }, 1000); 
             } else {
                 setTimeout(() => {
-                    mostrarMensajeRuta(` No hay gasolineras a menos de ${distanciaMaxKm}km. Prueba a ampliar el desvío.`, 'warning');
+                    mostrarMensajeRuta(`Aviso: No hay gasolineras a menos de ${distanciaMaxKm}km. Prueba a ampliar el desvío.`, 'warning');
                 }, 1000);
             }
         }
@@ -831,12 +897,14 @@
                 btn.style.cssText = esParada 
                     ? "width:100%; margin-bottom:10px; padding:8px; border-radius:6px; font-weight:bold; cursor:pointer; transition: all 0.2s; background:#fef2f2; color:#ef4444; border: 1px solid #fecaca;"
                     : "width:100%; margin-bottom:10px; padding:8px; border-radius:6px; font-weight:bold; cursor:pointer; transition: all 0.2s; background:#f0fdf4; color:#16a34a; border: 1px solid #bbf7d0;";
-                btn.textContent = esParada ? "➖ Quitar parada" : "➕ Añadir a la ruta";
+                btn.textContent = esParada ? "Quitar parada" : "Añadir a la ruta";
             }
         };
 
         function actualizarPanelParadas() {
             const container = document.getElementById('routeStopsContainer');
+            const btnGmaps = document.getElementById('btnRutaGoogleMaps');
+
             if (!rutaActiva) {
                 container.style.display = 'none';
                 return;
@@ -851,15 +919,20 @@
                 const li = document.createElement('li');
                 li.style.cssText = "display:flex; justify-content:space-between; align-items:center; padding: 4px 0; border-bottom: 1px dashed #e2e8f0;";
                 li.innerHTML = `<span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:85%; font-weight:500;">${p.nombre}</span> 
-                                <button onclick="window.toggleParada('${p.id}', ${p.lat}, ${p.lng}, '${p.nombre}')" style="background:none; border:none; color:#ef4444; cursor:pointer; font-weight:bold; font-size:14px;">✕</button>`;
+                                <button onclick="window.toggleParada('${p.id}', ${p.lat}, ${p.lng}, '${p.nombre}')" style="background:none; border:none; color:#ef4444; cursor:pointer; font-weight:bold; font-size:14px;">X</button>`;
                 lista.appendChild(li);
             });
+
+            if (window.paradasSeleccionadas.length > 0) {
+                btnGmaps.textContent = `Abrir en Google Maps (${window.paradasSeleccionadas.length} paradas)`;
+            } else {
+                btnGmaps.textContent = 'Abrir ruta en Google Maps';
+            }
         }
 
         window.abrirRutaEnGoogleMaps = function() {
             let origen = origenRuta;
             
-           
             if (!origen && marcadorUbicacionUsuario) {
                 origen = marcadorUbicacionUsuario.getLatLng();
             }
@@ -940,7 +1013,7 @@
             const resDiv = document.getElementById(`res-calc-${id}`);
             if (!usuarioActual) return;
             if (!configVehiculo || !configVehiculo.deposito) {
-                resDiv.innerHTML     = " Configura tu depósito en 'Mis Datos'";
+                resDiv.innerHTML     = "Aviso: Configura tu depósito en 'Mis Datos'";
                 resDiv.style.display = 'block';
                 return;
             }
