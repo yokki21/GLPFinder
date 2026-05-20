@@ -260,31 +260,11 @@ header {
     border: 1px solid var(--border-color); 
 }
 
-.search-controls { display: flex; gap: 8px; }
-
-.search-controls input { 
-    flex: 1; 
-    padding: 12px 16px; 
-    border: none; 
-    border-radius: 8px; 
-    font-size: 15px; 
-    outline: none; 
-    background-color: var(--bg-color); 
-}
-
-.search-controls input:focus { background-color: #f1f5f9; }
-
-.search-controls button { 
-    padding: 12px 20px; 
-    background-color: var(--primary-color); 
-    color: white; 
-    border: none; 
-    border-radius: 8px; 
-    cursor: pointer; 
-    font-weight: 600; 
-}
-
-.search-controls button:hover { background-color: var(--primary-hover); }
+.search-controls { display: flex; gap: 8px; align-items: stretch; height: 46px; }
+.search-controls input { flex: 1; min-width: 0; padding: 0 16px; border: none; border-radius: 8px; font-size: 15px; outline: none; background-color: var(--bg-color); }
+.search-controls .btn-search { padding: 0 16px; background-color: var(--primary-color); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; white-space: nowrap; }
+.search-controls .btn-icon { width: 46px; min-width: 46px; padding: 0; background-color: white; border: 1px solid var(--border-color); border-radius: 8px; display: flex; justify-content: center; align-items: center; color: var(--text-main); cursor: pointer; transition: all 0.2s; }
+.search-controls .btn-icon:hover { background-color: #f1f5f9; color: var(--primary-color); }
 
 .btn-icon { 
     padding: 10px 12px; 

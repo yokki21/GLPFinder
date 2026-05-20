@@ -33,20 +33,19 @@
         <div class="search-wrapper">
 
             <div class="search-container-box">
-                <div class="search-controls" style="align-items: stretch;">
-                    <input type="text" id="searchInput"
-                        placeholder="Municipio, calle, CP..."
-                        oninput="manejarEntrada()"
-                        onkeydown="if(event.key==='Enter'){ event.preventDefault(); buscarUbicacion(); }"
-                        autocomplete="off"
-                        style="flex: 1; min-width: 0; padding: 10px 14px;">
-                    <button onclick="buscarUbicacion()" style="padding: 10px 16px; white-space: nowrap;">Buscar</button>
-                    <button class="btn-icon" onclick="toggleFiltros()" title="Filtrar resultados" style="padding: 10px; width: 44px; min-width: 44px; display: flex; justify-content: center; align-items: center;">
-                        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
-                        </svg>
-                    </button>
-                </div>
+                <div class="search-controls">
+    <input type="text" id="searchInput"
+        placeholder="Municipio, calle, CP..."
+        oninput="manejarEntrada()"
+        onkeydown="if(event.key==='Enter'){ event.preventDefault(); buscarUbicacion(); }"
+        autocomplete="off">
+    <button onclick="buscarUbicacion()" class="btn-search">Buscar</button>
+    <button class="btn-icon" onclick="toggleFiltros()" title="Filtrar resultados">
+        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+        </svg>
+    </button>
+</div>
                 <ul id="searchResults" class="search-results"></ul>
             </div>
 
@@ -532,20 +531,23 @@
             if (localStorage.getItem('glp_fecha_carga') !== hoy) {
                 try {
                     const controller = new AbortController();
-                    const id = setTimeout(() => controller.abort(), 5000); 
+                    // Subimos un poco el tiempo de espera por si la Cloud Function tiene que "despertarse"
+                    const id = setTimeout(() => controller.abort(), 8000); 
 
-                    const res = await fetch('https://sedeaplicaciones.minetur.gob.es/ServiciosRESTCarburantes/PreciosCarburantes/EstacionesTerrestres/', { signal: controller.signal });
+                    // LLAMADA A TU NUEVO BACKEND EN LUGAR DE AL MINISTERIO
+                    const res = await fetch('https://europe-west1-glpfinder.cloudfunctions.net/obtenerGasolineras', { signal: controller.signal });
                     clearTimeout(id);
 
                     if (res.ok) {
                         const d = await res.json();
-                        todasLasEstaciones = d.ListaEESSPrecio.filter(e => e['Precio Gases licuados del petróleo']);
+                        // El backend ya hace el filtro por nosotros, así que lo guardamos directamente
+                        todasLasEstaciones = d.ListaEESSPrecio;
                         localStorage.setItem('glp_datos', JSON.stringify(todasLasEstaciones));
                         localStorage.setItem('glp_fecha_carga', hoy);
                         actualizarPinesVisibles();
                     }
                 } catch (e) {
-                    console.warn("Fallo de carga (posible mantenimiento):", e);
+                    console.warn("Fallo de conexión con el proxy:", e);
                 }
             }
             if (!ordenFavorita) localizarUsuario(true);
