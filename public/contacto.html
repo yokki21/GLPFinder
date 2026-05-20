@@ -8,131 +8,6 @@
     <link rel="icon" type="image/png" href="LogoPequeño.png">
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    
-    <style>
-        .contacto-main { padding: 40px 20px; max-width: 1000px; margin: 0 auto; width: 100%; box-sizing: border-box; }
-        .contacto-header { text-align: center; margin-bottom: 40px; }
-        .contacto-header h1 { color: #1e293b; margin-bottom: 10px; font-size: 28px; }
-        .contacto-header p { color: #64748b; font-size: 16px; }
-
-        .contacto-grid {
-            display: grid;
-            grid-template-columns: 1fr 1.5fr;
-            gap: 40px;
-            margin-bottom: 40px;
-            align-items: start;
-        }
-
-        /* Tarjeta de información de contacto */
-        .info-card {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 30px 20px;
-            text-align: left;
-        }
-        .info-item {
-            margin-bottom: 20px;
-        }
-        .info-item:last-child {
-            margin-bottom: 0;
-        }
-        .info-item h3 {
-            font-size: 14px;
-            color: #475569;
-            margin: 0 0 5px 0;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .info-item p {
-            margin: 0;
-            color: #0f172a;
-            font-weight: 600;
-            font-size: 15px;
-        }
-
-        /* Estilos del Formulario */
-        .encuesta-formulario {
-            background: white;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 30px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-            text-align: left;
-        }
-        .form-group {
-            margin-bottom: 20px;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: #334155;
-            font-size: 14px;
-        }
-        .form-control {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #cbd5e1;
-            border-radius: 8px;
-            font-family: inherit;
-            font-size: 15px;
-            box-sizing: border-box;
-            background-color: #f8fafc;
-            transition: border-color 0.2s;
-        }
-        .form-control:focus {
-            outline: none;
-            border-color: #2563eb;
-            background-color: #ffffff;
-        }
-        textarea.form-control {
-            resize: vertical;
-            min-height: 120px;
-        }
-        .btn-enviar {
-            background-color: #2563eb;
-            color: white;
-            padding: 14px 20px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 16px;
-            width: 100%;
-            transition: background-color 0.2s;
-        }
-        .btn-enviar:hover {
-            background-color: #1d4ed8;
-        }
-
-        /* Sección del mapa */
-        .mapa-section {
-            margin-top: 40px;
-            text-align: left;
-        }
-        .mapa-section h2 {
-            font-size: 20px;
-            color: #0f172a;
-            margin-bottom: 15px;
-        }
-        #mapa-contacto {
-            width: 100%;
-            height: 400px;
-            border-radius: 12px;
-            border: 1px solid #cbd5e1;
-            z-index: 1;
-        }
-
-        /* Adaptación a móviles */
-        @media (max-width: 768px) {
-            .contacto-main { padding: 30px 15px; }
-            .contacto-grid { grid-template-columns: 1fr; gap: 30px; }
-            .encuesta-formulario { padding: 20px; }
-            .info-card { padding: 20px; }
-            #mapa-contacto { height: 300px; }
-        }
-    </style>
 </head>
 <body>
 
@@ -167,9 +42,9 @@
             
             <div class="info-card">
                 
-                <div class="info-item" style="background: #eff6ff; padding: 15px; border-radius: 8px; border: 1px solid #bfdbfe; margin-bottom: 25px;">
-                    <h3 style="color: #1d4ed8; margin-bottom: 8px;">Proyecto Universitario</h3>
-                    <p style="color: #1e40af; font-size: 13px; font-weight: 500; line-height: 1.5;">GLPFinder es un proyecto de universidad gestionado únicamente por dos personas. Intentamos leer y responder a todo lo más rápido posible, pero os pedimos un poco de paciencia si tardamos un poco más de la cuenta en contestar. ¡Gracias por vuestra comprensión!</p>
+                <div class="info-item-alert">
+                    <h3>Proyecto Universitario</h3>
+                    <p>GLPFinder es un proyecto de universidad gestionado únicamente por dos personas. Intentamos leer y responder a todo lo más rápido posible, pero os pedimos un poco de paciencia si tardamos un poco más de la cuenta en contestar. ¡Gracias por vuestra comprensión!</p>
                 </div>
 
                 <div class="info-item">
@@ -183,22 +58,22 @@
                 </div>
             </div>
 
-            <div class="encuesta-formulario">
+            <div class="data-card">
                 <form action="https://formspree.io/f/xojbjwab" method="POST">
                     
                     <div class="form-group">
                         <label for="nombre">Nombre completo</label>
-                        <input type="text" id="nombre" name="nombre" class="form-control" placeholder="Ej: Juan Pérez" required>
+                        <input type="text" id="nombre" name="nombre" placeholder="Ej: Juan Pérez" required>
                     </div>
                     
                     <div class="form-group">
                         <label for="email">Correo electrónico de contacto</label>
-                        <input type="email" id="email" name="email" class="form-control" placeholder="tu@email.com" required>
+                        <input type="email" id="email" name="email" placeholder="tu@email.com" required>
                     </div>
                     
                     <div class="form-group">
                         <label for="motivo">Motivo de la consulta</label>
-                        <select id="motivo" name="motivo" class="form-control" required>
+                        <select id="motivo" name="motivo" required>
                             <option value="" disabled selected>Selecciona una opción...</option>
                             <option value="soporte">Problemas técnicos con mi cuenta</option>
                             <option value="gasolinera">Añadir o modificar datos de una gasolinera</option>
@@ -210,12 +85,12 @@
                     
                     <div class="form-group">
                         <label for="mensaje">Tu mensaje</label>
-                        <textarea id="mensaje" name="mensaje" class="form-control" placeholder="Explica detalladamente tu consulta..." required></textarea>
+                        <textarea id="mensaje" name="mensaje" placeholder="Explica detalladamente tu consulta..." required></textarea>
                     </div>
                     
                     <input type="hidden" name="_next" value="index.html">
                     
-                    <button type="submit" class="btn-enviar">Enviar Mensaje</button>
+                    <button type="submit" class="btn-primary">Enviar Mensaje</button>
                 </form>
             </div>
 
