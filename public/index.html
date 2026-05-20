@@ -522,34 +522,36 @@
         // ============================================================
         // 6. CARGA DE GASOLINERAS
         // ============================================================
+        
         async function cargarGasolineras() {
-            const ahora = new Date();
-            const hoy   = ahora.toISOString().split('T')[0];
+            const TIEMPO_EXPIRACION = 8 * 60 * 60 * 1000; 
+            const ahora = Date.now();
+            const ultimoTimestamp = parseInt(localStorage.getItem('glp_timestamp') || '0');
 
+            // Intentamos cargar de caché primero
             usarCache();
 
-            if (localStorage.getItem('glp_fecha_carga') !== hoy) {
+            // Si ha pasado más tiempo del permitido, o si no hay datos, forzamos descarga
+            if ((ahora - ultimoTimestamp) > TIEMPO_EXPIRACION || todasLasEstaciones.length === 0) {
                 try {
-                    const controller = new AbortController();
-                    // Subimos un poco el tiempo de espera por si la Cloud Function tiene que "despertarse"
-                    const id = setTimeout(() => controller.abort(), 8000); 
-
-                    // LLAMADA A TU NUEVO BACKEND EN LUGAR DE AL MINISTERIO
-                    const res = await fetch('https://europe-west1-glpfinder.cloudfunctions.net/obtenerGasolineras', { signal: controller.signal });
-                    clearTimeout(id);
-
+                    console.log("Cargando datos frescos...");
+                    const res = await fetch('https://europe-west1-glpfinder.cloudfunctions.net/obtenerGasolineras');
+                    
                     if (res.ok) {
                         const d = await res.json();
-                        // El backend ya hace el filtro por nosotros, así que lo guardamos directamente
                         todasLasEstaciones = d.ListaEESSPrecio;
+                        
+                        // Guardamos datos y el momento exacto en que lo hicimos
                         localStorage.setItem('glp_datos', JSON.stringify(todasLasEstaciones));
-                        localStorage.setItem('glp_fecha_carga', hoy);
+                        localStorage.setItem('glp_timestamp', ahora.toString());
+                        
                         actualizarPinesVisibles();
                     }
                 } catch (e) {
-                    console.warn("Fallo de conexión con el proxy:", e);
+                    console.warn("Fallo al actualizar datos:", e);
                 }
             }
+            
             if (!ordenFavorita) localizarUsuario(true);
         }
 
