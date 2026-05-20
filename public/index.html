@@ -7,21 +7,6 @@
     <link rel="icon" type="image/png" href="LogoPequeño.png">
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    
-    <style>
-        @media (max-width: 768px) {
-            .search-wrapper {
-                left: 15px !important;
-                right: 15px !important;
-                width: auto !important;
-                max-width: none !important;
-            }
-            .search-container-box, .route-panel, .filter-panel {
-                width: 100% !important;
-                box-sizing: border-box !important;
-            }
-        }
-    </style>
 </head>
 <body>
 
@@ -48,14 +33,15 @@
         <div class="search-wrapper">
 
             <div class="search-container-box">
-                <div class="search-controls">
+                <div class="search-controls" style="align-items: stretch;">
                     <input type="text" id="searchInput"
                         placeholder="Municipio, calle, CP..."
                         oninput="manejarEntrada()"
                         onkeydown="if(event.key==='Enter'){ event.preventDefault(); buscarUbicacion(); }"
-                        autocomplete="off">
-                    <button onclick="buscarUbicacion()">Buscar</button>
-                    <button class="btn-icon" onclick="toggleFiltros()" title="Filtrar resultados">
+                        autocomplete="off"
+                        style="flex: 1; min-width: 0; padding: 10px 14px;">
+                    <button onclick="buscarUbicacion()" style="padding: 10px 16px; white-space: nowrap;">Buscar</button>
+                    <button class="btn-icon" onclick="toggleFiltros()" title="Filtrar resultados" style="padding: 10px; width: 44px; min-width: 44px; display: flex; justify-content: center; align-items: center;">
                         <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
                             <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
                         </svg>
