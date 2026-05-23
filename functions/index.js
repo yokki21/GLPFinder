@@ -12,7 +12,7 @@ const db = admin.firestore();
 // 1. TAREA PROGRAMADA: Historial Diario (El código que ya tenías)
 // --------------------------------------------------------------------------
 exports.guardarHistorialDiario = onSchedule({
-    schedule: "0 23 * * *",
+    schedule: "0 16 * * *",
     timeZone: "Europe/Madrid"
 }, async (event) => {
     try {

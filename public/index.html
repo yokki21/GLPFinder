@@ -535,7 +535,7 @@
             if ((ahora - ultimoTimestamp) > TIEMPO_EXPIRACION || todasLasEstaciones.length === 0) {
                 try {
                     console.log("Cargando datos frescos...");
-                    const res = await fetch('https://europe-west1-glpfinder.cloudfunctions.net/obtenerGasolineras');
+                    const res = await fetch('https://obtenergasolineras-5qxjrxfuga-ew.a.run.app');
                     
                     if (res.ok) {
                         const d = await res.json();
