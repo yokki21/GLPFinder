@@ -328,12 +328,17 @@
                 const precio = parseFloat(e['Precio Gases licuados del petróleo'].replace(',', '.'));
                 const esFav  = window.misFavoritosIds.includes(id);
 
+                const paradaIndex = window.paradasSeleccionadas.findIndex(p => p.id === id);
+                const esParada = paradaIndex >= 0;
+                const selectedClass = esParada ? ' selected-stop' : '';
+                const stopBadgeHTML = esParada ? `<span class="stop-badge">${paradaIndex + 1}</span>` : '';
+
                 let color = 'pin-amarillo';
                 if (precio <= media - 0.015) color = 'pin-verde';
                 else if (precio >= media + 0.015) color = 'pin-rojo';
 
                 const starIcon = esFav ? `<span class="pin-fav-indicator">★</span>` : '';
-                const pinHtml  = `<div class="custom-price-pin ${color}">${starIcon}<img src="${obtenerLogo(e['Rótulo'])}" class="pin-mini-logo"><span>${precio.toFixed(3)}€</span></div>`;
+                const pinHtml  = `<div class="custom-price-pin ${color}${selectedClass}">${stopBadgeHTML}${starIcon}<img src="${obtenerLogo(e['Rótulo'])}" class="pin-mini-logo"><span>${precio.toFixed(3)}€</span></div>`;
 
                 let calculadorHTML = '';
                 if (window.usuarioLogueado) {
@@ -351,7 +356,6 @@
 
                 let botonParadaHTML = '';
                 if (rutaActiva) {
-                    const esParada = window.paradasSeleccionadas.some(p => p.id === id);
                     const btnParadaStyle = esParada 
                         ? "background:#fef2f2; color:#ef4444; border: 1px solid #fecaca;" 
                         : "background:#f0fdf4; color:#16a34a; border: 1px solid #bbf7d0;";
@@ -895,6 +899,10 @@
             }
             
             actualizarPanelParadas();
+
+            if (rutaActiva && ultimaRutaGeoJSON) {
+                filtrarGasolinerasEnRuta(ultimaRutaGeoJSON);
+            }
             
             const btn = document.getElementById(`btn-parada-${id}`);
             if (btn) {
@@ -903,6 +911,28 @@
                     ? "width:100%; margin-bottom:10px; padding:8px; border-radius:6px; font-weight:bold; cursor:pointer; transition: all 0.2s; background:#fef2f2; color:#ef4444; border: 1px solid #fecaca;"
                     : "width:100%; margin-bottom:10px; padding:8px; border-radius:6px; font-weight:bold; cursor:pointer; transition: all 0.2s; background:#f0fdf4; color:#16a34a; border: 1px solid #bbf7d0;";
                 btn.textContent = esParada ? "Quitar parada" : "Añadir a la ruta";
+            }
+        };
+
+        window.moverParadaArriba = function(idx) {
+            if (idx <= 0) return;
+            const temp = window.paradasSeleccionadas[idx - 1];
+            window.paradasSeleccionadas[idx - 1] = window.paradasSeleccionadas[idx];
+            window.paradasSeleccionadas[idx] = temp;
+            actualizarPanelParadas();
+            if (rutaActiva && ultimaRutaGeoJSON) {
+                filtrarGasolinerasEnRuta(ultimaRutaGeoJSON);
+            }
+        };
+
+        window.moverParadaAbajo = function(idx) {
+            if (idx >= window.paradasSeleccionadas.length - 1) return;
+            const temp = window.paradasSeleccionadas[idx + 1];
+            window.paradasSeleccionadas[idx + 1] = window.paradasSeleccionadas[idx];
+            window.paradasSeleccionadas[idx] = temp;
+            actualizarPanelParadas();
+            if (rutaActiva && ultimaRutaGeoJSON) {
+                filtrarGasolinerasEnRuta(ultimaRutaGeoJSON);
             }
         };
 
@@ -920,11 +950,16 @@
             
             const lista = document.getElementById('stopsList');
             lista.innerHTML = '';
-            window.paradasSeleccionadas.forEach(p => {
+            window.paradasSeleccionadas.forEach((p, idx) => {
                 const li = document.createElement('li');
-                li.style.cssText = "display:flex; justify-content:space-between; align-items:center; padding: 4px 0; border-bottom: 1px dashed #e2e8f0;";
-                li.innerHTML = `<span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:85%; font-weight:500;">${p.nombre}</span> 
-                                <button onclick="window.toggleParada('${p.id}', ${p.lat}, ${p.lng}, '${p.nombre}')" style="background:none; border:none; color:#ef4444; cursor:pointer; font-weight:bold; font-size:14px;">X</button>`;
+                li.style.cssText = "display:flex; align-items:center; padding: 4px 0; border-bottom: 1px dashed #e2e8f0; gap: 8px;";
+                
+                const btnArribaHTML = idx > 0 ? `<button onclick="window.moverParadaArriba(${idx})" style="background:none; border:none; color:#475569; cursor:pointer; font-size:14px; padding:0; width:20px; height:16px; display:flex; align-items:center; justify-content:center;" title="Mover arriba">▲</button>` : '<div style="width:20px;"></div>';
+                const btnAbajoHTML = idx < window.paradasSeleccionadas.length - 1 ? `<button onclick="window.moverParadaAbajo(${idx})" style="background:none; border:none; color:#475569; cursor:pointer; font-size:14px; padding:0; width:20px; height:16px; display:flex; align-items:center; justify-content:center;" title="Mover abajo">▼</button>` : '<div style="width:20px;"></div>';
+                
+                li.innerHTML = `<div style="display:flex; flex-direction:column; gap:2px; width:20px; align-items:center;">${btnArribaHTML}${btnAbajoHTML}</div>
+                                <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex: 1; font-weight:500;"><strong style="margin-right:6px;color:#2563eb;">${idx + 1}.</strong>${p.nombre}</span>
+                                <button onclick="window.toggleParada('${p.id}', ${p.lat}, ${p.lng}, '${p.nombre}')" style="background:none; border:none; color:#ef4444; cursor:pointer; font-weight:bold; font-size:14px; flex-shrink:0;">X</button>`;
                 lista.appendChild(li);
             });
 

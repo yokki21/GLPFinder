@@ -479,6 +479,8 @@ header {
 /* PINES INDIVIDUALES */
 .custom-div-icon { background: transparent; border: none; }
 .custom-price-pin { background: white; border: 2px solid; border-radius: 8px; font-weight: 800; font-size: 13px; box-shadow: 0 2px 6px rgba(0,0,0,0.3); white-space: nowrap; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; padding: 2px 6px; box-sizing: border-box; cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease; position: relative; }
+.custom-price-pin.selected-stop { box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.55), 0 4px 14px rgba(15, 23, 42, 0.25); transform: scale(1.05); }
+.custom-price-pin .stop-badge { position: absolute; top: -8px; left: -8px; width: 20px; height: 20px; border-radius: 999px; background: #2563eb; color: white; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; border: 2px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.18); }
 .custom-div-icon:hover .custom-price-pin { transform: scale(1.15); box-shadow: 0 6px 12px rgba(0,0,0,0.5); }
 .pin-mini-logo { width: 18px; height: 18px; object-fit: contain; margin-right: 5px; flex-shrink: 0; }
 
@@ -492,6 +494,10 @@ header {
 .custom-price-pin.cluster-mode { flex-direction: column; height: auto; padding: 6px 12px; border-radius: 8px; }
 .cluster-price-large { font-size: 15px; font-weight: bold; }
 .cluster-prov-name { font-size: 11px; font-weight: normal; opacity: 0.9; }
+
+/* BOTONES DE MOVIMIENTO EN LISTA DE PARADAS */
+#stopsList button { transition: color 0.2s, background 0.2s; }
+#stopsList button:hover { color: #2563eb; background: #f1f5f9; border-radius: 4px; }
 
 .cluster-popup-simple { text-align: center; padding: 12px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
 .cluster-popup-simple h4 { margin: 0 0 8px 0; color: var(--text-main); font-size: 16px; font-weight: 600; }
