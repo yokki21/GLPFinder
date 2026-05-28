@@ -102,13 +102,15 @@
         let mediaDiesel = 0;
         let mediaGLP = 0.94;
 
-        onAuthStateChanged(auth, async (user) => {
+        onAuthStateChanged(auth, (user) => {
             if (user) {
                 userUID = user.uid;
                 document.getElementById('txt-nombre').innerText = user.displayName || "Usuario";
                 document.getElementById('txt-email').innerText = user.email;
-                await obtenerMediasNacionales();
-                await cargarDatosFirestore();
+                
+                // Ejecución en paralelo
+                cargarDatosFirestore();
+                obtenerMediasNacionales();
             } else {
                 window.location.href = "auth.html";
             }
@@ -116,7 +118,8 @@
 
         async function obtenerMediasNacionales() {
             try {
-                const res = await fetch('https://sedeaplicaciones.minetur.gob.es/ServiciosRESTCarburantes/PreciosCarburantes/EstacionesTerrestres/');
+                // API optimizada en Cloud Run
+                const res = await fetch('https://obtenergasolineras-5qxjrxfuga-ew.a.run.app');
                 const data = await res.json();
                 const lista = data.ListaEESSPrecio;
 
@@ -139,32 +142,46 @@
                     }
                 });
 
-                mediaGas95 = suma95 / count95;
-                mediaDiesel = sumaDiesel / countDiesel;
-                mediaGLP = sumaGLP / countGLP;
+                mediaGas95 = count95 > 0 ? suma95 / count95 : 1.62;
+                mediaDiesel = countDiesel > 0 ? sumaDiesel / countDiesel : 1.49;
+                mediaGLP = countGLP > 0 ? sumaGLP / countGLP : 0.94;
 
                 document.getElementById('label-media-actual').innerText = `Medias hoy: G95: ${mediaGas95.toFixed(3)}€ | Diésel: ${mediaDiesel.toFixed(3)}€`;
+                recalcularAhorro(); 
             } catch (e) {
                 console.error("Error cargando medias:", e);
                 mediaGas95 = 1.62; 
                 mediaDiesel = 1.49;
                 document.getElementById('label-media-actual').innerText = `Medias estimadas: G95: ${mediaGas95.toFixed(3)}€ | Diésel: ${mediaDiesel.toFixed(3)}€`;
+                recalcularAhorro();
             }
         }
 
+        function aplicarDatosAInterfaz(d) {
+            document.getElementById('inp-deposito').value = d.deposito || "";
+            document.getElementById('inp-consumo').value = d.consumo || "";
+            document.getElementById('inp-km-mes').value = d.kmMes || "";
+            document.getElementById('select-combustible').value = d.tipoCombustible || "gas95";
+            if (d.tipoCombustible === 'manual') {
+                document.getElementById('wrapper-manual').style.display = 'block';
+                document.getElementById('inp-precio-manual').value = d.precioManual || "";
+            }
+            recalcularAhorro();
+        }
+
         async function cargarDatosFirestore() {
+            // Carga optimista desde caché local
+            const datosCacheados = localStorage.getItem('glp_vehiculo_datos');
+            if (datosCacheados) {
+                aplicarDatosAInterfaz(JSON.parse(datosCacheados));
+            }
+
+            // Consulta de validación en segundo plano
             const snap = await getDoc(doc(db, "users", userUID, "configuracion", "vehiculo"));
             if (snap.exists()) {
                 const d = snap.data();
-                document.getElementById('inp-deposito').value = d.deposito || "";
-                document.getElementById('inp-consumo').value = d.consumo || "";
-                document.getElementById('inp-km-mes').value = d.kmMes || "";
-                document.getElementById('select-combustible').value = d.tipoCombustible || "gas95";
-                if (d.tipoCombustible === 'manual') {
-                    document.getElementById('wrapper-manual').style.display = 'block';
-                    document.getElementById('inp-precio-manual').value = d.precioManual || "";
-                }
-                recalcularAhorro();
+                localStorage.setItem('glp_vehiculo_datos', JSON.stringify(d));
+                aplicarDatosAInterfaz(d);
             }
         }
 
@@ -177,7 +194,10 @@
                 tipoCombustible: tipo,
                 precioManual: tipo === 'manual' ? parseFloat(document.getElementById('inp-precio-manual').value) : null
             };
+            
             await setDoc(doc(db, "users", userUID, "configuracion", "vehiculo"), datos);
+            localStorage.setItem('glp_vehiculo_datos', JSON.stringify(datos));
+            
             recalcularAhorro();
             alert("¡Perfil actualizado!");
         };
@@ -196,6 +216,8 @@
 
             if (dep > 0 && cons > 0) {
                 document.getElementById('res-autonomia').innerText = Math.round((dep / cons) * 100) + " km";
+            } else {
+                document.getElementById('res-autonomia').innerText = "0 km";
             }
 
             if (kmMes > 0 && precioRef > 0 && cons > 0) {
@@ -203,6 +225,8 @@
                 const costeMensualAnterior = (kmMes / 100) * (cons * 0.85) * precioRef;
                 const ahorro = costeMensualAnterior - costeMensualGLP;
                 document.getElementById('res-ahorro').innerText = (ahorro > 0 ? ahorro.toFixed(2) : "0.00") + " €";
+            } else {
+                document.getElementById('res-ahorro').innerText = "0.00 €";
             }
         };
     </script>
