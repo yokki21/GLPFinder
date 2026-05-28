@@ -484,42 +484,55 @@
         map.on('moveend', window.actualizarPinesVisibles);
         map.on('zoomend', window.actualizarPinesVisibles);
 
-        // API Gasolineras (Actualizada a IndexedDB)
         async function cargarGasolineras() {
-            const TIEMPO_EXPIRACION = 8 * 60 * 60 * 1000; 
-            const ahora = Date.now();
-            
-            // Usamos idbKeyval para obtener el timestamp y los datos de la caché
-            const ultimoTimestamp = await idbKeyval.get('glp_timestamp') || 0;
-            const datosGuardados = await idbKeyval.get('glp_datos');
+    const TIEMPO_EXPIRACION = 8 * 60 * 60 * 1000; 
+    const ahora = Date.now();
+    
+    if (localStorage.getItem('glp_datos')) {
+        localStorage.removeItem('glp_datos');
+        localStorage.removeItem('glp_timestamp');
+    }
 
-            // Si hay datos en IndexedDB, los cargamos directamente sin usar JSON.parse
-            if (datosGuardados) { 
-                todasLasEstaciones = datosGuardados; 
-                window.actualizarPinesVisibles(); 
-            }
+    let ultimoTimestamp = 0;
+    let datosGuardados = null;
 
-            if ((ahora - ultimoTimestamp) > TIEMPO_EXPIRACION || todasLasEstaciones.length === 0) {
+    try {
+        ultimoTimestamp = await idbKeyval.get('glp_timestamp') || 0;
+        datosGuardados = await idbKeyval.get('glp_datos');
+    } catch (e) {
+        console.warn("IndexedDB no está disponible (posible modo privado/incógnito). Se usarán datos en vivo.", e);
+    }
+
+    if (datosGuardados) { 
+        todasLasEstaciones = datosGuardados; 
+        window.actualizarPinesVisibles(); 
+    }
+
+    if ((ahora - ultimoTimestamp) > TIEMPO_EXPIRACION || todasLasEstaciones.length === 0) {
+        try {
+            mostrarCarga("Descargando precios actualizados...");
+            const res = await fetch('https://obtenergasolineras-5qxjrxfuga-ew.a.run.app');
+            if (res.ok) {
+                const d = await res.json();
+                todasLasEstaciones = d.ListaEESSPrecio;
+                
+                // Intentamos guardar en caché, capturando el error si IndexedDB está bloqueado
                 try {
-                    mostrarCarga("Descargando precios actualizados...");
-                    const res = await fetch('https://obtenergasolineras-5qxjrxfuga-ew.a.run.app');
-                    if (res.ok) {
-                        const d = await res.json();
-                        todasLasEstaciones = d.ListaEESSPrecio;
-                        
-                        // Guardamos el array nativo directamente en IndexedDB (no requiere JSON.stringify)
-                        await idbKeyval.set('glp_datos', todasLasEstaciones);
-                        await idbKeyval.set('glp_timestamp', ahora);
-                        
-                        window.actualizarPinesVisibles();
-                    }
-                } catch (e) {
-                    console.warn("Fallo al actualizar datos:", e);
+                    await idbKeyval.set('glp_datos', todasLasEstaciones);
+                    await idbKeyval.set('glp_timestamp', ahora);
+                } catch (errCache) {
+                    console.warn("No se pudo guardar la caché en IndexedDB:", errCache);
                 }
+                
+                window.actualizarPinesVisibles();
             }
-            ocultarCarga();
-            if (!ordenFavorita) localizarUsuario(true);
+        } catch (e) {
+            console.warn("Fallo al actualizar datos de la API:", e);
         }
+    }
+    ocultarCarga();
+    if (!ordenFavorita) localizarUsuario(true);
+}
 
         // GPS
         function localizarUsuario(moverCamara = true) {
