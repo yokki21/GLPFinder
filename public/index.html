@@ -175,6 +175,7 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/idb-keyval@6/dist/umd.js"></script>
 
     <script>
         // Utilidades UI
@@ -483,14 +484,20 @@
         map.on('moveend', window.actualizarPinesVisibles);
         map.on('zoomend', window.actualizarPinesVisibles);
 
-        // API Gasolineras
+        // API Gasolineras (Actualizada a IndexedDB)
         async function cargarGasolineras() {
             const TIEMPO_EXPIRACION = 8 * 60 * 60 * 1000; 
             const ahora = Date.now();
-            const ultimoTimestamp = parseInt(localStorage.getItem('glp_timestamp') || '0');
+            
+            // Usamos idbKeyval para obtener el timestamp y los datos de la caché
+            const ultimoTimestamp = await idbKeyval.get('glp_timestamp') || 0;
+            const datosGuardados = await idbKeyval.get('glp_datos');
 
-            const c = localStorage.getItem('glp_datos');
-            if (c) { todasLasEstaciones = JSON.parse(c); window.actualizarPinesVisibles(); }
+            // Si hay datos en IndexedDB, los cargamos directamente sin usar JSON.parse
+            if (datosGuardados) { 
+                todasLasEstaciones = datosGuardados; 
+                window.actualizarPinesVisibles(); 
+            }
 
             if ((ahora - ultimoTimestamp) > TIEMPO_EXPIRACION || todasLasEstaciones.length === 0) {
                 try {
@@ -499,8 +506,11 @@
                     if (res.ok) {
                         const d = await res.json();
                         todasLasEstaciones = d.ListaEESSPrecio;
-                        localStorage.setItem('glp_datos', JSON.stringify(todasLasEstaciones));
-                        localStorage.setItem('glp_timestamp', ahora.toString());
+                        
+                        // Guardamos el array nativo directamente en IndexedDB (no requiere JSON.stringify)
+                        await idbKeyval.set('glp_datos', todasLasEstaciones);
+                        await idbKeyval.set('glp_timestamp', ahora);
+                        
                         window.actualizarPinesVisibles();
                     }
                 } catch (e) {
