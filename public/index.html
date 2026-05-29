@@ -7,8 +7,17 @@
     <link rel="icon" type="image/png" href="LogoPequeño.png">
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <style>
+        @keyframes girarSpinner { 100% { transform: rotate(360deg); } }
+    </style>
 </head>
 <body>
+
+    <div id="pantallaCarga" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.85); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; backdrop-filter: blur(4px);">
+        <div style="width: 50px; height: 50px; border: 5px solid #e2e8f0; border-top-color: #2563eb; border-radius: 50%; animation: girarSpinner 1s linear infinite;"></div>
+        <p id="textoCarga" style="margin-top: 20px; font-weight: bold; color: #1e293b; font-size: 18px; text-align: center;">Iniciando GLPFinder...</p>
+    </div>
 
     <header>
         <a href="index.html" class="logo">
@@ -29,23 +38,17 @@
     </header>
 
     <main class="map-main">
-
         <div class="search-wrapper">
-
             <div class="search-container-box">
                 <div class="search-controls">
-    <input type="text" id="searchInput"
-        placeholder="Municipio, calle, CP..."
-        oninput="manejarEntrada()"
-        onkeydown="if(event.key==='Enter'){ event.preventDefault(); buscarUbicacion(); }"
-        autocomplete="off">
-    <button onclick="buscarUbicacion()" class="btn-search">Buscar</button>
-    <button class="btn-icon" onclick="toggleFiltros()" title="Filtrar resultados">
-        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
-            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
-        </svg>
-    </button>
-</div>
+                    <input type="text" id="searchInput" placeholder="Municipio, calle, CP..." oninput="manejarEntrada()" onkeydown="if(event.key==='Enter'){ event.preventDefault(); buscarUbicacion(); }" autocomplete="off">
+                    <button onclick="buscarUbicacion()" class="btn-search">Buscar</button>
+                    <button class="btn-icon" onclick="toggleFiltros()" title="Filtrar resultados">
+                        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                        </svg>
+                    </button>
+                </div>
                 <ul id="searchResults" class="search-results"></ul>
             </div>
 
@@ -67,11 +70,7 @@
                     <div class="route-field-group">
                         <label for="routeOriginInput">Origen</label>
                         <div class="route-origin-row">
-                            <input type="text" id="routeOriginInput"
-                                placeholder="Ubicación actual (por defecto)"
-                                oninput="manejarEntradaOrigen()"
-                                onkeydown="if(event.key==='Enter'){ event.preventDefault(); buscarOrigen(); }"
-                                autocomplete="off">
+                            <input type="text" id="routeOriginInput" placeholder="Ubicación actual (por defecto)" oninput="manejarEntradaOrigen()" onkeydown="if(event.key==='Enter'){ event.preventDefault(); buscarOrigen(); }" autocomplete="off">
                             <button class="btn-route btn-route-square" onclick="calcularRutaDesdePanel()" title="Calcular ruta">Ir</button>
                         </div>
                         <ul id="originResults" class="search-results"></ul>
@@ -96,9 +95,7 @@
                     </div>
                 </div>
 
-                <button id="btnRutaGoogleMaps" onclick="window.abrirRutaEnGoogleMaps()" style="width: 100%; background: #16a34a; color: white; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 15px; font-size: 15px; display: none;">
-                    Abrir ruta en Google Maps
-                </button>
+                <button id="btnRutaGoogleMaps" onclick="window.abrirRutaEnGoogleMaps()" style="width: 100%; background: #16a34a; color: white; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 15px; font-size: 15px; display: none;">Abrir ruta en Google Maps</button>
             </div>
 
             <div id="panelFiltros" class="filter-panel" style="display: none;">
@@ -125,7 +122,6 @@
                     </div>
                 </div>
             </div>
-
         </div>
 
         <div class="map-controls-group">
@@ -144,36 +140,55 @@
                 </button>
                 <div class="layers-dropdown" id="capasDropdown" style="display: none;">
                     <div class="layers-option" onclick="cambiarCapa('satelite')">
-                        <input type="radio" name="mapLayer" id="layer-satelite" checked>
-                        <label for="layer-satelite">Satélite</label>
+                        <input type="radio" name="mapLayer" id="layer-satelite" checked style="pointer-events: none;">
+                        <label for="layer-satelite" style="pointer-events: none;">Satélite</label>
                     </div>
                     <div class="layers-option" onclick="cambiarCapa('calles')">
-                        <input type="radio" name="mapLayer" id="layer-calles">
-                        <label for="layer-calles">Callejero</label>
+                        <input type="radio" name="mapLayer" id="layer-calles" style="pointer-events: none;">
+                        <label for="layer-calles" style="pointer-events: none;">Callejero</label>
                     </div>
                     <div class="layers-option" onclick="cambiarCapa('oscuro')">
-                        <input type="radio" name="mapLayer" id="layer-oscuro">
-                        <label for="layer-oscuro">Modo Oscuro</label>
+                        <input type="radio" name="mapLayer" id="layer-oscuro" style="pointer-events: none;">
+                        <label for="layer-oscuro" style="pointer-events: none;">Modo Oscuro</label>
                     </div>
                     <div class="layers-option" onclick="cambiarCapa('claro')">
-                        <input type="radio" name="mapLayer" id="layer-claro">
-                        <label for="layer-claro">Modo Claro</label>
+                        <input type="radio" name="mapLayer" id="layer-claro" style="pointer-events: none;">
+                        <label for="layer-claro" style="pointer-events: none;">Modo Claro</label>
+                    </div>
+                    
+                    <div style="border-top: 1px solid #e2e8f0; margin: 4px 0;"></div>
+                    
+                    <div class="layers-option" onclick="toggleWMS('limites')">
+                        <input type="checkbox" id="layer-limites" style="pointer-events: none;">
+                        <label style="pointer-events: none; font-weight: 600; color: #2563eb;">Límites Administrativos (WMS)</label>
+                    </div>
+                    <div class="layers-option" onclick="toggleWMS('zbe')">
+                        <input type="checkbox" id="layer-zbe" style="pointer-events: none;">
+                        <label style="pointer-events: none; font-weight: 600; color: #2563eb;">Zonas ZBE (GeoJSON)</label>
                     </div>
                 </div>
             </div>
         </div>
 
         <div id="map"></div>
-
     </main>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/idb-keyval@6/dist/umd.js"></script>
 
     <script>
-        // ============================================================
-        // 1. BUZÓN (LOCALSTORAGE) — navegación desde favoritas
-        // ============================================================
+        // Utilidades UI
+        function mostrarCarga(texto) {
+            document.getElementById('textoCarga').textContent = texto;
+            document.getElementById('pantallaCarga').style.display = 'flex';
+        }
+
+        function ocultarCarga() {
+            document.getElementById('pantallaCarga').style.display = 'none';
+        }
+
+        // Recuperar orden favorita
         let ordenFavorita = null;
         const buzonStr = localStorage.getItem('orden_ir_a_gasolinera');
         if (buzonStr) {
@@ -183,19 +198,15 @@
 
         const startLat  = ordenFavorita ? ordenFavorita.lat  : 40.4168;
         const startLng  = ordenFavorita ? ordenFavorita.lng  : -3.7038;
-        const startZoom = ordenFavorita ? 17 : 10;
+        const startZoom = ordenFavorita ? 17 : 6; 
 
-        // ============================================================
-        // 2. MAPA Y CAPAS
-        // ============================================================
+        // Capas base
         const mapaSatelite = L.tileLayer('https://mt1.google.com/vt/lyrs=s&hl=es&x={x}&y={y}&z={z}', { maxZoom: 20, attribution: '© Google' });
         const mapaCalles   = L.tileLayer('https://mt1.google.com/vt/lyrs=m&hl=es&x={x}&y={y}&z={z}', { maxZoom: 20, attribution: '© Google' });
         const mapaOscuro = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 20, attribution: '© CARTO' });
         const mapaClaro = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { maxZoom: 20, attribution: '© CARTO' });
 
-        const map = L.map('map', { zoomControl: false, layers: [mapaSatelite] })
-                     .setView([startLat, startLng], startZoom);
-
+        const map = L.map('map', { zoomControl: false, layers: [mapaSatelite] }).setView([startLat, startLng], startZoom);
         L.control.zoom({ position: 'bottomright' }).addTo(map);
 
         const capasDisponibles = { satelite: mapaSatelite, calles: mapaCalles, oscuro: mapaOscuro, claro: mapaClaro };
@@ -224,15 +235,53 @@
             }
         });
 
-        // ============================================================
-        // 3. VARIABLES GLOBALES
-        // ============================================================
+        // WMS Límites Administrativos (IGN)
+        const capaLimites = L.tileLayer.wms('https://www.ign.es/wms-inspire/unidades-administrativas', {
+            layers: 'AU.AdministrativeBoundary',
+            format: 'image/png',
+            transparent: true,
+            opacity: 1,
+            attribution: '© IGN'
+        });
+
+        // GeoJSON ZBE con carga controlada
+        const estiloZBE = { color: "#ef4444", weight: 1, fillColor: "#ef4444", fillOpacity: 0.3 };
+        let capaZBE = null;
+        
+        const promesaZBE = fetch('zbe.geojson')
+            .then(res => res.json())
+            .then(data => { capaZBE = L.geoJSON(data, { style: estiloZBE }); })
+            .catch(err => console.error("Error cargando ZBE", err));
+
+        window.toggleWMS = async function(tipoCapa) {
+            const checkbox = document.getElementById(`layer-${tipoCapa}`);
+            checkbox.checked = !checkbox.checked; 
+
+            if (tipoCapa === 'zbe') {
+                if (!capaZBE) {
+                    mostrarCarga("Cargando Zonas de Bajas Emisiones...");
+                    await promesaZBE;
+                    ocultarCarga();
+                }
+                if (checkbox.checked && capaZBE) capaZBE.addTo(map);
+                else if (capaZBE) map.removeLayer(capaZBE);
+            } else if (tipoCapa === 'limites') {
+                if (checkbox.checked) capaLimites.addTo(map);
+                else map.removeLayer(capaLimites);
+            }
+            document.getElementById('capasDropdown').style.display = 'none';
+        };
+
+        // Variables globales y protección de Popup
         let marcadorUbicacionUsuario;
         let marcadorBusqueda = null;
         let todasLasEstaciones       = [];
         let capaPinesVisibles        = L.layerGroup().addTo(map);
         let puntoReferenciaDistancia = null;
-        let idPopupForzado           = ordenFavorita ? ordenFavorita.id : null;
+        
+        window.idPopupForzado        = ordenFavorita ? ordenFavorita.id : null;
+        window.isRefreshingMap       = false; 
+        
         window.misFavoritosIds       = [];
         window.usuarioLogueado       = false;
 
@@ -261,9 +310,7 @@
             return brandLogos["DEFAULT"];
         }
 
-        // ============================================================
-        // 4. FILTROS
-        // ============================================================
+        // Filtros
         function toggleFiltros() {
             const p = document.getElementById('panelFiltros');
             p.style.display = p.style.display === 'none' ? 'flex' : 'none';
@@ -276,12 +323,9 @@
             actualizarPinesVisibles();
         }
 
-        // ============================================================
-        // 5. PINES: actualizar, individuales y clusters de precios
-        // ============================================================
-        function actualizarPinesVisibles() {
-            if (todasLasEstaciones.length === 0) return;
-            if (rutaActiva) return; 
+        // Renderizado de pines
+        window.actualizarPinesVisibles = function() {
+            if (todasLasEstaciones.length === 0 || rutaActiva) return; 
 
             capaPinesVisibles.clearLayers();
 
@@ -292,7 +336,7 @@
 
             const filtradas = todasLasEstaciones.filter(e => {
                 const id = e['IDEESS'];
-                if (id === idPopupForzado) return true; 
+                if (id === window.idPopupForzado) return true; 
 
                 const lat = parseFloat(e['Latitud'].replace(',', '.'));
                 const lng = parseFloat(e['Longitud (WGS84)'].replace(',', '.'));
@@ -315,11 +359,10 @@
             } else {
                 mostrarPinesIndividuales(filtradas);
             }
-        }
+        };
 
         function mostrarPinesIndividuales(filtradas) {
-            const media = filtradas.reduce((a, b) =>
-                a + parseFloat(b['Precio Gases licuados del petróleo'].replace(',', '.')), 0) / filtradas.length;
+            const media = filtradas.reduce((a, b) => a + parseFloat(b['Precio Gases licuados del petróleo'].replace(',', '.')), 0) / filtradas.length;
 
             filtradas.forEach(e => {
                 const id     = e['IDEESS'];
@@ -330,7 +373,6 @@
 
                 const paradaIndex = window.paradasSeleccionadas.findIndex(p => p.id === id);
                 const esParada = paradaIndex >= 0;
-                const selectedClass = esParada ? ' selected-stop' : '';
                 const stopBadgeHTML = esParada ? `<span class="stop-badge">${paradaIndex + 1}</span>` : '';
 
                 let color = 'pin-amarillo';
@@ -338,17 +380,13 @@
                 else if (precio >= media + 0.015) color = 'pin-rojo';
 
                 const starIcon = esFav ? `<span class="pin-fav-indicator">★</span>` : '';
-                const pinHtml  = `<div class="custom-price-pin ${color}${selectedClass}">${stopBadgeHTML}${starIcon}<img src="${obtenerLogo(e['Rótulo'])}" class="pin-mini-logo"><span>${precio.toFixed(3)}€</span></div>`;
+                const pinHtml  = `<div class="custom-price-pin ${color}${esParada ? ' selected-stop' : ''}">${stopBadgeHTML}${starIcon}<img src="${obtenerLogo(e['Rótulo'])}" class="pin-mini-logo"><span>${precio.toFixed(3)}€</span></div>`;
 
-                let calculadorHTML = '';
-                if (window.usuarioLogueado) {
-                    calculadorHTML = `
+                let calculadorHTML = window.usuarioLogueado ? `
                     <div id="calc-container-${id}" style="margin-bottom:10px;">
-                        <button style="width:100%;background:#2563eb;color:white;border:none;padding:6px;border-radius:4px;cursor:pointer;font-weight:600;"
-                            onclick="window.calcularCosteLlenado('${id}',${precio})">Calcular Depósito</button>
+                        <button style="width:100%;background:#2563eb;color:white;border:none;padding:6px;border-radius:4px;cursor:pointer;font-weight:600;" onclick="window.calcularCosteLlenado('${id}',${precio})">Calcular Depósito</button>
                         <div id="res-calc-${id}" style="display:none;margin-top:5px;font-size:12px;text-align:center;font-weight:bold;color:#1e293b;"></div>
-                    </div>`;
-                }
+                    </div>` : '';
 
                 const rotulo    = e['Rótulo'].replace(/'/g, "\\'");
                 const direccion = e['Dirección'].replace(/'/g, "\\'");
@@ -356,130 +394,68 @@
 
                 let botonParadaHTML = '';
                 if (rutaActiva) {
-                    const btnParadaStyle = esParada 
-                        ? "background:#fef2f2; color:#ef4444; border: 1px solid #fecaca;" 
-                        : "background:#f0fdf4; color:#16a34a; border: 1px solid #bbf7d0;";
-                    const btnParadaText = esParada ? "Quitar parada" : "Añadir a la ruta";
-                    
-                    botonParadaHTML = `<button id="btn-parada-${id}" onclick="window.toggleParada('${id}', ${lat}, ${lng}, '${rotulo}')" style="width:100%; margin-bottom:10px; padding:8px; border-radius:6px; font-weight:bold; cursor:pointer; transition: all 0.2s; ${btnParadaStyle}">${btnParadaText}</button>`;
+                    const btnParadaStyle = esParada ? "background:#fef2f2; color:#ef4444; border: 1px solid #fecaca;" : "background:#f0fdf4; color:#16a34a; border: 1px solid #bbf7d0;";
+                    botonParadaHTML = `<button id="btn-parada-${id}" onclick="window.toggleParada('${id}', ${lat}, ${lng}, '${rotulo}')" style="width:100%; margin-bottom:10px; padding:8px; border-radius:6px; font-weight:bold; cursor:pointer; transition: all 0.2s; ${btnParadaStyle}">${esParada ? "Quitar parada" : "Añadir a la ruta"}</button>`;
                 }
 
                 const popup = `
                     <div class="popup-header">
                         <h3>${e['Rótulo']}</h3>
-                        <span class="star-btn ${esFav ? 'active' : ''}" id="star-${id}"
-                            onclick="window.gestionarFavorito('${id}','${rotulo}',${lat},${lng},'${direccion}','${localidad}','${precio}')">★</span>
+                        <span class="star-btn ${esFav ? 'active' : ''}" id="star-${id}" onclick="window.gestionarFavorito('${id}','${rotulo}',${lat},${lng},'${direccion}','${localidad}','${precio}')">★</span>
                     </div>
                     <p class="popup-address">${e['Dirección']}, ${e['Localidad']}</p>
-                    <div style="margin:10px 0;padding:8px;background:#f0fdf4;border-radius:6px;text-align:center;">
-                        <span style="font-weight:bold;color:#16a34a;font-size:16px;">${precio.toFixed(3)} €/L</span>
-                    </div>
-                    ${calculadorHTML}
-                    ${botonParadaHTML} 
+                    <div style="margin:10px 0;padding:8px;background:#f0fdf4;border-radius:6px;text-align:center;"><span style="font-weight:bold;color:#16a34a;font-size:16px;">${precio.toFixed(3)} €/L</span></div>
+                    ${calculadorHTML}${botonParadaHTML} 
                     <div class="nav-buttons">
                         <a href="https://waze.com/ul?ll=${lat},${lng}&navigate=yes" target="_blank" class="btn-nav btn-waze">Waze</a>
                         <a href="https://www.google.com/maps/search/?api=1&query=$${lat},${lng}" target="_blank" class="btn-nav btn-gmaps">Google Maps</a>
                     </div>`;
 
+                const zIndexBase = esParada ? 500 : 0;
                 const marcador = L.marker([lat, lng], {
-                    icon: L.divIcon({ className: 'custom-div-icon', html: pinHtml, iconSize: [75, 28], iconAnchor: [37.5, 14], popupAnchor: [0, -15] })
+                    icon: L.divIcon({ className: 'custom-div-icon', html: pinHtml, iconSize: [75, 28], iconAnchor: [37.5, 14], popupAnchor: [0, -15] }),
+                    zIndexOffset: zIndexBase
                 }).bindPopup(popup, { autoPan: false }).addTo(capaPinesVisibles);
 
-                marcador.on('popupopen',  () => { idPopupForzado = id; });
-                marcador.on('popupclose', () => { if (idPopupForzado === id) idPopupForzado = null; });
+                marcador.on('mouseover', function() { this.setZIndexOffset(1000); });
+                marcador.on('mouseout', function() { this.setZIndexOffset(zIndexBase); });
+                
+                marcador.on('popupopen',  () => { window.idPopupForzado = id; });
+                marcador.on('popupclose', () => { 
+                    if (window.idPopupForzado === id && !window.isRefreshingMap) {
+                        window.idPopupForzado = null; 
+                    }
+                });
 
-                if (idPopupForzado === id) setTimeout(() => marcador.openPopup(), 50);
+                if (window.idPopupForzado === id) setTimeout(() => marcador.openPopup(), 50);
             });
         }
 
         function mostrarPinesAgrupadosPorProvincia(estaciones) {
             const capitalesProvincias = {
-                'Álava': [42.85,-2.67], 'Albacete': [38.99,-1.86], 'Alicante': [38.34,-0.48],
-                'Almería': [36.83,-2.46], 'Ávila': [40.65,-4.69], 'Badajoz': [38.87,-6.97],
-                'Baleares': [39.57,2.65], 'Barcelona': [41.38,2.17], 'Burgos': [42.34,-3.69],
-                'Cáceres': [39.47,-6.37], 'Cádiz': [36.52,-6.29], 'Cantabria': [43.46,-3.80],
-                'Castellón': [39.98,-0.03], 'Ciudad Real': [38.98,-3.92], 'Córdoba': [37.88,-4.77],
-                'Coruña': [43.37,-8.39], 'Cuenca': [40.07,-2.13], 'Gerona': [41.98,2.82],
-                'Granada': [37.17,-3.59], 'Guadalajara': [40.63,-3.16], 'Guipúzcoa': [43.31,-1.97],
-                'Huelva': [37.25,-6.95], 'Huesca': [42.14,-0.40], 'Jaén': [37.76,-3.79],
-                'León': [42.60,-5.57], 'Lérida': [41.61,0.62], 'La Rioja': [42.46,-2.44],
-                'Lugo': [43.01,-7.55], 'Madrid': [40.41,-3.70], 'Málaga': [36.71,-4.42],
-                'Murcia': [37.98,-1.13], 'Navarra': [42.81,-1.65], 'Orense': [42.33,-7.86],
-                'Asturias': [43.36,-5.85], 'Palencia': [42.01,-4.53], 'Las Palmas': [28.12,-15.43],
-                'Pontevedra': [42.43,-8.64], 'Salamanca': [40.96,-5.66],
-                'Santa Cruz de Tenerife': [28.46,-16.25], 'Segovia': [40.94,-4.11],
-                'Sevilla': [37.38,-5.98], 'Soria': [41.76,-2.46], 'Tarragona': [41.11,1.24],
-                'Teruel': [40.34,-1.10], 'Toledo': [39.86,-4.02], 'Valencia': [39.46,-0.37],
-                'Valladolid': [41.65,-4.71], 'Vizcaya': [43.26,-2.92], 'Zamora': [41.50,-5.75],
-                'Zaragoza': [41.65,-0.88], 'Ceuta': [35.89,-5.32], 'Melilla': [35.29,-2.94]
+                'Álava': [42.85,-2.67], 'Albacete': [38.99,-1.86], 'Alicante': [38.34,-0.48], 'Almería': [36.83,-2.46], 'Ávila': [40.65,-4.69], 'Badajoz': [38.87,-6.97], 'Baleares': [39.57,2.65], 'Barcelona': [41.38,2.17], 'Burgos': [42.34,-3.69], 'Cáceres': [39.47,-6.37], 'Cádiz': [36.52,-6.29], 'Cantabria': [43.46,-3.80], 'Castellón': [39.98,-0.03], 'Ciudad Real': [38.98,-3.92], 'Córdoba': [37.88,-4.77], 'Coruña': [43.37,-8.39], 'Cuenca': [40.07,-2.13], 'Gerona': [41.98,2.82], 'Granada': [37.17,-3.59], 'Guadalajara': [40.63,-3.16], 'Guipúzcoa': [43.31,-1.97], 'Huelva': [37.25,-6.95], 'Huesca': [42.14,-0.40], 'Jaén': [37.76,-3.79], 'León': [42.60,-5.57], 'Lérida': [41.61,0.62], 'La Rioja': [42.46,-2.44], 'Lugo': [43.01,-7.55], 'Madrid': [40.41,-3.70], 'Málaga': [36.71,-4.42], 'Murcia': [37.98,-1.13], 'Navarra': [42.81,-1.65], 'Orense': [42.33,-7.86], 'Asturias': [43.36,-5.85], 'Palencia': [42.01,-4.53], 'Las Palmas': [28.12,-15.43], 'Pontevedra': [42.43,-8.64], 'Salamanca': [40.96,-5.66], 'Santa Cruz de Tenerife': [28.46,-16.25], 'Segovia': [40.94,-4.11], 'Sevilla': [37.38,-5.98], 'Soria': [41.76,-2.46], 'Tarragona': [41.11,1.24], 'Teruel': [40.34,-1.10], 'Toledo': [39.86,-4.02], 'Valencia': [39.46,-0.37], 'Valladolid': [41.65,-4.71], 'Vizcaya': [43.26,-2.92], 'Zamora': [41.50,-5.75], 'Zaragoza': [41.65,-0.88], 'Ceuta': [35.89,-5.32], 'Melilla': [35.29,-2.94]
             };
 
             const normalizarProvincia = (raw) => {
-                const t = {
-                    'ALAVA':'Álava','ÁLAVA':'Álava','ARABA':'Álava',
-                    'ALBACETE':'Albacete','ALICANTE':'Alicante','ALACANT':'Alicante',
-                    'ALMERIA':'Almería','ALMERÍA':'Almería','AVILA':'Ávila','ÁVILA':'Ávila',
-                    'BADAJOZ':'Badajoz','BALEARES':'Baleares','ILLES BALEARS':'Baleares',
-                    'BARCELONA':'Barcelona','BURGOS':'Burgos','CACERES':'Cáceres','CÁCERES':'Cáceres',
-                    'CADIZ':'Cádiz','CÁDIZ':'Cádiz','CANTABRIA':'Cantabria',
-                    'CASTELLON':'Castellón','CASTELLÓN':'Castellón','CASTELLO':'Castellón',
-                    'CIUDAD REAL':'Ciudad Real','CORDOBA':'Córdoba','CÓRDOBA':'Córdoba',
-                    'CORUÑA':'Coruña','A CORUÑA':'Coruña','LA CORUÑA':'Coruña',
-                    'CUENCA':'Cuenca','GERONA':'Gerona','GIRONA':'Gerona',
-                    'GRANADA':'Granada','GUADALAJARA':'Guadalajara',
-                    'GUIPUZCOA':'Guipúzcoa','GUIPÚZCOA':'Guipúzcoa','GIPUZKOA':'Guipúzcoa',
-                    'HUELVA':'Huelva','HUESCA':'Huesca','JAEN':'Jaén','JAÉN':'Jaén',
-                    'LEON':'León','LEÓN':'León','LERIDA':'Lérida','LÉRIDA':'Lérida','LLEIDA':'Lérida',
-                    'LA RIOJA':'La Rioja','RIOJA':'La Rioja','LUGO':'Lugo',
-                    'MADRID':'Madrid','MALAGA':'Málaga','MÁLAGA':'Málaga',
-                    'MURCIA':'Murcia','NAVARRA':'Navarra','NAFARROA':'Navarra',
-                    'ORENSE':'Orense','OURENSE':'Orense','PALENCIA':'Palencia',
-                    'LAS PALMAS':'Las Palmas','PALMAS':'Las Palmas','PONTEVEDRA':'Pontevedra',
-                    'SALAMANCA':'Salamanca',
-                    'SANTA CRUZ DE TENERIFE':'Santa Cruz de Tenerife','TENERIFE':'Santa Cruz de Tenerife',
-                    'SEGOVIA':'Segovia','SEVILLA':'Sevilla','SORIA':'Soria',
-                    'TARRAGONA':'Tarragona','TERUEL':'Teruel','TOLEDO':'Toledo',
-                    'VALENCIA':'Valencia','VALÈNCIA':'Valencia',
-                    'VALLADOLID':'Valladolid','VIZCAYA':'Vizcaya','BIZKAIA':'Vizcaya',
-                    'ZAMORA':'Zamora','ZARAGOZA':'Zaragoza',
-                    'CEUTA':'Ceuta','MELILLA':'Melilla','ASTURIAS':'Asturias'
-                };
+                const t = { 'ALAVA':'Álava','ÁLAVA':'Álava','ARABA':'Álava', 'ALBACETE':'Albacete','ALICANTE':'Alicante','ALACANT':'Alicante', 'ALMERIA':'Almería','ALMERÍA':'Almería','AVILA':'Ávila','ÁVILA':'Ávila', 'BADAJOZ':'Badajoz','BALEARES':'Baleares','ILLES BALEARS':'Baleares', 'BARCELONA':'Barcelona','BURGOS':'Burgos','CACERES':'Cáceres','CÁCERES':'Cáceres', 'CADIZ':'Cádiz','CÁDIZ':'Cádiz','CANTABRIA':'Cantabria', 'CASTELLON':'Castellón','CASTELLÓN':'Castellón','CASTELLO':'Castellón', 'CIUDAD REAL':'Ciudad Real','CORDOBA':'Córdoba','CÓRDOBA':'Córdoba', 'CORUÑA':'Coruña','A CORUÑA':'Coruña','LA CORUÑA':'Coruña', 'CUENCA':'Cuenca','GERONA':'Gerona','GIRONA':'Gerona', 'GRANADA':'Granada','GUADALAJARA':'Guadalajara', 'GUIPUZCOA':'Guipúzcoa','GUIPÚZCOA':'Guipúzcoa','GIPUZKOA':'Guipúzcoa', 'HUELVA':'Huelva','HUESCA':'Huesca','JAEN':'Jaén','JAÉN':'Jaén', 'LEON':'León','LEÓN':'León','LERIDA':'Lérida','LÉRIDA':'Lérida','LLEIDA':'Lérida', 'LA RIOJA':'La Rioja','RIOJA':'La Rioja','LUGO':'Lugo', 'MADRID':'Madrid','MALAGA':'Málaga','MÁLAGA':'Málaga', 'MURCIA':'Murcia','NAVARRA':'Navarra','NAFARROA':'Navarra', 'ORENSE':'Orense','OURENSE':'Orense','PALENCIA':'Palencia', 'LAS PALMAS':'Las Palmas','PALMAS':'Las Palmas','PONTEVEDRA':'Pontevedra', 'SALAMANCA':'Salamanca', 'SANTA CRUZ DE TENERIFE':'Santa Cruz de Tenerife','TENERIFE':'Santa Cruz de Tenerife', 'SEGOVIA':'Segovia','SEVILLA':'Sevilla','SORIA':'Soria', 'TARRAGONA':'Tarragona','TERUEL':'Teruel','TOLEDO':'Toledo', 'VALENCIA':'Valencia','VALÈNCIA':'Valencia', 'VALLADOLID':'Valladolid','VIZCAYA':'Vizcaya','BIZKAIA':'Vizcaya', 'ZAMORA':'Zamora','ZARAGOZA':'Zaragoza', 'CEUTA':'Ceuta','MELILLA':'Melilla','ASTURIAS':'Asturias' };
                 return t[(raw || '').trim().toUpperCase()] || null;
             };
 
-            const mapaCP = {
-                '01':'Álava','02':'Albacete','03':'Alicante','04':'Almería','05':'Ávila',
-                '06':'Badajoz','07':'Baleares','08':'Barcelona','09':'Burgos','10':'Cáceres',
-                '11':'Cádiz','12':'Castellón','13':'Ciudad Real','14':'Córdoba','15':'Coruña',
-                '16':'Cuenca','17':'Gerona','18':'Granada','19':'Guadalajara','20':'Guipúzcoa',
-                '21':'Huelva','22':'Huesca','23':'Jaén','24':'León','25':'Lérida',
-                '26':'La Rioja','27':'Lugo','28':'Madrid','29':'Málaga','30':'Murcia',
-                '31':'Navarra','32':'Orense','33':'Asturias','34':'Palencia','35':'Las Palmas',
-                '36':'Pontevedra','37':'Salamanca','38':'Santa Cruz de Tenerife','39':'Cantabria',
-                '40':'Segovia','41':'Sevilla','42':'Soria','43':'Tarragona','44':'Teruel',
-                '45':'Toledo','46':'Valencia','47':'Valladolid','48':'Vizcaya','49':'Zamora',
-                '50':'Zaragoza','51':'Ceuta','52':'Melilla'
-            };
+            const mapaCP = { '01':'Álava','02':'Albacete','03':'Alicante','04':'Almería','05':'Ávila', '06':'Badajoz','07':'Baleares','08':'Barcelona','09':'Burgos','10':'Cáceres', '11':'Cádiz','12':'Castellón','13':'Ciudad Real','14':'Córdoba','15':'Coruña', '16':'Cuenca','17':'Gerona','18':'Granada','19':'Guadalajara','20':'Guipúzcoa', '21':'Huelva','22':'Huesca','23':'Jaén','24':'León','25':'Lérida', '26':'La Rioja','27':'Lugo','28':'Madrid','29':'Málaga','30':'Murcia', '31':'Navarra','32':'Orense','33':'Asturias','34':'Palencia','35':'Las Palmas', '36':'Pontevedra','37':'Salamanca','38':'Santa Cruz de Tenerife','39':'Cantabria', '40':'Segovia','41':'Sevilla','42':'Soria','43':'Tarragona','44':'Teruel', '45':'Toledo','46':'Valencia','47':'Valladolid','48':'Vizcaya','49':'Zamora', '50':'Zaragoza','51':'Ceuta','52':'Melilla' };
 
             const clusters = {};
             estaciones.forEach(est => {
-                let prov = normalizarProvincia(est['Provincia']);
-                if (!prov) {
-                    const cp = (est['C.P.'] || est['Código Postal'] || '').trim().padStart(5, '0');
-                    prov = mapaCP[cp.substring(0, 2)] || 'Desconocida';
-                }
+                let prov = normalizarProvincia(est['Provincia']) || mapaCP[(est['C.P.'] || est['Código Postal'] || '').trim().padStart(5, '0').substring(0, 2)] || 'Desconocida';
                 if (!clusters[prov]) clusters[prov] = [];
                 clusters[prov].push(est);
             });
 
-            // 1. Calculamos la media de cada provincia y la media total de lo visible
             const clustersDatos = [];
             let sumaTotalVisible = 0;
 
             Object.entries(clusters).forEach(([prov, lista]) => {
                 const coords = capitalesProvincias[prov];
                 if (!coords) return;
-                
                 const mediaProv = lista.reduce((sum, e) => sum + parseFloat(e['Precio Gases licuados del petróleo'].replace(',', '.')), 0) / lista.length;
                 clustersDatos.push({ prov, lista, coords, mediaProv });
                 sumaTotalVisible += mediaProv;
@@ -487,29 +463,14 @@
 
             const mediaPantalla = clustersDatos.length > 0 ? sumaTotalVisible / clustersDatos.length : 0;
 
-            // 2. Pintamos los pines agrupados con colores dinámicos
             clustersDatos.forEach(c => {
                 if (c.lista.length === 1) { mostrarPinesIndividuales(c.lista); return; }
 
-                let colorClass = 'pin-amarillo';
-                if (c.mediaProv <= mediaPantalla - 0.015) colorClass = 'pin-verde';
-                else if (c.mediaProv >= mediaPantalla + 0.015) colorClass = 'pin-rojo';
-
-                const radio = c.prov === 'Madrid' ? 0.8 : c.prov === 'Barcelona' ? 0.6 : c.prov === 'Valencia' ? 0.5 : 0.4;
-                const circleColor = colorClass === 'pin-verde' ? '#16a34a' : (colorClass === 'pin-rojo' ? '#ef4444' : '#d97706');
-                
-                L.circle(c.coords, {
-                    radius: radio * 111000,
-                    color: circleColor, fillColor: circleColor,
-                    fillOpacity: 0.1, weight: 2, dashArray: '5,5'
-                }).addTo(capaPinesVisibles);
+                let colorClass = c.mediaProv <= mediaPantalla - 0.015 ? 'pin-verde' : (c.mediaProv >= mediaPantalla + 0.015 ? 'pin-rojo' : 'pin-amarillo');
 
                 const clusterIcon = L.divIcon({
                     className: 'custom-div-icon',
-                    html: `<div class="custom-price-pin ${colorClass}" style="flex-direction: column; height: auto; padding: 6px 12px; border-radius: 8px;">
-                               <span style="font-size: 15px; font-weight: bold;">${c.mediaProv.toFixed(3)}€</span>
-                               <span style="font-size: 11px; font-weight: normal; opacity: 0.9;">${c.prov}</span>
-                           </div>`,
+                    html: `<div class="custom-price-pin ${colorClass}" style="flex-direction: column; height: auto; padding: 6px 12px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);"><span style="font-size: 15px; font-weight: bold;">${c.mediaProv.toFixed(3)}€</span><span style="font-size: 11px; font-weight: normal; opacity: 0.9;">${c.prov}</span></div>`,
                     iconSize: [80, 50], iconAnchor: [40, 25], popupAnchor: [0, -25]
                 });
 
@@ -520,113 +481,99 @@
             });
         }
 
-        map.on('moveend', actualizarPinesVisibles);
-        map.on('zoomend', actualizarPinesVisibles);
+        map.on('moveend', window.actualizarPinesVisibles);
+        map.on('zoomend', window.actualizarPinesVisibles);
 
-        // ============================================================
-        // 6. CARGA DE GASOLINERAS
-        // ============================================================
-        
         async function cargarGasolineras() {
-            const TIEMPO_EXPIRACION = 8 * 60 * 60 * 1000; 
-            const ahora = Date.now();
-            const ultimoTimestamp = parseInt(localStorage.getItem('glp_timestamp') || '0');
+    const TIEMPO_EXPIRACION = 8 * 60 * 60 * 1000; 
+    const ahora = Date.now();
+    
+    if (localStorage.getItem('glp_datos')) {
+        localStorage.removeItem('glp_datos');
+        localStorage.removeItem('glp_timestamp');
+    }
 
-            // Intentamos cargar de caché primero
-            usarCache();
+    let ultimoTimestamp = 0;
+    let datosGuardados = null;
 
-            // Si ha pasado más tiempo del permitido, o si no hay datos, forzamos descarga
-            if ((ahora - ultimoTimestamp) > TIEMPO_EXPIRACION || todasLasEstaciones.length === 0) {
+    try {
+        ultimoTimestamp = await idbKeyval.get('glp_timestamp') || 0;
+        datosGuardados = await idbKeyval.get('glp_datos');
+    } catch (e) {
+        console.warn("IndexedDB no está disponible (posible modo privado/incógnito). Se usarán datos en vivo.", e);
+    }
+
+    if (datosGuardados) { 
+        todasLasEstaciones = datosGuardados; 
+        window.actualizarPinesVisibles(); 
+    }
+
+    if ((ahora - ultimoTimestamp) > TIEMPO_EXPIRACION || todasLasEstaciones.length === 0) {
+        try {
+            mostrarCarga("Descargando precios actualizados...");
+            const res = await fetch('https://obtenergasolineras-5qxjrxfuga-ew.a.run.app');
+            if (res.ok) {
+                const d = await res.json();
+                todasLasEstaciones = d.ListaEESSPrecio;
+                
+                // Intentamos guardar en caché, capturando el error si IndexedDB está bloqueado
                 try {
-                    console.log("Cargando datos frescos...");
-                    const res = await fetch('https://obtenergasolineras-5qxjrxfuga-ew.a.run.app');
-                    
-                    if (res.ok) {
-                        const d = await res.json();
-                        todasLasEstaciones = d.ListaEESSPrecio;
-                        
-                        // Guardamos datos y el momento exacto en que lo hicimos
-                        localStorage.setItem('glp_datos', JSON.stringify(todasLasEstaciones));
-                        localStorage.setItem('glp_timestamp', ahora.toString());
-                        
-                        actualizarPinesVisibles();
-                    }
-                } catch (e) {
-                    console.warn("Fallo al actualizar datos:", e);
+                    await idbKeyval.set('glp_datos', todasLasEstaciones);
+                    await idbKeyval.set('glp_timestamp', ahora);
+                } catch (errCache) {
+                    console.warn("No se pudo guardar la caché en IndexedDB:", errCache);
                 }
+                
+                window.actualizarPinesVisibles();
             }
-            
-            if (!ordenFavorita) localizarUsuario(true);
+        } catch (e) {
+            console.warn("Fallo al actualizar datos de la API:", e);
         }
+    }
+    ocultarCarga();
+    if (!ordenFavorita) localizarUsuario(true);
+}
 
-        function usarCache() {
-            const c = localStorage.getItem('glp_datos');
-            if (c) { todasLasEstaciones = JSON.parse(c); actualizarPinesVisibles(); }
-        }
-
-        // ============================================================
-        // 7. GPS
-        // ============================================================
+        // GPS
         function localizarUsuario(moverCamara = true) {
+            mostrarCarga("Buscando tu ubicación GPS...");
             navigator.geolocation.getCurrentPosition(p => {
                 puntoReferenciaDistancia = L.latLng(p.coords.latitude, p.coords.longitude);
-                
                 document.getElementById('routeOriginInput').placeholder = 'Ubicación actual';
-                
                 if (marcadorUbicacionUsuario) map.removeLayer(marcadorUbicacionUsuario);
-                marcadorUbicacionUsuario = L.circleMarker([p.coords.latitude, p.coords.longitude], {
-                    radius: 8, fillColor: "#2563eb", color: "#fff", weight: 3, fillOpacity: 0.9
-                }).addTo(map);
-                
-                if (moverCamara) {
-                    map.flyTo([p.coords.latitude, p.coords.longitude], 13);
-                } else {
-                    actualizarPinesVisibles();
-                }
+                marcadorUbicacionUsuario = L.circleMarker([p.coords.latitude, p.coords.longitude], { radius: 8, fillColor: "#2563eb", color: "#fff", weight: 3, fillOpacity: 0.9 }).addTo(map);
+                if (moverCamara) map.flyTo([p.coords.latitude, p.coords.longitude], 13);
+                else window.actualizarPinesVisibles();
+                ocultarCarga();
             }, () => {
                 puntoReferenciaDistancia = null;
                 document.getElementById('routeOriginInput').placeholder = 'Escribe un origen...';
-                actualizarPinesVisibles();
+                window.actualizarPinesVisibles();
+                ocultarCarga();
             });
         }
 
-        // ============================================================
-        // 8. BÚSQUEDA MEJORADA
-        // ============================================================
-        let tempBusq;
-        let abortCtrlDestino = null;
-        let tempBusqOrigen;
-        let abortCtrlOrigen  = null;
+        // Buscador Nominatim
+        let tempBusq, abortCtrlDestino = null, tempBusqOrigen, abortCtrlOrigen = null;
 
         async function _nominatimFetch(query, ctrl) {
-            const res = await fetch(
-                `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=es&limit=5`,
-                { signal: ctrl.signal }
-            );
+            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=es&limit=5`, { signal: ctrl.signal });
             if (res.status === 429) throw Object.assign(new Error('429'), { is429: true });
             return res.json();
         }
 
         function _renderResultados(listaEl, data, onSelect) {
             listaEl.innerHTML = '';
-            if (data.length > 0) {
-                data.forEach(i => {
-                    const li = document.createElement('li');
-                    li.textContent = i.display_name;
-                    li.onclick = () => onSelect(i);
-                    listaEl.appendChild(li);
-                });
-            } else {
-                listaEl.innerHTML = '<li style="color:#64748b;font-size:12px;padding:8px;">Sin resultados</li>';
-            }
+            if (data.length > 0) data.forEach(i => { const li = document.createElement('li'); li.textContent = i.display_name; li.onclick = () => onSelect(i); listaEl.appendChild(li); });
+            else listaEl.innerHTML = '<li style="color:#64748b;font-size:12px;padding:8px;">Sin resultados</li>';
             listaEl.style.display = 'block';
         }
 
         function manejarEntrada() {
-            const q    = document.getElementById('searchInput').value.trim();
+            const q = document.getElementById('searchInput').value.trim();
             const resC = document.getElementById('searchResults');
             clearTimeout(tempBusq);
-            if (q.length < 3) { resC.style.display = 'none'; return; }
+            if (q.length < 3) return resC.style.display = 'none';
             tempBusq = setTimeout(async () => {
                 if (abortCtrlDestino) abortCtrlDestino.abort();
                 abortCtrlDestino = new AbortController();
@@ -637,83 +584,54 @@
                         map.flyTo([i.lat, i.lon], 14);
                         document.getElementById('searchInput').value = i.display_name.split(',')[0];
                         resC.style.display = 'none';
-
                         if (marcadorBusqueda) map.removeLayer(marcadorBusqueda);
-                        marcadorBusqueda = L.circleMarker([parseFloat(i.lat), parseFloat(i.lon)], {
-                            radius: 8,
-                            fillColor: "#2563eb",
-                            color: "#ffffff",
-                            weight: 3,
-                            fillOpacity: 0.9
-                        }).addTo(map).bindPopup("<b>" + i.display_name.split(',')[0] + "</b><br>Destino seleccionado").openPopup();
-
+                        marcadorBusqueda = L.circleMarker([parseFloat(i.lat), parseFloat(i.lon)], { radius: 8, fillColor: "#2563eb", color: "#ffffff", weight: 3, fillOpacity: 0.9 }).addTo(map).bindPopup(`<b>${i.display_name.split(',')[0]}</b><br>Destino seleccionado`).openPopup();
                         actualizarPanelRuta(i.display_name.split(',')[0], parseFloat(i.lat), parseFloat(i.lon));
-                        actualizarPinesVisibles();
+                        window.actualizarPinesVisibles();
                     });
                 } catch (err) {
-                    if (err.name === 'AbortError') return;
-                    resC.innerHTML = `<li style="color:#ef4444;font-size:12px;padding:8px;">${err.is429 ? 'Demasiadas peticiones, espera un momento' : 'Error de conexión'}</li>`;
-                    resC.style.display = 'block';
+                    if (err.name !== 'AbortError') { resC.innerHTML = `<li style="color:#ef4444;font-size:12px;padding:8px;">${err.is429 ? 'Demasiadas peticiones' : 'Error de conexión'}</li>`; resC.style.display = 'block'; }
                 }
             }, 400);
         }
 
         function buscarUbicacion() {
-            const q = document.getElementById('searchInput').value.trim();
-            if (q.length >= 3) { clearTimeout(tempBusq); manejarEntrada(); }
+            if (document.getElementById('searchInput').value.trim().length >= 3) { clearTimeout(tempBusq); manejarEntrada(); }
         }
 
         function manejarEntradaOrigen() {
-            const q    = document.getElementById('routeOriginInput').value.trim();
+            const q = document.getElementById('routeOriginInput').value.trim();
             const resC = document.getElementById('originResults');
             clearTimeout(tempBusqOrigen);
-            
-            if (q.length === 0) {
-                origenRuta = null;
-                resC.style.display = 'none';
-                return;
-            }
-
-            if (q.length < 3) { resC.style.display = 'none'; return; }
-            
+            if (q.length === 0) { origenRuta = null; return resC.style.display = 'none'; }
+            if (q.length < 3) return resC.style.display = 'none';
             tempBusqOrigen = setTimeout(async () => {
                 if (abortCtrlOrigen) abortCtrlOrigen.abort();
                 abortCtrlOrigen = new AbortController();
                 try {
                     const data = await _nominatimFetch(q, abortCtrlOrigen);
-                    _renderResultados(resC, data, seleccionarResultadoOrigen);
+                    _renderResultados(resC, data, (i) => {
+                        document.getElementById('routeOriginInput').value = i.display_name.split(',')[0];
+                        resC.style.display = 'none';
+                        origenRuta = L.latLng(parseFloat(i.lat), parseFloat(i.lon));
+                    });
                 } catch (err) {
-                    if (err.name === 'AbortError') return;
-                    resC.innerHTML = `<li style="color:#ef4444;font-size:12px;padding:8px;">${err.is429 ? 'Demasiadas peticiones, espera un momento' : 'Error de conexión'}</li>`;
-                    resC.style.display = 'block';
+                    if (err.name !== 'AbortError') { resC.innerHTML = `<li style="color:#ef4444;font-size:12px;padding:8px;">${err.is429 ? 'Demasiadas peticiones' : 'Error de conexión'}</li>`; resC.style.display = 'block'; }
                 }
             }, 400);
         }
 
         function buscarOrigen() {
-            const q = document.getElementById('routeOriginInput').value.trim();
-            if (q.length >= 3) { clearTimeout(tempBusqOrigen); manejarEntradaOrigen(); }
+            if (document.getElementById('routeOriginInput').value.trim().length >= 3) { clearTimeout(tempBusqOrigen); manejarEntradaOrigen(); }
         }
 
-        function seleccionarResultadoOrigen(i) {
-            document.getElementById('routeOriginInput').value = i.display_name.split(',')[0];
-            document.getElementById('originResults').style.display = 'none';
-            origenRuta = L.latLng(parseFloat(i.lat), parseFloat(i.lon));
-        }
+        map.on('click', () => { document.getElementById('searchResults').style.display = 'none'; document.getElementById('originResults').style.display = 'none'; });
 
-        map.on('click', () => {
-            document.getElementById('searchResults').style.display = 'none';
-            document.getElementById('originResults').style.display = 'none';
-        });
-
-        // ============================================================
-        // 9. PANEL DE RUTAS Y GESTIÓN DE MINIMIZADO
-        // ============================================================
+        // Rutas y OSRM
         function actualizarPanelRuta(nombreDestino, lat, lng) {
             destinoRuta = L.latLng(lat, lng);
             document.getElementById('routeDestinationLabel').textContent = nombreDestino || 'Destino seleccionado';
             document.getElementById('routePanel').classList.remove('hidden');
-
             document.getElementById('routeDetailsFields').style.display = 'none';
             document.getElementById('btnProgramarRuta').style.display = 'block';
             document.getElementById('btnMinimizarRuta').style.display = 'none';
@@ -725,7 +643,6 @@
             document.getElementById('routeDetailsFields').classList.remove('hidden');
             document.getElementById('routeDetailsFields').style.display = 'block';
             document.getElementById('btnProgramarRuta').style.display = 'none';
-            
             if (rutaActiva) {
                 document.getElementById('btnMinimizarRuta').style.display = 'flex';
                 document.getElementById('btnMinimizarRuta').textContent = '-';
@@ -735,16 +652,8 @@
 
         window.toggleMinimizarRuta = function() {
             window.isRutaMinimizada = !window.isRutaMinimizada;
-            const details = document.getElementById('routeDetailsFields');
-            const btn = document.getElementById('btnMinimizarRuta');
-            
-            if (window.isRutaMinimizada) {
-                details.style.display = 'none';
-                btn.textContent = '+';
-            } else {
-                details.style.display = 'block';
-                btn.textContent = '-';
-            }
+            document.getElementById('routeDetailsFields').style.display = window.isRutaMinimizada ? 'none' : 'block';
+            document.getElementById('btnMinimizarRuta').textContent = window.isRutaMinimizada ? '+' : '-';
         };
 
         function cerrarPanelRuta() {
@@ -753,15 +662,8 @@
             document.getElementById('originResults').style.display = 'none';
             document.getElementById('btnMinimizarRuta').style.display = 'none';
             document.getElementById('btnRutaGoogleMaps').style.display = 'none';
-            const msg = document.getElementById('routeMessage');
-            msg.style.display = 'none';
-            msg.textContent   = '';
-            
-            if (marcadorBusqueda) {
-                map.removeLayer(marcadorBusqueda);
-                marcadorBusqueda = null;
-            }
-
+            document.getElementById('routeMessage').style.display = 'none';
+            if (marcadorBusqueda) { map.removeLayer(marcadorBusqueda); marcadorBusqueda = null; }
             desactivarModoRuta();
         }
 
@@ -771,147 +673,87 @@
         }
 
         function desactivarModoRuta() {
-            rutaActiva  = false;
-            origenRuta  = null;
+            rutaActiva = false;
+            origenRuta = null;
             destinoRuta = null;
             ultimaRutaGeoJSON = null;
-            
             window.paradasSeleccionadas = [];
             actualizarPanelParadas();
-
             if (window._limpiarRuta) window._limpiarRuta();
-            actualizarPinesVisibles();
+            window.actualizarPinesVisibles();
         }
 
         function mostrarMensajeRuta(texto, tipo) {
-            const colores = { info: '#2563eb', success: '#16a34a', warning: '#d97706', error: '#dc2626' };
+            const c = { info: '#2563eb', success: '#16a34a', warning: '#d97706', error: '#dc2626' };
             const msg = document.getElementById('routeMessage');
-            msg.textContent      = texto;
-            msg.style.color      = colores[tipo] || '#1e293b';
-            msg.style.fontWeight = '600';
-            msg.style.fontSize   = '13px';
-            msg.style.display    = 'block';
+            msg.textContent = texto; msg.style.color = c[tipo] || '#1e293b'; msg.style.fontWeight = '600'; msg.style.fontSize = '13px'; msg.style.display = 'block';
         }
 
         async function calcularRutaDesdePanel() {
-            if (!destinoRuta) {
-                mostrarMensajeRuta('Aviso: Busca primero un destino en el buscador', 'warning');
-                return;
-            }
+            if (!destinoRuta) return mostrarMensajeRuta('Aviso: Busca primero un destino en el buscador', 'warning');
+            let origen = origenRuta || (marcadorUbicacionUsuario ? marcadorUbicacionUsuario.getLatLng() : null);
+            if (!origen) return mostrarMensajeRuta('Aviso: Activa el GPS o escribe un origen', 'warning');
+            if (!window._calcularRuta) return mostrarMensajeRuta('Error: Módulo de rutas no cargado', 'error');
 
-            let origen = origenRuta;
-            if (!origen) {
-                if (marcadorUbicacionUsuario) {
-                    origen = marcadorUbicacionUsuario.getLatLng();
-                } else {
-                    mostrarMensajeRuta('Aviso: Activa el GPS o escribe un origen', 'warning');
-                    return;
-                }
-            }
-
-            if (!window._calcularRuta) {
-                mostrarMensajeRuta('Error: Módulo de rutas no cargado', 'error');
-                return;
-            }
-
-            mostrarMensajeRuta('Calculando ruta...', 'info');
+            mostrarCarga("Calculando mejor ruta...");
             activarModoRuta();
 
             try {
-                const res  = await window._calcularRuta(origen, destinoRuta);
-                const km   = (res.distance / 1000).toFixed(1);
-                const min  = Math.round(res.duration / 60);
-                const h    = Math.floor(min / 60);
-                const m    = min % 60;
-                const dur  = h > 0 ? `${h}h ${m}min` : `${min}min`;
-                
+                const res = await window._calcularRuta(origen, destinoRuta);
+                const km = (res.distance / 1000).toFixed(1);
+                const min = Math.round(res.duration / 60);
                 ultimaRutaGeoJSON = res.geometry;
-
                 window.paradasSeleccionadas = [];
                 actualizarPanelParadas();
-
                 filtrarGasolinerasEnRuta(ultimaRutaGeoJSON);
-                
-                mostrarMensajeRuta(`OK: ${km} km · ${dur}`, 'success');
-
+                mostrarMensajeRuta(`OK: ${km} km · ${Math.floor(min / 60) > 0 ? `${Math.floor(min / 60)}h ` : ''}${min % 60}min`, 'success');
                 document.getElementById('routeDetailsFields').style.display = 'none';
                 window.isRutaMinimizada = true;
-                
-                const btnMin = document.getElementById('btnMinimizarRuta');
-                btnMin.style.display = 'flex';
-                btnMin.textContent = '+';
-                
+                document.getElementById('btnMinimizarRuta').style.display = 'flex';
+                document.getElementById('btnMinimizarRuta').textContent = '+';
                 document.getElementById('btnRutaGoogleMaps').style.display = 'block';
-
             } catch (err) {
                 desactivarModoRuta();
                 mostrarMensajeRuta('Error: No se pudo calcular la ruta', 'error');
+            } finally {
+                ocultarCarga();
             }
         }
         
-        window.reaplicarFiltroRuta = function() {
-            if (rutaActiva && ultimaRutaGeoJSON) {
-                filtrarGasolinerasEnRuta(ultimaRutaGeoJSON);
-            }
-        };
+        window.reaplicarFiltroRuta = function() { if (rutaActiva && ultimaRutaGeoJSON) filtrarGasolinerasEnRuta(ultimaRutaGeoJSON); };
 
         function filtrarGasolinerasEnRuta(rutaGeoJSON) {
             if (todasLasEstaciones.length === 0) return;
-
             const lineaRuta = turf.lineString(rutaGeoJSON.coordinates);
-            const distanciaMaxKm = parseFloat(document.getElementById('routeDesvioInput').value) || 5; 
-
-            const gasolinerasEnRuta = todasLasEstaciones.filter(e => {
-                const lat = parseFloat(e['Latitud'].replace(',', '.'));
-                const lng = parseFloat(e['Longitud (WGS84)'].replace(',', '.'));
-                
-                const punto = turf.point([lng, lat]); 
-                const distancia = turf.pointToLineDistance(punto, lineaRuta, { units: 'kilometers' });
-                
-                return distancia <= distanciaMaxKm;
-            });
-
+            const maxKm = parseFloat(document.getElementById('routeDesvioInput').value) || 5; 
+            const enRuta = todasLasEstaciones.filter(e => turf.pointToLineDistance(turf.point([parseFloat(e['Longitud (WGS84)'].replace(',', '.')), parseFloat(e['Latitud'].replace(',', '.'))]), lineaRuta, { units: 'kilometers' }) <= maxKm);
             capaPinesVisibles.clearLayers();
             document.getElementById('routeMessage').style.display = 'none';
-
-            if (gasolinerasEnRuta.length > 0) {
-                mostrarPinesIndividuales(gasolinerasEnRuta);
-                setTimeout(() => {
-                    mostrarMensajeRuta(`OK: ${gasolinerasEnRuta.length} gasolineras a menos de ${distanciaMaxKm}km del trayecto`, 'success');
-                }, 1000); 
-            } else {
-                setTimeout(() => {
-                    mostrarMensajeRuta(`Aviso: No hay gasolineras a menos de ${distanciaMaxKm}km. Prueba a ampliar el desvío.`, 'warning');
-                }, 1000);
-            }
+            if (enRuta.length > 0) {
+                mostrarPinesIndividuales(enRuta);
+                setTimeout(() => mostrarMensajeRuta(`OK: ${enRuta.length} gasolineras a menos de ${maxKm}km del trayecto`, 'success'), 1000); 
+            } else setTimeout(() => mostrarMensajeRuta(`Aviso: No hay gasolineras a menos de ${maxKm}km.`, 'warning'), 1000);
         }
 
-        // ============================================================
-        // 10. GESTIÓN DE PARADAS (WAYPOINTS) Y GOOGLE MAPS
-        // ============================================================
         window.toggleParada = function(id, lat, lng, nombre) {
             const idx = window.paradasSeleccionadas.findIndex(p => p.id === id);
-            
-            if (idx >= 0) {
-                window.paradasSeleccionadas.splice(idx, 1); 
-            } else {
-                window.paradasSeleccionadas.push({id, lat, lng, nombre}); 
-            }
-            
+            if (idx >= 0) window.paradasSeleccionadas.splice(idx, 1); else window.paradasSeleccionadas.push({id, lat, lng, nombre}); 
             actualizarPanelParadas();
+            if (rutaActiva && ultimaRutaGeoJSON) filtrarGasolinerasEnRuta(ultimaRutaGeoJSON);
+        };
 
-            if (rutaActiva && ultimaRutaGeoJSON) {
-                filtrarGasolinerasEnRuta(ultimaRutaGeoJSON);
-            }
-            
-            const btn = document.getElementById(`btn-parada-${id}`);
-            if (btn) {
-                const esParada = idx < 0; 
-                btn.style.cssText = esParada 
-                    ? "width:100%; margin-bottom:10px; padding:8px; border-radius:6px; font-weight:bold; cursor:pointer; transition: all 0.2s; background:#fef2f2; color:#ef4444; border: 1px solid #fecaca;"
-                    : "width:100%; margin-bottom:10px; padding:8px; border-radius:6px; font-weight:bold; cursor:pointer; transition: all 0.2s; background:#f0fdf4; color:#16a34a; border: 1px solid #bbf7d0;";
-                btn.textContent = esParada ? "Quitar parada" : "Añadir a la ruta";
-            }
+        window.moverParadaArriba = function(idx) {
+            if (idx <= 0) return;
+            [window.paradasSeleccionadas[idx - 1], window.paradasSeleccionadas[idx]] = [window.paradasSeleccionadas[idx], window.paradasSeleccionadas[idx - 1]];
+            actualizarPanelParadas();
+            if (rutaActiva && ultimaRutaGeoJSON) filtrarGasolinerasEnRuta(ultimaRutaGeoJSON);
+        };
+
+        window.moverParadaAbajo = function(idx) {
+            if (idx >= window.paradasSeleccionadas.length - 1) return;
+            [window.paradasSeleccionadas[idx + 1], window.paradasSeleccionadas[idx]] = [window.paradasSeleccionadas[idx], window.paradasSeleccionadas[idx + 1]];
+            actualizarPanelParadas();
+            if (rutaActiva && ultimaRutaGeoJSON) filtrarGasolinerasEnRuta(ultimaRutaGeoJSON);
         };
 
         window.moverParadaArriba = function(idx) {
@@ -937,67 +779,42 @@
         };
 
         function actualizarPanelParadas() {
-            const container = document.getElementById('routeStopsContainer');
-            const btnGmaps = document.getElementById('btnRutaGoogleMaps');
-
-            if (!rutaActiva) {
-                container.style.display = 'none';
-                return;
-            }
-            
-            container.style.display = 'block';
+            const c = document.getElementById('routeStopsContainer');
+            if (!rutaActiva) return c.style.display = 'none';
+            c.style.display = 'block';
             document.getElementById('stopsCount').textContent = window.paradasSeleccionadas.length;
-            
             const lista = document.getElementById('stopsList');
             lista.innerHTML = '';
             window.paradasSeleccionadas.forEach((p, idx) => {
                 const li = document.createElement('li');
                 li.style.cssText = "display:flex; align-items:center; padding: 4px 0; border-bottom: 1px dashed #e2e8f0; gap: 8px;";
-                
-                const btnArribaHTML = idx > 0 ? `<button onclick="window.moverParadaArriba(${idx})" style="background:none; border:none; color:#475569; cursor:pointer; font-size:14px; padding:0; width:20px; height:16px; display:flex; align-items:center; justify-content:center;" title="Mover arriba">▲</button>` : '<div style="width:20px;"></div>';
-                const btnAbajoHTML = idx < window.paradasSeleccionadas.length - 1 ? `<button onclick="window.moverParadaAbajo(${idx})" style="background:none; border:none; color:#475569; cursor:pointer; font-size:14px; padding:0; width:20px; height:16px; display:flex; align-items:center; justify-content:center;" title="Mover abajo">▼</button>` : '<div style="width:20px;"></div>';
-                
-                li.innerHTML = `<div style="display:flex; flex-direction:column; gap:2px; width:20px; align-items:center;">${btnArribaHTML}${btnAbajoHTML}</div>
-                                <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex: 1; font-weight:500;"><strong style="margin-right:6px;color:#2563eb;">${idx + 1}.</strong>${p.nombre}</span>
-                                <button onclick="window.toggleParada('${p.id}', ${p.lat}, ${p.lng}, '${p.nombre}')" style="background:none; border:none; color:#ef4444; cursor:pointer; font-weight:bold; font-size:14px; flex-shrink:0;">X</button>`;
+                const btnArriba = idx > 0 ? `<button onclick="window.moverParadaArriba(${idx})" style="background:none; border:none; color:#475569; cursor:pointer; font-size:14px; padding:0; width:20px; height:16px;">▲</button>` : '<div style="width:20px;"></div>';
+                const btnAbajo = idx < window.paradasSeleccionadas.length - 1 ? `<button onclick="window.moverParadaAbajo(${idx})" style="background:none; border:none; color:#475569; cursor:pointer; font-size:14px; padding:0; width:20px; height:16px;">▼</button>` : '<div style="width:20px;"></div>';
+                li.innerHTML = `<div style="display:flex; flex-direction:column; gap:2px; width:20px; align-items:center;">${btnArriba}${btnAbajo}</div><span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex: 1; font-weight:500;"><strong style="margin-right:6px;color:#2563eb;">${idx + 1}.</strong>${p.nombre}</span><button onclick="window.toggleParada('${p.id}', ${p.lat}, ${p.lng}, '${p.nombre}')" style="background:none; border:none; color:#ef4444; cursor:pointer; font-weight:bold; font-size:14px; flex-shrink:0;">X</button>`;
                 lista.appendChild(li);
             });
-
-            if (window.paradasSeleccionadas.length > 0) {
-                btnGmaps.textContent = `Abrir en Google Maps (${window.paradasSeleccionadas.length} paradas)`;
-            } else {
-                btnGmaps.textContent = 'Abrir ruta en Google Maps';
-            }
+            document.getElementById('btnRutaGoogleMaps').textContent = window.paradasSeleccionadas.length > 0 ? `Abrir en Google Maps (${window.paradasSeleccionadas.length} paradas)` : 'Abrir ruta en Google Maps';
         }
 
         window.abrirRutaEnGoogleMaps = function() {
-            let origen = origenRuta;
-            
-            if (!origen && marcadorUbicacionUsuario) {
-                origen = marcadorUbicacionUsuario.getLatLng();
-            }
-            
+            let origen = origenRuta || (marcadorUbicacionUsuario ? marcadorUbicacionUsuario.getLatLng() : null);
             if (!origen || !destinoRuta) return;
-
             const url = new URL('https://www.google.com/maps/dir/');
             url.searchParams.append('api', '1');
             url.searchParams.append('origin', `${origen.lat},${origen.lng}`);
             url.searchParams.append('destination', `${destinoRuta.lat},${destinoRuta.lng}`);
             url.searchParams.append('travelmode', 'driving');
-
-            if (window.paradasSeleccionadas.length > 0) {
-                const waypoints = window.paradasSeleccionadas.map(p => `${p.lat},${p.lng}`).join('|');
-                url.searchParams.append('waypoints', waypoints);
-            }
-
+            if (window.paradasSeleccionadas.length > 0) url.searchParams.append('waypoints', window.paradasSeleccionadas.map(p => `${p.lat},${p.lng}`).join('|'));
             window.open(url.toString(), '_blank');
         };
 
+        mostrarCarga("Iniciando aplicación...");
         cargarGasolineras();
     </script>
 
     <script type="module">
-        import { initializeApp }    from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        // Firebase
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, deleteDoc, collection, getDocs, getDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
         import { initRouteModule, calcularRuta, limpiarRuta } from './routes.js';
@@ -1006,84 +823,71 @@
         window._calcularRuta = calcularRuta;
         window._limpiarRuta  = limpiarRuta;
 
-        const firebaseConfig = {
-            apiKey:            "AIzaSyB_2thDoQUjLM34QYO8nmaDAB8HqQIxtIY",
-            authDomain:        "glpfinder.firebaseapp.com",
-            projectId:         "glpfinder",
-            storageBucket:     "glpfinder.firebasestorage.app",
-            messagingSenderId: "173596798895",
-            appId:             "1:173596798895:web:d883035f89fa2c139fc95a"
-        };
-
-        const app  = initializeApp(firebaseConfig);
+        const firebaseConfig = { apiKey: "AIzaSyB_2thDoQUjLM34QYO8nmaDAB8HqQIxtIY", authDomain: "glpfinder.firebaseapp.com", projectId: "glpfinder", storageBucket: "glpfinder.firebasestorage.app", messagingSenderId: "173596798895", appId: "1:173596798895:web:d883035f89fa2c139fc95a" };
+        const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-        const db   = getFirestore(app);
+        const db = getFirestore(app);
 
-        let usuarioActual  = null;
-        let configVehiculo = null;
+        let usuarioActual = null, configVehiculo = null;
 
         onAuthStateChanged(auth, async (user) => {
-            const nA = document.getElementById('nav-auth');
-            const nP = document.getElementById('nav-profile');
             if (user) {
-                usuarioActual          = user;
-                window.usuarioLogueado = true;
-                nA.style.display = 'none';
-                nP.style.display = 'inline-block';
-
+                usuarioActual = user; window.usuarioLogueado = true;
+                document.getElementById('nav-auth').style.display = 'none';
+                document.getElementById('nav-profile').style.display = 'inline-block';
                 const fSnap = await getDocs(collection(db, "users", user.uid, "favoritos"));
                 window.misFavoritosIds = fSnap.docs.map(d => d.id);
-
                 const vSnap = await getDoc(doc(db, "users", user.uid, "configuracion", "vehiculo"));
                 if (vSnap.exists()) configVehiculo = vSnap.data();
-
-                actualizarPinesVisibles();
             } else {
-                usuarioActual          = null;
-                window.usuarioLogueado = false;
-                window.misFavoritosIds = [];
-                configVehiculo         = null;
-                nA.style.display = 'inline-block';
-                nP.style.display = 'none';
-                actualizarPinesVisibles();
+                usuarioActual = null; window.usuarioLogueado = false; window.misFavoritosIds = []; configVehiculo = null;
+                document.getElementById('nav-auth').style.display = 'inline-block';
+                document.getElementById('nav-profile').style.display = 'none';
             }
+            window.actualizarPinesVisibles();
         });
 
         window.calcularCosteLlenado = (id, precioLitro) => {
             const resDiv = document.getElementById(`res-calc-${id}`);
             if (!usuarioActual) return;
-            if (!configVehiculo || !configVehiculo.deposito) {
-                resDiv.innerHTML     = "Aviso: Configura tu depósito en 'Mis Datos'";
-                resDiv.style.display = 'block';
-                return;
-            }
-            const total = configVehiculo.deposito * precioLitro;
-            resDiv.innerHTML     = `Depósito ${configVehiculo.deposito}L: <span style="color:#2563eb;">${total.toFixed(2)}€</span>`;
+            if (!configVehiculo || !configVehiculo.deposito) { resDiv.innerHTML = "Aviso: Configura tu depósito"; resDiv.style.display = 'block'; return; }
+            resDiv.innerHTML = `Depósito ${configVehiculo.deposito}L: <span style="color:#2563eb;">${(configVehiculo.deposito * precioLitro).toFixed(2)}€</span>`;
             resDiv.style.display = 'block';
         };
 
         window.gestionarFavorito = async (id, nombre, lat, lng, direccion, localidad, precio) => {
             if (!usuarioActual) return (window.location.href = "auth.html");
-            const ref = doc(db, "users", usuarioActual.uid, "favoritos", id);
-            if (window.misFavoritosIds.includes(id)) {
-                await deleteDoc(ref);
+
+            // 1. Optimistic UI: Cambio de color inmediato en la estrella
+            const starBtn = document.getElementById(`star-${id}`);
+            const esFav = window.misFavoritosIds.includes(id);
+            
+            if (esFav) {
+                if (starBtn) starBtn.classList.remove('active');
                 window.misFavoritosIds = window.misFavoritosIds.filter(i => i !== id);
             } else {
-                await setDoc(ref, { nombre, lat, lng, direccion, localidad, precio });
+                if (starBtn) starBtn.classList.add('active');
                 window.misFavoritosIds.push(id);
-                const hoy = new Date().toISOString().split('T')[0];
-                await setDoc(doc(db, "historial_precios", id, "registros", hoy), {
-                    precio: parseFloat(String(precio).replace(',', '.')), fecha: hoy
-                }, { merge: true });
             }
-            actualizarPinesVisibles();
+
+            // 2. Repintamos el mapa activando la protección para que no se cierre el popup
+            window.isRefreshingMap = true;
+            window.idPopupForzado = id;
+            if (typeof window.actualizarPinesVisibles === 'function') window.actualizarPinesVisibles();
+            window.isRefreshingMap = false;
+
+            // 3. Peticiones a Firebase en segundo plano sin interrumpir al usuario
+            const ref = doc(db, "users", usuarioActual.uid, "favoritos", id);
+            if (esFav) {
+                await deleteDoc(ref);
+            } else {
+                await setDoc(ref, { nombre, lat, lng, direccion, localidad, precio });
+                const hoy = new Date().toISOString().split('T')[0];
+                await setDoc(doc(db, "historial_precios", id, "registros", hoy), { precio: parseFloat(String(precio).replace(',', '.')), fecha: hoy }, { merge: true });
+            }
         };
 
-        document.getElementById('btn-logout').onclick = (e) => {
-            e.preventDefault();
-            signOut(auth).then(() => location.reload());
-        };
+        document.getElementById('btn-logout').onclick = (e) => { e.preventDefault(); signOut(auth).then(() => location.reload()); };
     </script>
-
 </body>
 </html>
