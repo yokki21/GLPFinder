@@ -6,7 +6,7 @@
     <title>GLPFinder</title>
     <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
     <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=3">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     
     <style>
@@ -122,7 +122,7 @@
         </div>
 
         <div class="map-controls-group">
-            <button class="btn-geo" onclick="localizarUsuario(true)" title="Centrar en mi ubicación">
+            <button class="btn-geo" id="btnUbicacion" onclick="localizarUsuario(true, true)" title="Centrar en mi ubicación" aria-label="Centrar en mi ubicación">
                 <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="10"></circle>
                     <circle cx="12" cy="12" r="3"></circle>
@@ -143,25 +143,6 @@
                     <div class="layers-option" onclick="cambiarCapa('calles')">
                         <input type="radio" name="mapLayer" id="layer-calles" style="pointer-events: none;">
                         <label for="layer-calles" style="pointer-events: none;">Callejero</label>
-                    </div>
-                    <div class="layers-option" onclick="cambiarCapa('oscuro')">
-                        <input type="radio" name="mapLayer" id="layer-oscuro" style="pointer-events: none;">
-                        <label for="layer-oscuro" style="pointer-events: none;">Modo Oscuro</label>
-                    </div>
-                    <div class="layers-option" onclick="cambiarCapa('claro')">
-                        <input type="radio" name="mapLayer" id="layer-claro" style="pointer-events: none;">
-                        <label for="layer-claro" style="pointer-events: none;">Modo Claro</label>
-                    </div>
-                    
-                    <div style="border-top: 1px solid #e2e8f0; margin: 4px 0;"></div>
-                    
-                    <div class="layers-option" onclick="toggleWMS('limites')">
-                        <input type="checkbox" id="layer-limites" style="pointer-events: none;">
-                        <label style="pointer-events: none; font-weight: 600; color: #2563eb;">Límites Administrativos (WMS)</label>
-                    </div>
-                    <div class="layers-option" onclick="toggleWMS('zbe')">
-                        <input type="checkbox" id="layer-zbe" style="pointer-events: none;">
-                        <label style="pointer-events: none; font-weight: 600; color: #2563eb;">Zonas ZBE (GeoJSON)</label>
                     </div>
                 </div>
             </div>
@@ -202,13 +183,11 @@
         const atribIGN = '<a href="https://www.scne.es/" target="_blank" rel="noopener">CC BY 4.0 scne.es</a>';
         const mapaSatelite = L.tileLayer(wmtsIGN('pnoa-ma', 'OI.OrthoimageCoverage', 'image/jpeg'), { maxZoom: 20, maxNativeZoom: 19, attribution: `PNOA ${atribIGN}` });
         const mapaCalles   = L.tileLayer(wmtsIGN('ign-base', 'IGNBaseTodo', 'image/png'), { maxZoom: 20, maxNativeZoom: 17, attribution: `Mapa base IGN ${atribIGN}` });
-        const mapaOscuro = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 20, attribution: '© CARTO' });
-        const mapaClaro = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { maxZoom: 20, attribution: '© CARTO' });
 
         const map = L.map('map', { zoomControl: false, layers: [mapaSatelite] }).setView([startLat, startLng], startZoom);
         L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-        const capasDisponibles = { satelite: mapaSatelite, calles: mapaCalles, oscuro: mapaOscuro, claro: mapaClaro };
+        const capasDisponibles = { satelite: mapaSatelite, calles: mapaCalles };
         let capaActual = 'satelite';
 
         function toggleCapasDropdown() {
@@ -223,8 +202,6 @@
             capaActual = nombre;
             document.getElementById('layer-satelite').checked = (nombre === 'satelite');
             document.getElementById('layer-calles').checked   = (nombre === 'calles');
-            document.getElementById('layer-oscuro').checked   = (nombre === 'oscuro');
-            document.getElementById('layer-claro').checked    = (nombre === 'claro');
             document.getElementById('capasDropdown').style.display = 'none';
         }
 
@@ -233,45 +210,6 @@
                 document.getElementById('capasDropdown').style.display = 'none';
             }
         });
-
-        // WMS Límites Administrativos (IGN)
-        const capaLimites = L.tileLayer.wms('https://www.ign.es/wms-inspire/unidades-administrativas', {
-            layers: 'AU.AdministrativeBoundary',
-            format: 'image/png',
-            transparent: true,
-            opacity: 1,
-            attribution: '© IGN'
-        });
-
-        // GeoJSON ZBE con carga controlada
-        const estiloZBE = { color: "#ef4444", weight: 1, fillColor: "#ef4444", fillOpacity: 0.3 };
-        let capaZBE = null;
-        
-        // Se descarga solo la primera vez que el usuario activa la capa
-        let promesaZBE = null;
-        const cargarZBE = () => promesaZBE ??= fetch('zbe.geojson')
-            .then(res => res.json())
-            .then(data => { capaZBE = L.geoJSON(data, { style: estiloZBE }); })
-            .catch(err => { promesaZBE = null; console.error("Error cargando ZBE", err); });
-
-        window.toggleWMS = async function(tipoCapa) {
-            const checkbox = document.getElementById(`layer-${tipoCapa}`);
-            checkbox.checked = !checkbox.checked; 
-
-            if (tipoCapa === 'zbe') {
-                if (!capaZBE) {
-                    mostrarCarga("Cargando Zonas de Bajas Emisiones...");
-                    await cargarZBE();
-                    ocultarCarga();
-                }
-                if (checkbox.checked && capaZBE) capaZBE.addTo(map);
-                else if (capaZBE) map.removeLayer(capaZBE);
-            } else if (tipoCapa === 'limites') {
-                if (checkbox.checked) capaLimites.addTo(map);
-                else map.removeLayer(capaLimites);
-            }
-            document.getElementById('capasDropdown').style.display = 'none';
-        };
 
         // Variables globales y protección de Popup
         let marcadorUbicacionUsuario;
@@ -540,24 +478,61 @@
         }
     }
     ocultarCarga();
-    if (!ordenFavorita) localizarUsuario(true);
+    // Solo se localiza al usuario automáticamente si ya dio permiso antes; si no, usará el botón
+    if (!ordenFavorita && navigator.permissions) {
+        navigator.permissions.query({ name: 'geolocation' })
+            .then(p => { if (p.state === 'granted') localizarUsuario(true); })
+            .catch(() => {});
+    }
 }
 
         // GPS
-        function localizarUsuario(moverCamara = true) {
-            if (!navigator.geolocation) return window.actualizarPinesVisibles();
+        function mostrarAviso(texto, ms = 6000) {
+            let t = document.getElementById('avisoFlotante');
+            if (!t) {
+                t = document.createElement('div');
+                t.id = 'avisoFlotante';
+                t.setAttribute('role', 'status');
+                t.style.cssText = 'position:fixed;left:50%;bottom:24px;transform:translateX(-50%);max-width:min(92vw,420px);background:#0f172a;color:#fff;padding:12px 16px;border-radius:10px;font-size:14px;line-height:1.4;box-shadow:0 6px 20px rgba(0,0,0,.3);z-index:10000;text-align:center;';
+                document.body.appendChild(t);
+            }
+            t.textContent = texto;
+            t.style.display = 'block';
+            clearTimeout(t._timer);
+            t._timer = setTimeout(() => { t.style.display = 'none'; }, ms);
+        }
+
+        // GPS. desdeBoton = el usuario lo ha pedido, así que se le avisa si falla
+        function localizarUsuario(moverCamara = true, desdeBoton = false) {
+            if (!navigator.geolocation) {
+                if (desdeBoton) mostrarAviso('Tu navegador no permite obtener la ubicación.');
+                return window.actualizarPinesVisibles();
+            }
+            const btn = document.getElementById('btnUbicacion');
+            if (desdeBoton && btn) { btn.disabled = true; btn.style.opacity = '0.5'; }
+            const fin = () => { if (btn) { btn.disabled = false; btn.style.opacity = ''; } };
+
             navigator.geolocation.getCurrentPosition(p => {
+                fin();
                 puntoReferenciaDistancia = L.latLng(p.coords.latitude, p.coords.longitude);
                 document.getElementById('routeOriginInput').placeholder = 'Ubicación actual';
                 if (marcadorUbicacionUsuario) map.removeLayer(marcadorUbicacionUsuario);
                 marcadorUbicacionUsuario = L.circleMarker([p.coords.latitude, p.coords.longitude], { radius: 8, fillColor: "#2563eb", color: "#fff", weight: 3, fillOpacity: 0.9 }).addTo(map);
                 if (moverCamara) map.flyTo([p.coords.latitude, p.coords.longitude], 13);
                 else window.actualizarPinesVisibles();
-            }, () => {
-                puntoReferenciaDistancia = null;
-                document.getElementById('routeOriginInput').placeholder = 'Escribe un origen...';
+            }, (err) => {
+                fin();
+                if (!marcadorUbicacionUsuario) {
+                    puntoReferenciaDistancia = null;
+                    document.getElementById('routeOriginInput').placeholder = 'Escribe un origen...';
+                }
+                if (desdeBoton) {
+                    if (err.code === 1) mostrarAviso('Has bloqueado la ubicación para esta web. Actívala en los permisos del sitio (icono junto a la dirección de la página) y vuelve a pulsar el botón.', 9000);
+                    else if (err.code === 3) mostrarAviso('Se ha agotado el tiempo buscando tu ubicación. Inténtalo de nuevo.');
+                    else mostrarAviso('No se ha podido obtener tu ubicación. Comprueba que la ubicación del dispositivo está activada.');
+                }
                 window.actualizarPinesVisibles();
-            }, { timeout: 10000, maximumAge: 5 * 60 * 1000 });
+            }, { enableHighAccuracy: false, timeout: 15000, maximumAge: 60 * 1000 });
         }
 
         // Buscador Nominatim
