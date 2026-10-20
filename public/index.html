@@ -596,8 +596,7 @@
         }
     }
     ocultarCarga();
-    // Se pide la ubicación al entrar; si el usuario no acepta, puede usar luego el botón
-    if (!ordenFavorita) localizarUsuario(true);
+    if (!ordenFavorita) ubicacionAlEntrar();
 }
 
         // GPS
@@ -617,6 +616,40 @@
         }
 
         // GPS. desdeBoton = el usuario lo ha pedido, así que se le avisa si falla
+        // ----- Ubicación recordada -----
+        // Algunos navegadores (Safari en iPhone) vuelven a pedir permiso en cada recarga.
+        // Por eso solo se pide automáticamente la primera vez; después se usa la última posición
+        // guardada y el botón de ubicación la actualiza cuando el usuario quiera.
+        const CLAVE_UBI = 'glp_ubicacion';
+        const leerUbi = () => { try { return JSON.parse(localStorage.getItem(CLAVE_UBI)); } catch (e) { return null; } };
+        const guardarUbi = (v) => { try { localStorage.setItem(CLAVE_UBI, JSON.stringify(v)); } catch (e) {} };
+
+        function ponerMarcadorUsuario(lat, lng) {
+            puntoReferenciaDistancia = L.latLng(lat, lng);
+            document.getElementById('routeOriginInput').placeholder = 'Mi ubicación';
+            if (marcadorUbicacionUsuario) map.removeLayer(marcadorUbicacionUsuario);
+            marcadorUbicacionUsuario = L.marker([lat, lng], { icon: iconoUsuario, keyboard: false, interactive: false, zIndexOffset: -1000 }).addTo(map);
+        }
+
+        async function ubicacionAlEntrar() {
+            const guardada = leerUbi();
+            let estado = 'prompt';
+            try { if (navigator.permissions) estado = (await navigator.permissions.query({ name: 'geolocation' })).state; } catch (e) {}
+
+            // Permiso concedido de forma permanente: se localiza sin preguntar
+            if (estado === 'granted') return localizarUsuario(true);
+            // Bloqueado, o ya lo rechazó aquí: no se insiste
+            if (estado === 'denied' || (guardada && guardada.rechazada)) return window.actualizarPinesVisibles();
+            // Ya aceptó antes pero el navegador volvería a preguntar: se usa la última posición conocida
+            if (guardada && guardada.lat != null) {
+                ponerMarcadorUsuario(guardada.lat, guardada.lng);
+                map.setView([guardada.lat, guardada.lng], 13);
+                return window.actualizarPinesVisibles();
+            }
+            // Primera visita: se pide
+            localizarUsuario(true);
+        }
+
         function localizarUsuario(moverCamara = true, desdeBoton = false) {
             if (!navigator.geolocation) {
                 if (desdeBoton) mostrarAviso('Tu navegador no permite obtener la ubicación.');
@@ -628,14 +661,13 @@
 
             navigator.geolocation.getCurrentPosition(p => {
                 fin();
-                puntoReferenciaDistancia = L.latLng(p.coords.latitude, p.coords.longitude);
-                document.getElementById('routeOriginInput').placeholder = 'Ubicación actual';
-                if (marcadorUbicacionUsuario) map.removeLayer(marcadorUbicacionUsuario);
-                marcadorUbicacionUsuario = L.marker([p.coords.latitude, p.coords.longitude], { icon: iconoUsuario, keyboard: false, interactive: false, zIndexOffset: -1000 }).addTo(map);
+                guardarUbi({ lat: +p.coords.latitude.toFixed(4), lng: +p.coords.longitude.toFixed(4), t: Date.now() });
+                ponerMarcadorUsuario(p.coords.latitude, p.coords.longitude);
                 if (moverCamara) map.flyTo([p.coords.latitude, p.coords.longitude], 13);
                 else window.actualizarPinesVisibles();
             }, (err) => {
                 fin();
+                if (err.code === 1 && !desdeBoton) guardarUbi({ rechazada: true, t: Date.now() });
                 if (!marcadorUbicacionUsuario) {
                     puntoReferenciaDistancia = null;
                     document.getElementById('routeOriginInput').placeholder = 'Escribe un origen...';
