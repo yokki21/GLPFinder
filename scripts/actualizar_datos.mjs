@@ -16,7 +16,7 @@ const DIAS_HISTORIAL = 400;
 const CAMPO_GLP = "Precio Gases licuados del petróleo";
 const CAMPOS = [
   "IDEESS", "Rótulo", "Dirección", "Localidad", "Municipio", "Provincia", "C.P.",
-  "Horario", "Latitud", "Longitud (WGS84)",
+  "Horario", "Latitud", "Longitud (WGS84)", "IDProvincia", "IDCCAA",
   CAMPO_GLP, "Precio Gasoleo A", "Precio Gasolina 95 E5",
 ];
 

@@ -24,7 +24,9 @@
     <link rel="icon" type="image/svg+xml" href="img/favicon.svg">
     <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
     <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
-    <link rel="stylesheet" href="styles.css?v=12">
+    <link rel="stylesheet" href="styles.css?v=13">
+    <link rel="preconnect" href="https://www.ign.es" crossorigin>
+    <link rel="preconnect" href="https://unpkg.com" crossorigin>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     
     <script type="application/ld+json">
@@ -54,6 +56,7 @@
         </button>
         <nav class="nav-links" id="menu-principal" aria-label="Principal">
             <a href="index.html">Mapa</a>
+            <a href="glp/">Precios</a>
             <a href="favoritas.html">Mis favoritas</a>
             <a href="datos.html">Mi vehículo</a>
             <a href="contacto.html">Contacto</a>
@@ -253,7 +256,13 @@
 
         // Recuperar orden favorita
         let ordenFavorita = null;
-        const buzonStr = localStorage.getItem('orden_ir_a_gasolinera');
+        // Enlace directo a una gasolinera (desde las páginas de precios por provincia)
+        const paramsURL = new URLSearchParams(location.search);
+        if (paramsURL.get('lat') && paramsURL.get('lng')) {
+            const plat = parseFloat(paramsURL.get('lat')), plng = parseFloat(paramsURL.get('lng'));
+            if (isFinite(plat) && isFinite(plng)) ordenFavorita = { id: paramsURL.get('id') || null, lat: plat, lng: plng };
+        }
+        const buzonStr = ordenFavorita ? null : localStorage.getItem('orden_ir_a_gasolinera');
         if (buzonStr) {
             ordenFavorita = JSON.parse(buzonStr);
             localStorage.removeItem('orden_ir_a_gasolinera');
@@ -524,18 +533,32 @@
 
             const mapaCP = { '01':'Álava','02':'Albacete','03':'Alicante','04':'Almería','05':'Ávila', '06':'Badajoz','07':'Baleares','08':'Barcelona','09':'Burgos','10':'Cáceres', '11':'Cádiz','12':'Castellón','13':'Ciudad Real','14':'Córdoba','15':'Coruña', '16':'Cuenca','17':'Gerona','18':'Granada','19':'Guadalajara','20':'Guipúzcoa', '21':'Huelva','22':'Huesca','23':'Jaén','24':'León','25':'Lérida', '26':'La Rioja','27':'Lugo','28':'Madrid','29':'Málaga','30':'Murcia', '31':'Navarra','32':'Orense','33':'Asturias','34':'Palencia','35':'Las Palmas', '36':'Pontevedra','37':'Salamanca','38':'Santa Cruz de Tenerife','39':'Cantabria', '40':'Segovia','41':'Sevilla','42':'Soria','43':'Tarragona','44':'Teruel', '45':'Toledo','46':'Valencia','47':'Valladolid','48':'Vizcaya','49':'Zamora', '50':'Zaragoza','51':'Ceuta','52':'Melilla' };
 
+            // Con el mapa muy alejado (sobre todo en móvil) se agrupa por comunidad autónoma
+            const provinciaACCAA = { 'Almería':'Andalucía','Cádiz':'Andalucía','Córdoba':'Andalucía','Granada':'Andalucía','Huelva':'Andalucía','Jaén':'Andalucía','Málaga':'Andalucía','Sevilla':'Andalucía',
+                'Huesca':'Aragón','Teruel':'Aragón','Zaragoza':'Aragón','Asturias':'Asturias','Baleares':'Baleares','Las Palmas':'Canarias','Santa Cruz de Tenerife':'Canarias','Cantabria':'Cantabria',
+                'Albacete':'Castilla-La Mancha','Ciudad Real':'Castilla-La Mancha','Cuenca':'Castilla-La Mancha','Guadalajara':'Castilla-La Mancha','Toledo':'Castilla-La Mancha',
+                'Ávila':'Castilla y León','Burgos':'Castilla y León','León':'Castilla y León','Palencia':'Castilla y León','Salamanca':'Castilla y León','Segovia':'Castilla y León','Soria':'Castilla y León','Valladolid':'Castilla y León','Zamora':'Castilla y León',
+                'Barcelona':'Cataluña','Gerona':'Cataluña','Lérida':'Cataluña','Tarragona':'Cataluña','Alicante':'C. Valenciana','Castellón':'C. Valenciana','Valencia':'C. Valenciana',
+                'Badajoz':'Extremadura','Cáceres':'Extremadura','Coruña':'Galicia','Lugo':'Galicia','Orense':'Galicia','Pontevedra':'Galicia','Madrid':'Madrid','Murcia':'Murcia','Navarra':'Navarra',
+                'Álava':'País Vasco','Guipúzcoa':'País Vasco','Vizcaya':'País Vasco','La Rioja':'La Rioja','Ceuta':'Ceuta','Melilla':'Melilla' };
+            const centrosCCAA = { 'Andalucía':[37.45,-4.60],'Aragón':[41.50,-0.85],'Asturias':[43.30,-5.95],'Baleares':[39.60,2.95],'Canarias':[28.35,-15.70],'Cantabria':[43.20,-4.00],
+                'Castilla-La Mancha':[39.45,-3.05],'Castilla y León':[41.75,-4.75],'Cataluña':[41.80,1.55],'C. Valenciana':[39.40,-0.65],'Extremadura':[39.20,-6.15],'Galicia':[42.75,-7.90],
+                'Madrid':[40.45,-3.70],'Murcia':[38.00,-1.50],'Navarra':[42.70,-1.65],'País Vasco':[43.05,-2.60],'La Rioja':[42.30,-2.50],'Ceuta':[35.89,-5.32],'Melilla':[35.29,-2.94] };
+            const porCCAA = (window.innerWidth < 768 && map.getZoom() < 7) || map.getZoom() < 6;
+
             const clusters = {};
             estaciones.forEach(est => {
                 let prov = normalizarProvincia(est['Provincia']) || mapaCP[(est['C.P.'] || est['Código Postal'] || '').trim().padStart(5, '0').substring(0, 2)] || 'Desconocida';
-                if (!clusters[prov]) clusters[prov] = [];
-                clusters[prov].push(est);
+                const clave = porCCAA ? (provinciaACCAA[prov] || 'Desconocida') : prov;
+                if (!clusters[clave]) clusters[clave] = [];
+                clusters[clave].push(est);
             });
 
             const clustersDatos = [];
             let sumaTotalVisible = 0;
 
             Object.entries(clusters).forEach(([prov, lista]) => {
-                const coords = capitalesProvincias[prov];
+                const coords = porCCAA ? centrosCCAA[prov] : capitalesProvincias[prov];
                 if (!coords) return;
                 const mediaProv = lista.reduce((sum, e) => sum + parseFloat(e['Precio Gases licuados del petróleo'].replace(',', '.')), 0) / lista.length;
                 clustersDatos.push({ prov, lista, coords, mediaProv });
@@ -556,8 +579,8 @@
                 });
 
                 L.marker(c.coords, { icon: clusterIcon, riseOnHover: true })
-                    .bindPopup(`<div class="cluster-popup-simple"><h4>${c.prov}: ${c.mediaProv.toFixed(3)} €/L de media</h4><p>${c.lista.length} gasolineras con GLP. Acércate para verlas.</p></div>`)
-                    .on('click', () => map.flyTo(c.coords, 10, { duration: 1 }))
+                    .bindPopup(`<div class="cluster-popup-simple"><h4>${c.prov}: ${c.mediaProv.toFixed(3)} €/L de media</h4><p>${c.lista.length} gasolineras con GLP. ${porCCAA ? 'Acércate para ver cada provincia.' : 'Acércate para verlas.'}</p></div>`)
+                    .on('click', () => map.flyTo(c.coords, porCCAA ? 7 : 10, { duration: 1 }))
                     .addTo(capaPinesVisibles);
             });
         }
@@ -1084,7 +1107,7 @@
 
     <script type="module">
         import { initRouteModule, calcularRuta, limpiarRuta } from './routes.js?v=2';
-        import { leerFavoritas, guardarFavorita, quitarFavorita, leerVehiculo } from './almacen.js?v=2';
+        import { leerFavoritas, guardarFavorita, quitarFavorita, leerVehiculo } from './almacen.js?v=3';
 
         initRouteModule(map);
         window._calcularRuta = calcularRuta;

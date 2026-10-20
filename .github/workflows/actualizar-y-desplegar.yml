@@ -35,6 +35,11 @@ jobs:
       - name: Descargar precios y generar JSON
         run: node scripts/actualizar_datos.mjs
 
+      - name: Generar páginas de precios por provincia y municipio
+        run: node scripts/generar_paginas.mjs
+        env:
+          SITE_URL: https://yokki21.github.io/GLPFinder/
+
       - name: Guardar historial en el repositorio
         if: github.event_name == 'workflow_dispatch' || github.event.schedule == '47 15 * * *'
         run: |

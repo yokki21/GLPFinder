@@ -4,7 +4,6 @@
 // - Al iniciar sesión, lo guardado en el navegador se pasa a la cuenta.
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, getDocs, writeBatch, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyB_2thDoQUjLM34QYO8nmaDAB8HqQIxtIY",
@@ -17,7 +16,13 @@ const firebaseConfig = {
 
 export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
-export const db = getFirestore(app);
+
+// Firestore (unos 430 KB) solo se descarga cuando hace falta: con sesión iniciada o al ver el historial antiguo
+let fsPromesa = null;
+function firestore() {
+    return fsPromesa ??= import("https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js")
+        .then(m => ({ ...m, db: m.getFirestore(app) }));
+}
 
 const CLAVE_FAVORITAS = 'glp_favoritas';
 const CLAVE_VEHICULO = 'glp_vehiculo_datos';
@@ -79,6 +84,7 @@ function actualizarNavegacion() {
 document.addEventListener('DOMContentLoaded', actualizarNavegacion);
 
 async function migrarDatosLocales(uid) {
+    const { db, doc, getDoc, writeBatch } = await firestore();
     const favs = leerLocal(CLAVE_FAVORITAS, {});
     const vehiculo = leerLocal(CLAVE_VEHICULO, null);
     const ids = Object.keys(favs);
@@ -100,6 +106,7 @@ async function migrarDatosLocales(uid) {
 export async function leerFavoritas() {
     const u = await usuarioActual();
     if (!u) return leerLocal(CLAVE_FAVORITAS, {});
+    const { db, collection, getDocs } = await firestore();
     const snap = await getDocs(collection(db, "users", u.uid, "favoritos"));
     return Object.fromEntries(snap.docs.map(d => [d.id, d.data()]));
 }
@@ -111,6 +118,7 @@ export async function guardarFavorita(id, datos) {
         favs[id] = datos;
         return escribirLocal(CLAVE_FAVORITAS, favs);
     }
+    const { db, doc, setDoc } = await firestore();
     await setDoc(doc(db, "users", u.uid, "favoritos", id), datos);
 }
 
@@ -121,6 +129,7 @@ export async function quitarFavorita(id) {
         delete favs[id];
         return escribirLocal(CLAVE_FAVORITAS, favs);
     }
+    const { db, doc, deleteDoc } = await firestore();
     await deleteDoc(doc(db, "users", u.uid, "favoritos", id));
 }
 
@@ -128,6 +137,7 @@ export async function quitarFavorita(id) {
 export async function leerVehiculo() {
     const u = await usuarioActual();
     if (!u) return leerLocal(CLAVE_VEHICULO, null);
+    const { db, doc, getDoc } = await firestore();
     const snap = await getDoc(doc(db, "users", u.uid, "configuracion", "vehiculo"));
     return snap.exists() ? snap.data() : null;
 }
@@ -135,12 +145,14 @@ export async function leerVehiculo() {
 export async function guardarVehiculo(datos) {
     const u = await usuarioActual();
     if (!u) return escribirLocal(CLAVE_VEHICULO, datos);
+    const { db, doc, setDoc } = await firestore();
     await setDoc(doc(db, "users", u.uid, "configuracion", "vehiculo"), datos);
 }
 
 // ---------- Historial antiguo guardado en Firestore (antes de la GitHub Action) ----------
 export async function leerHistorialAntiguo(id, n) {
     try {
+        const { db, collection, query, orderBy, limit, getDocs } = await firestore();
         const q = query(collection(db, "historial_precios", id, "registros"), orderBy("fecha", "desc"), limit(n));
         const tiempoAgotado = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 4000));
         return (await Promise.race([getDocs(q), tiempoAgotado])).docs.map(d => d.data());

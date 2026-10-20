@@ -794,3 +794,74 @@ input[type="range"]::-moz-range-thumb { width: 18px; height: 18px; border-radius
     .data-card, .contacto-grid .data-card { padding: 20px; }
     .fav-grid { grid-template-columns: 1fr; }
 }
+
+/* ==========================================================================
+   Páginas de precios (provincias y municipios)
+   ========================================================================== */
+.migas { margin-bottom: 14px; font-size: 14px; color: #B9C0CA; }
+.migas a { color: #B9C0CA; text-decoration: none; }
+.migas a:hover { color: var(--blanco); text-decoration: underline; }
+.migas [aria-current] { color: var(--blanco); }
+
+.seo-main { flex: 1; width: 100%; max-width: 1088px; margin: -56px auto 0; padding: 0 24px 56px; display: flex; flex-direction: column; gap: 20px; }
+.seo-resumen { display: grid; grid-template-columns: repeat(3, 1fr); background: var(--blanco); border: 1px solid var(--linea); border-radius: var(--r-l); overflow: hidden; }
+.seo-resumen > div { padding: 18px 20px; }
+.seo-resumen > div + div { border-left: 1px solid var(--linea); }
+.seo-resumen strong { display: block; font-family: var(--f-titulo); font-size: 30px; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.seo-resumen > div:first-child strong { color: var(--verde); }
+.seo-resumen span { font-size: 14px; color: var(--gris); }
+.seo-texto { max-width: 72ch; font-size: 17px; color: var(--negro-2); }
+.seo-bloque { padding: 24px; background: var(--blanco); border: 1px solid var(--linea); border-radius: var(--r-l); }
+.seo-bloque h2 { font-size: 26px; margin-bottom: 14px; }
+.seo-cta { display: flex; }
+.seo-cta .btn { width: auto; }
+
+.tabla-envoltorio { overflow-x: auto; }
+.tabla-precios { width: 100%; border-collapse: collapse; font-size: 15px; }
+.tabla-precios th { padding: 0 10px 10px; text-align: left; font-size: 13px; font-weight: 600; color: var(--gris); border-bottom: 1px solid var(--linea); }
+.tabla-precios td { padding: 10px; border-bottom: 1px solid var(--linea); vertical-align: middle; }
+.tabla-precios tr:last-child td { border-bottom: 0; }
+.t-pos { width: 36px; color: var(--gris); font-variant-numeric: tabular-nums; }
+.t-est-in { display: flex; align-items: center; gap: 10px; }
+.t-est img { width: 22px; height: 22px; object-fit: contain; flex-shrink: 0; }
+.t-est strong { display: block; font-weight: 600; }
+.t-est small { display: block; color: var(--gris); font-size: 14px; }
+.t-precio { white-space: nowrap; }
+.t-precio .tag { height: 28px; font-size: 16px; }
+.t-mapa { text-align: right; white-space: nowrap; }
+.t-mapa a { font-weight: 600; text-decoration: none; }
+.t-mapa a:hover { text-decoration: underline; }
+
+.lista-enlaces { list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 4px 20px; }
+.lista-enlaces li { display: flex; flex-direction: column; padding: 8px 0; border-bottom: 1px solid var(--linea); }
+.lista-enlaces a { font-weight: 600; text-decoration: none; color: var(--negro); }
+.lista-enlaces a:hover { color: var(--azul); }
+.lista-enlaces span { font-size: 13px; color: var(--gris); }
+.ccaa-rejilla { display: flex; flex-direction: column; gap: 20px; }
+.ccaa-bloque h3 { font-size: 19px; margin-bottom: 4px; }
+
+.faq { border-bottom: 1px solid var(--linea); }
+.faq:last-child { border-bottom: 0; }
+.faq summary { padding: 12px 0; font-weight: 600; cursor: pointer; }
+.faq p { padding: 0 0 14px; color: var(--negro-2); max-width: 72ch; }
+
+.pie { padding: 28px 24px 36px; background: var(--negro); color: #B9C0CA; font-size: 14px; text-align: center; }
+.pie p + p { margin-top: 8px; }
+.pie a { color: var(--blanco); }
+
+@media (max-width: 768px) {
+    .seo-main { padding: 0 16px 40px; gap: 16px; }
+    .seo-resumen strong { font-size: 22px; }
+    .seo-resumen > div { padding: 12px; }
+    .seo-bloque { padding: 16px; }
+    .seo-bloque h2 { font-size: 22px; }
+    .tabla-precios thead { display: none; }
+    .tabla-precios tr { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; padding: 12px 0; border-bottom: 1px solid var(--linea); }
+    .tabla-precios tr:last-child { border-bottom: 0; }
+    .tabla-precios td { padding: 0; border: 0; }
+    .t-pos { display: none; }
+    .t-est { grid-column: 1; }
+    .t-est-in { align-items: flex-start; }
+    .t-precio { grid-column: 2; grid-row: 1; align-self: start; }
+    .t-mapa { grid-column: 1 / -1; text-align: left; padding-left: 32px !important; font-size: 14px; }
+}
