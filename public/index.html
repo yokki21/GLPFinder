@@ -478,12 +478,8 @@
         }
     }
     ocultarCarga();
-    // Solo se localiza al usuario automáticamente si ya dio permiso antes; si no, usará el botón
-    if (!ordenFavorita && navigator.permissions) {
-        navigator.permissions.query({ name: 'geolocation' })
-            .then(p => { if (p.state === 'granted') localizarUsuario(true); })
-            .catch(() => {});
-    }
+    // Se pide la ubicación al entrar; si el usuario no acepta, puede usar luego el botón
+    if (!ordenFavorita) localizarUsuario(true);
 }
 
         // GPS

@@ -8,7 +8,6 @@
     <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
     <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
     <link rel="stylesheet" href="styles.css?v=3">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
 <body>
 
@@ -46,11 +45,6 @@
                 <div class="info-item">
                     <h3>Correo electrónico</h3>
                     <p>glpfinder1@gmail.com</p>
-                </div>
-
-                <div class="info-item">
-                    <h3>Sede</h3>
-                    <p>Calle Mercator 2, 28031, Madrid, España</p>
                 </div>
             </div>
 
@@ -92,36 +86,7 @@
 
         </div>
 
-        <div class="mapa-section">
-            <h2>Encuéntranos en el mapa</h2>
-            <div id="mapa-contacto"></div>
-        </div>
-        
     </main>
-
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script>
-        const latitudEmpresa = 40.38936; 
-        const longitudEmpresa = -3.62989; 
-        
-        const mapaContacto = L.map('mapa-contacto').setView([latitudEmpresa, longitudEmpresa], 16);
-        
-        L.tileLayer('https://www.ign.es/wmts/ign-base?service=WMTS&request=GetTile&version=1.0.0&format=image/png&layer=IGNBaseTodo&style=default&tilematrixset=GoogleMapsCompatible&tilematrix={z}&tilerow={y}&tilecol={x}', {
-            maxZoom: 20,
-            maxNativeZoom: 17,
-            attribution: 'Mapa base IGN <a href="https://www.scne.es/" target="_blank" rel="noopener">CC BY 4.0 scne.es</a>'
-        }).addTo(mapaContacto);
-
-        L.circleMarker([latitudEmpresa, longitudEmpresa], {
-            radius: 8,
-            fillColor: "#2563eb",
-            color: "#ffffff",
-            weight: 3,
-            fillOpacity: 1
-        }).addTo(mapaContacto)
-          .bindPopup('<b>GLPFinder</b><br>Calle Mercator 2, Madrid')
-          .openPopup();
-    </script>
 
     <script type="module">
         import './almacen.js?v=2';
