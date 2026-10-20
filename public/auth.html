@@ -3,37 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0B4EA2">
     <title>Acceder - GLPFinder</title>
     
+    <link rel="icon" type="image/svg+xml" href="img/icono.svg">
     <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
     <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
-    <link rel="stylesheet" href="styles.css?v=3">
+    <link rel="stylesheet" href="styles.css?v=4">
 </head>
 <body>
 
     <header>
-        <a href="index.html" class="logo">
-            <img src="img/logo.webp" width="183" height="100" alt="Logo GLPFinder">
+        <a href="index.html" class="logo" aria-label="GLPFinder, ir al mapa">
+            <img src="img/logo.svg" width="160" height="36" alt="GLPFinder">
         </a>
-        <div class="nav-links">
+        <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="menu-principal" aria-label="Abrir menú">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        </button>
+        <nav class="nav-links" id="menu-principal" aria-label="Principal">
             <a href="index.html">Mapa</a>
             <a href="favoritas.html">Mis favoritas</a>
             <a href="datos.html">Mi vehículo</a>
             <a href="contacto.html">Contacto</a>
-        </div>
+            <a href="auth.html" id="nav-auth">Acceder</a>
+            <a href="#" id="nav-logout" hidden>Cerrar sesión</a>
+        </nav>
     </header>
 
     <main class="form-main auth-main">
-        <h1 class="page-title">Accede o regístrate</h1>
-        <p style="max-width:720px; margin:-10px auto 20px; color:#475569; text-align:center;">Con una cuenta tus favoritas y los datos de tu coche se guardan y los tienes en todos tus dispositivos. Lo que ya tengas guardado en este navegador se pasará a tu cuenta.</p>
-        <p id="auth-msg" role="alert" style="display:none; max-width:720px; margin:0 auto 16px; padding:10px 14px; border-radius:8px; background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; font-weight:600; text-align:center;"></p>
+        <h1 class="page-title">Accede o crea tu cuenta</h1>
+        <p class="page-lead">Con una cuenta tus favoritas y los datos de tu coche se guardan y los tienes en todos tus dispositivos. Lo que ya tengas guardado en este navegador se pasará a tu cuenta.</p>
+        <p id="auth-msg" role="alert" style="display:none; max-width:720px; margin:0 auto 16px; padding:10px 14px; border-radius:8px; background:#FBECEA; color:#A8301F; border:1px solid #F0C3BD; font-weight:600; text-align:center;"></p>
         
         <div class="card">
             <div class="form-column">
-                <h2 class="section-title">Inicia Sesión</h2>
+                <h2 class="section-title">Iniciar sesión</h2>
                 <form id="login-form">
                     <div class="form-group">
-                        <label for="login-email">Correo Electrónico</label>
+                        <label for="login-email">Correo electrónico</label>
                         <input type="email" id="login-email" placeholder="tu@email.com" required>
                     </div>
                     <div class="form-group">
@@ -41,10 +48,10 @@
                         <input type="password" id="login-password" placeholder="••••••••" required>
                     </div>
                     <button type="submit" id="btn-login" class="btn-primary">Entrar</button>
-                    <a href="#" id="btn-reset" style="display:block; margin-top:10px; font-size:13px; color:#2563eb;">¿Has olvidado la contraseña?</a>
+                    <a href="#" id="btn-reset" style="display:block; margin-top:12px; font-size:14px; color:var(--azul);">¿Has olvidado la contraseña?</a>
                 </form>
 
-                <div class="auth-divider-text">— O —</div>
+                <div class="auth-divider-text">o</div>
 
                 <button id="btn-google" class="btn-google">
                     <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google Logo">
@@ -55,25 +62,25 @@
             <div class="divider"></div>
 
             <div class="form-column">
-                <h2 class="section-title">Crear Cuenta</h2>
+                <h2 class="section-title">Crear cuenta</h2>
                 <form id="register-form">
                     <div class="form-group">
-                        <label for="register-name">Nombre completo</label>
+                        <label for="register-name">Nombre</label>
                         <input type="text" id="register-name" placeholder="Tu nombre" required>
                     </div>
                     <div class="form-group">
-                        <label for="register-email">Correo Electrónico</label>
+                        <label for="register-email">Correo electrónico</label>
                         <input type="email" id="register-email" placeholder="tu@email.com" required>
                     </div>
                     <div class="form-group">
-                        <label for="register-password">Contraseña (Mínimo 6 caracteres)</label>
+                        <label for="register-password">Contraseña (mínimo 6 caracteres)</label>
                         <input type="password" id="register-password" placeholder="••••••••" required minlength="6">
                     </div>
                     <div class="form-group">
-                        <label for="register-password-confirm">Repetir Contraseña</label>
+                        <label for="register-password-confirm">Repite la contraseña</label>
                         <input type="password" id="register-password-confirm" placeholder="••••••••" required minlength="6">
                     </div>
-                    <button type="submit" id="btn-register" class="btn-secondary">Registrarse</button>
+                    <button type="submit" id="btn-register" class="btn-secondary">Crear cuenta</button>
                 </form>
             </div>
         </div>
@@ -121,7 +128,7 @@
             if (!email) return mostrarError('Escribe tu correo arriba y vuelve a pulsar "¿Has olvidado la contraseña?".');
             try {
                 await sendPasswordResetEmail(auth, email);
-                msg.style.background = '#f0fdf4'; msg.style.color = '#15803d'; msg.style.borderColor = '#bbf7d0';
+                msg.style.background = '#E8F5EF'; msg.style.color = '#0B5E41'; msg.style.borderColor = '#B7E0CC';
                 msg.textContent = 'Te hemos enviado un correo para cambiar la contraseña.'; msg.style.display = 'block';
             } catch (err) { console.error(err); mostrarError(errorLegible(err)); }
         });
@@ -140,5 +147,6 @@
             } catch (err) { console.error(err); mostrarError(errorLegible(err)); }
         });
     </script>
+    <script src="nav.js" defer></script>
 </body>
 </html>

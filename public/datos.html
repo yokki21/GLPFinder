@@ -3,53 +3,66 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0B4EA2">
     <title>Mi vehículo - GLPFinder</title>
+    <link rel="icon" type="image/svg+xml" href="img/icono.svg">
     <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
     <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
-    <link rel="stylesheet" href="styles.css?v=3">
+    <link rel="stylesheet" href="styles.css?v=4">
 </head>
 <body>
 
     <header>
-        <a href="index.html" class="logo"><img src="img/logo.webp" width="183" height="100" alt="Logo GLPFinder"></a>
-        <div class="nav-links">
+        <a href="index.html" class="logo" aria-label="GLPFinder, ir al mapa">
+            <img src="img/logo.svg" width="160" height="36" alt="GLPFinder">
+        </a>
+        <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="menu-principal" aria-label="Abrir menú">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        </button>
+        <nav class="nav-links" id="menu-principal" aria-label="Principal">
             <a href="index.html">Mapa</a>
             <a href="favoritas.html">Mis favoritas</a>
+            <a href="datos.html">Mi vehículo</a>
             <a href="contacto.html">Contacto</a>
             <a href="auth.html" id="nav-auth">Acceder</a>
             <a href="#" id="nav-logout" hidden>Cerrar sesión</a>
-        </div>
+        </nav>
     </header>
 
     <main class="profile-container">
+        <div class="page-head">
+            <h1 class="page-title">Mi vehículo</h1>
+            <p class="page-lead">Con los datos de tu coche calculamos cuánto cuesta llenar el depósito en cada gasolinera y cuánto ahorras con GLP.</p>
+        </div>
         <section class="data-card">
-            <h2>Mi Vehículo GLP</h2>
+            <h2>Tu coche</h2>
             <div class="form-group">
-                <label>Capacidad Depósito (Litros):</label>
-                <input type="number" id="inp-deposito" placeholder="Ej: 40">
+                <label for="inp-deposito">Litros útiles del depósito de GLP</label>
+                <input type="number" id="inp-deposito" placeholder="Ej: 40" inputmode="decimal">
+                <small style="display:block;margin-top:6px;color:var(--gris);font-size:13px;">Los depósitos de GLP se llenan como máximo al 80 %: si el tuyo es de 50 L, pon 40.</small>
             </div>
             <div class="form-group">
-                <label>Consumo Medio (L/100km):</label>
-                <input type="number" id="inp-consumo" placeholder="Ej: 8.5" step="0.1">
+                <label for="inp-consumo">Consumo medio de GLP (L/100 km)</label>
+                <input type="number" id="inp-consumo" placeholder="Ej: 8.5" step="0.1" inputmode="decimal">
             </div>
             <button class="btn-primary" onclick="guardarDatosVehiculo()">Guardar datos</button>
-            <p id="msg-guardado" style="display:none; margin:10px 0 0; color:#16a34a; font-weight:600; font-size:14px;">Datos guardados en este dispositivo</p>
+            <p id="msg-guardado" style="display:none; margin:10px 0 0; color:#0F7A55; font-weight:600; font-size:14px;">Datos guardados en este dispositivo</p>
         </section>
 
         <section class="data-card full-width">
-            <h2>Panel de Eficiencia</h2>
+            <h2>Ahorro con GLP</h2>
             <div class="efficiency-grid">
                 <div>
                     <div class="form-group">
-                        <label>Km aproximados al mes:</label>
+                        <label for="inp-km-mes">Kilómetros al mes</label>
                         <input type="number" id="inp-km-mes" placeholder="Ej: 1200" oninput="recalcularAhorro()">
                     </div>
                     <div class="form-group">
-                        <label>Combustible anterior:</label>
+                        <label for="select-combustible">Lo comparo con</label>
                         <select id="select-combustible" onchange="recalcularAhorro()">
-                            <option value="gas95">Gasolina 95 (Media Nacional)</option>
-                            <option value="diesel">Diésel (Media Nacional)</option>
-                            <option value="manual">Personalizado</option>
+                            <option value="gas95">Gasolina 95 (media nacional)</option>
+                            <option value="diesel">Diésel (media nacional)</option>
+                            <option value="manual">Otro precio</option>
                         </select>
                         <div id="wrapper-manual" class="wrapper-manual">
                             <input type="number" id="inp-precio-manual" placeholder="Precio €/L" step="0.001" oninput="recalcularAhorro()">
@@ -61,14 +74,14 @@
                     <div class="stat-item">
                         <span class="stat-icon"></span>
                         <div>
-                            <small class="stat-label">Autonomía teórica</small>
+                            <small class="stat-label">Autonomía con el depósito lleno</small>
                             <strong id="res-autonomia">0 km</strong>
                         </div>
                     </div>
                     <div class="stat-item">
                         <span class="stat-icon"></span>
                         <div>
-                            <small class="stat-label">Ahorro mensual estimado</small>
+                            <small class="stat-label">Ahorro estimado al mes</small>
                             <strong id="res-ahorro" class="stat-value-success">0.00 €</strong>
                         </div>
                     </div>
@@ -175,5 +188,6 @@
         cargarDatosGuardados();
         obtenerMediasNacionales();
     </script>
+    <script src="nav.js" defer></script>
 </body>
 </html>

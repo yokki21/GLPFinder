@@ -3,26 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0B4EA2">
     <meta name="robots" content="noindex">
     <title>Página no encontrada - GLPFinder</title>
+    <link rel="icon" type="image/svg+xml" href="img/icono.svg">
     <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
     <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
-    <link rel="stylesheet" href="styles.css?v=3">
-    <style>
-        .nf { max-width: 480px; margin: 12vh auto 0; padding: 32px 24px; text-align: center; }
-        .nf h1 { font-size: 64px; margin: 0; color: #2563eb; }
-        .nf p { color: #475569; font-size: 17px; line-height: 1.5; margin: 12px 0 28px; }
-        .nf a { display: inline-block; background: #2563eb; color: #fff; padding: 12px 22px; border-radius: 8px; font-weight: 600; text-decoration: none; }
-    </style>
+    <link rel="stylesheet" href="styles.css?v=4">
 </head>
 <body>
     <header>
-        <a href="index.html" class="logo"><img src="img/logo.webp" width="183" height="100" alt="Logo GLPFinder"></a>
+        <a href="index.html" class="logo" aria-label="GLPFinder, ir al mapa">
+            <img src="img/logo.svg" width="160" height="36" alt="GLPFinder">
+        </a>
+        <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="menu-principal" aria-label="Abrir menú">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        </button>
+        <nav class="nav-links" id="menu-principal" aria-label="Principal">
+            <a href="index.html">Mapa</a>
+            <a href="favoritas.html">Mis favoritas</a>
+            <a href="datos.html">Mi vehículo</a>
+            <a href="contacto.html">Contacto</a>
+            <a href="auth.html" id="nav-auth">Acceder</a>
+            <a href="#" id="nav-logout" hidden>Cerrar sesión</a>
+        </nav>
     </header>
     <main class="nf">
         <h1>404</h1>
-        <p>Esta página no existe o se ha movido. Vuelve al mapa para buscar las gasolineras de GLP más baratas.</p>
+        <p>Esta página no existe o ha cambiado de dirección.</p>
         <a href="index.html">Ir al mapa</a>
     </main>
+    <script src="nav.js" defer></script>
 </body>
 </html>

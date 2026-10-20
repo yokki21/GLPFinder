@@ -3,107 +3,40 @@
 <head>
     <meta charset="UTF-8">
    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0B4EA2">
     <title>Mis favoritas - GLPFinder</title>
     
+    <link rel="icon" type="image/svg+xml" href="img/icono.svg">
     <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
     <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
-    <link rel="stylesheet" href="styles.css?v=3">
+    <link rel="stylesheet" href="styles.css?v=4">
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 
-    <style>
-        .fav-main { padding: 40px 32px; max-width: 1200px; margin: 0 auto; width: 100%; }
-        .fav-header { margin-bottom: 30px; border-bottom: 2px solid var(--border-color); padding-bottom: 15px; }
-        .fav-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px; }
-
-        .fav-card {
-            background: white;
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            display: flex;
-            flex-direction: column;
-        }
-
-        .fav-card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
-        .fav-logo { width: 40px; height: 40px; object-fit: contain; }
-        .fav-title { font-size: 17px; font-weight: 700; color: var(--text-main); margin: 0; line-height: 1.2; }
-        .fav-price-tag { font-size: 20px; font-weight: 800; color: var(--primary-color); margin: 5px 0; display: block; }
-        .fav-address { font-size: 13px; color: var(--text-muted); margin-bottom: 15px; }
-
-        .chart-wrapper {
-            margin-top: 15px;
-            padding: 10px;
-            background: #f8fafc;
-            border-radius: 10px;
-            border: 1px solid #e2e8f0;
-            display: none;
-            width: 100%;
-            box-sizing: border-box;
-        }
-        .chart-scroll-container {
-            width: 100%;
-            overflow-x: auto; 
-            margin-top: 10px;
-            padding-bottom: 5px;
-        }
-        .chart-scroll-container::-webkit-scrollbar { height: 6px; }
-        .chart-scroll-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        .chart-svg { display: block; overflow: visible; }
-
-        .fav-actions { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; margin-top: auto; padding-top: 15px; }
-        
-        .btn-action {
-            padding: 8px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: 600;
-            text-align: center;
-            text-decoration: none;
-            border: 1px solid #cbd5e1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 5px;
-        }
-        
-        .btn-map { background: #2563eb; color: white; border: none; }
-        .btn-map:hover { background: #1d4ed8; }
-        .btn-chart-toggle { background: #f1f5f9; color: #1e293b; }
-        .btn-chart-toggle:hover { background: #e2e8f0; }
-        .btn-remove { background: #fef2f2; color: #ef4444; border-color: #fecaca; }
-        .btn-remove:hover { background: #ef4444; color: white; }
-
-        .empty-state { text-align: center; padding: 60px 20px; background: white; border-radius: 12px; border: 1px dashed #cbd5e1; color: #64748b; }
-        
-        @media (max-width: 768px) {
-            .fav-main { padding: 20px 15px; }
-            .fav-grid { grid-template-columns: 1fr; }
-            .fav-actions { grid-template-columns: 1fr; }
-            .btn-action { padding: 12px; font-size: 14px; }
-        }
-    </style>
 </head>
 <body>
 
     <header>
-        <a href="index.html" class="logo">
-            <img src="img/logo.webp" width="183" height="100" alt="Logo GLPFinder">
+        <a href="index.html" class="logo" aria-label="GLPFinder, ir al mapa">
+            <img src="img/logo.svg" width="160" height="36" alt="GLPFinder">
         </a>
-        <div class="nav-links">
+        <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="menu-principal" aria-label="Abrir menú">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        </button>
+        <nav class="nav-links" id="menu-principal" aria-label="Principal">
             <a href="index.html">Mapa</a>
+            <a href="favoritas.html">Mis favoritas</a>
             <a href="datos.html">Mi vehículo</a>
             <a href="contacto.html">Contacto</a>
             <a href="auth.html" id="nav-auth">Acceder</a>
             <a href="#" id="nav-logout" hidden>Cerrar sesión</a>
-        </div>
+        </nav>
     </header>
 
     <main class="fav-main">
         <div class="fav-header">
-            <h1 class="page-title" style="margin-bottom: 0;">Mis Gasolineras Favoritas</h1>
+            <h1 class="page-title">Mis favoritas</h1>
+            <p class="page-lead">Las gasolineras que guardas desde el mapa, con su precio de hoy y cómo ha cambiado.</p>
         </div>
 
         <div id="fav-container" class="fav-grid">
@@ -145,7 +78,7 @@
                 return;
             }
             const total = configVehiculo.deposito * precioLitro;
-            resDiv.innerHTML = `Llenar depósito (${configVehiculo.deposito}L): <span style="color:#2563eb;">${total.toFixed(2)}€</span>`;
+            resDiv.innerHTML = `Llenar depósito (${configVehiculo.deposito}L): <span style="color:#0B4EA2;">${total.toFixed(2)}€</span>`;
             resDiv.style.display = 'block';
         };
 
@@ -156,7 +89,7 @@
             try {
                 const favoritas = Object.entries(await leerFavoritas());
                 if (favoritas.length === 0) {
-                    container.innerHTML = `<div class="empty-state" style="grid-column: 1 / -1;"><h3>Lista vacía</h3><p>Guarda gasolineras desde el mapa pulsando la estrella.</p></div>`;
+                    container.innerHTML = `<div class="empty-state" style="grid-column: 1 / -1;"><h3>Todavía no tienes favoritas</h3><p>Abre una gasolinera en el mapa y pulsa la estrella para guardarla aquí.</p></div>`;
                     return;
                 }
 
@@ -199,14 +132,14 @@
                         <p class="fav-address"> ${escHTML(data.direccion)}</p>
                         
                         <div id="calc-container-${id}" style="margin-bottom: 15px;">
-                            <button style="width:100%; background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; padding:8px; border-radius:6px; cursor:pointer; font-weight:600; font-size: 13px;"
-                                onclick="window.calcularCosteLlenado('${id}', ${pActual})"> Calcular coste de llenado</button>
-                            <div id="res-calc-${id}" style="display:none; margin-top:5px; font-size:14px; text-align:center; font-weight:bold; color:#0f172a; padding:6px; background:#f1f5f9; border-radius:4px;"></div>
+                            <button style="width:100%; background:#E7EEF8; color:#0B4EA2; border:1px solid #C9D8EE; padding:8px; border-radius:6px; cursor:pointer; font-weight:600; font-size: 13px;"
+                                onclick="window.calcularCosteLlenado('${id}', ${pActual})">Calcular coste de llenado</button>
+                            <div id="res-calc-${id}" style="display:none; margin-top:5px; font-size:14px; text-align:center; font-weight:bold; color:#0F2236; padding:6px; background:#F1F4F8; border-radius:4px;"></div>
                         </div>
                         
                         <div id="chart-wrapper-${id}" class="chart-wrapper">
                             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                                <strong style="font-size:12px">Evolución de precios</strong>
+                                <strong style="font-size:14px">Evolución del precio</strong>
                                 <select onchange="window.cargarGraficaLineal('${id}', this.value)" style="font-size:11px; padding:3px; border-radius:4px;">
                                     <option value="7">Últimos 7 días</option>
                                     <option value="30">Último mes</option>
@@ -216,13 +149,13 @@
                             <div class="chart-canvas-container">
                                 <canvas id="canvas-${id}"></canvas>
                             </div>
-                            <div id="msg-chart-${id}" style="text-align:center; font-size:11px; color:#ef4444; margin-top:5px; display:none;"></div>
+                            <div id="msg-chart-${id}" style="text-align:center; font-size:11px; color:#C23B2E; margin-top:5px; display:none;"></div>
                         </div>
 
                         <div class="fav-actions">
-                            <button class="btn-action btn-map" onclick="window.saltarAlMapa('${id}', ${latSegura}, ${lngSegura})"> Ver en mapa</button>
-                            <button class="btn-action btn-chart-toggle" onclick="window.toggleGrafica('${id}')"> Historial</button>
-                            <button class="btn-action btn-remove" onclick="window.eliminarFavorita('${id}')" title="Eliminar de favoritas">🗑️</button>
+                            <button class="btn-action btn-map" onclick="window.saltarAlMapa('${id}', ${latSegura}, ${lngSegura})">Ver en el mapa</button>
+                            <button class="btn-action btn-chart-toggle" onclick="window.toggleGrafica('${id}')">Historial</button>
+                            <button class="btn-action btn-remove" onclick="window.eliminarFavorita('${id}')" title="Quitar de favoritas" aria-label="Quitar de favoritas"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button>
                         </div>
                     `;
                     container.appendChild(card);
@@ -293,10 +226,10 @@
                         datasets: [{
                             label: 'Precio (€/L)',
                             data: precios,
-                            borderColor: '#2563eb', 
-                            backgroundColor: 'rgba(37, 99, 235, 0.1)', 
+                            borderColor: '#0B4EA2', 
+                            backgroundColor: 'rgba(11, 78, 162, 0.10)', 
                             borderWidth: 2,
-                            pointBackgroundColor: '#2563eb',
+                            pointBackgroundColor: '#0B4EA2',
                             pointRadius: 3,
                             fill: true, 
                             tension: 0.3 
@@ -337,11 +270,12 @@
                 
                 const container = document.getElementById('fav-container');
                 if (container.children.length === 0) {
-                    container.innerHTML = `<div class="empty-state" style="grid-column: 1 / -1;"><h3>Lista vacía</h3><p>Guarda gasolineras desde el mapa pulsando la estrella.</p></div>`;
+                    container.innerHTML = `<div class="empty-state" style="grid-column: 1 / -1;"><h3>Todavía no tienes favoritas</h3><p>Abre una gasolinera en el mapa y pulsa la estrella para guardarla aquí.</p></div>`;
                 }
             }
         };
 
     </script>
+    <script src="nav.js" defer></script>
 </body>
 </html>

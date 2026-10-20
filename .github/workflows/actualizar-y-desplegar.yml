@@ -49,6 +49,13 @@ jobs:
             git push
           fi
 
+      - name: Descargar tipografías (Barlow, licencia SIL OFL)
+        run: |
+          mkdir -p public/fonts
+          curl -fsSL -o public/fonts/barlow-400.woff2 https://fonts.gstatic.com/s/barlow/v13/7cHpv4kjgoGqM7E_DMs5.woff2
+          curl -fsSL -o public/fonts/barlow-600.woff2 https://fonts.gstatic.com/s/barlow/v13/7cHqv4kjgoGqM7E30-8s51os.woff2
+          curl -fsSL -o public/fonts/barlow-semi-condensed-700.woff2 https://fonts.gstatic.com/s/barlowsemicondensed/v16/wlpigxjLBV1hqnzfr-F8sEYMB0Yybp0mudRfw6-_B2sl.woff2
+
       - uses: actions/configure-pages@v5
 
       - uses: actions/upload-pages-artifact@v3

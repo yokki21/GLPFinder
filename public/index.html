@@ -3,10 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0B4EA2">
     <title>GLPFinder</title>
+    <link rel="icon" type="image/svg+xml" href="img/icono.svg">
     <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
     <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
-    <link rel="stylesheet" href="styles.css?v=3">
+    <link rel="stylesheet" href="styles.css?v=4">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     
     <style>
@@ -16,22 +18,25 @@
 <body>
 
     <div id="pantallaCarga" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.85); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; backdrop-filter: blur(4px);">
-        <div style="width: 50px; height: 50px; border: 5px solid #e2e8f0; border-top-color: #2563eb; border-radius: 50%; animation: girarSpinner 1s linear infinite;"></div>
-        <p id="textoCarga" style="margin-top: 20px; font-weight: bold; color: #1e293b; font-size: 18px; text-align: center;">Iniciando GLPFinder...</p>
+        <div style="width: 50px; height: 50px; border: 5px solid #D8DFE8; border-top-color: #0B4EA2; border-radius: 50%; animation: girarSpinner 1s linear infinite;"></div>
+        <p id="textoCarga" style="margin-top: 20px; font-weight: bold; color: #0F2236; font-size: 18px; text-align: center;">Iniciando GLPFinder...</p>
     </div>
 
     <header>
-        <a href="index.html" class="logo">
-            <img src="img/logo.webp" width="183" height="100" alt="Logo GLPFinder">
+        <a href="index.html" class="logo" aria-label="GLPFinder, ir al mapa">
+            <img src="img/logo.svg" width="160" height="36" alt="GLPFinder">
         </a>
-        <div class="nav-links">
+        <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="menu-principal" aria-label="Abrir menú">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        </button>
+        <nav class="nav-links" id="menu-principal" aria-label="Principal">
             <a href="index.html">Mapa</a>
             <a href="favoritas.html">Mis favoritas</a>
             <a href="datos.html">Mi vehículo</a>
             <a href="contacto.html">Contacto</a>
             <a href="auth.html" id="nav-auth">Acceder</a>
             <a href="#" id="nav-logout" hidden>Cerrar sesión</a>
-        </div>
+        </nav>
     </header>
 
     <main class="map-main">
@@ -40,11 +45,17 @@
                 <div class="search-controls">
                     <input type="text" id="searchInput" placeholder="Municipio, calle, CP..." oninput="manejarEntrada()" onkeydown="if(event.key==='Enter'){ event.preventDefault(); buscarUbicacion(); }" autocomplete="off">
                     <button onclick="buscarUbicacion()" class="btn-search">Buscar</button>
-                    <button class="btn-icon" onclick="toggleFiltros()" title="Filtrar resultados">
+                    <button class="btn-icon" id="btnFiltros" onclick="toggleFiltros()" title="Filtrar resultados" aria-label="Filtros" aria-expanded="false" aria-controls="panelFiltros">
                         <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
                             <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
                         </svg>
                     </button>
+                </div>
+                <div class="map-legend" aria-label="Leyenda de colores de los precios">
+                    <span class="l-barato"><i></i>Más barata</span>
+                    <span class="l-medio"><i></i>En la media</span>
+                    <span class="l-caro"><i></i>Más cara</span>
+                    <span class="l-fecha" id="fechaPrecios"></span>
                 </div>
                 <ul id="searchResults" class="search-results"></ul>
             </div>
@@ -52,16 +63,16 @@
             <div id="routePanel" class="route-panel hidden">
                 <div class="route-panel-header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
                     <div style="flex-grow: 1; padding-right: 10px;">
-                        <h4 style="margin: 0 0 4px 0; font-size: 13px; color: #64748b; text-transform: uppercase;">Ruta hacia</h4>
-                        <p id="routeDestinationLabel" class="route-destination-label" style="margin: 0; font-size: 16px; font-weight: bold; color: #0f172a; line-height: 1.2;">Destino no seleccionado</p>
+                        <h4 style="margin: 0 0 4px 0; font-size: 13px; color: #5A6B7F; text-transform: uppercase;">Ruta hacia</h4>
+                        <p id="routeDestinationLabel" class="route-destination-label" style="margin: 0; font-size: 16px; font-weight: bold; color: #0F2236; line-height: 1.2;">Destino no seleccionado</p>
                     </div>
                     <div style="display: flex; gap: 8px; align-items: center;">
-                        <button id="btnMinimizarRuta" onclick="window.toggleMinimizarRuta()" style="background: #e2e8f0; border: none; width: 32px; height: 32px; border-radius: 6px; font-weight: bold; color: #475569; cursor: pointer; display: none; font-size: 16px; line-height: 1; justify-content: center; align-items: center;">-</button>
-                        <button class="route-clear-btn" onclick="cerrarPanelRuta()" title="Cerrar panel" style="width: 32px; height: 32px; padding: 0; display: flex; justify-content: center; align-items: center; border-radius: 6px; background: #fef2f2; color: #ef4444; border: 1px solid #fecaca; font-weight: bold; cursor: pointer;">X</button>
+                        <button id="btnMinimizarRuta" onclick="window.toggleMinimizarRuta()" style="background: #D8DFE8; border: none; width: 32px; height: 32px; border-radius: 6px; font-weight: bold; color: #5A6B7F; cursor: pointer; display: none; font-size: 16px; line-height: 1; justify-content: center; align-items: center;">-</button>
+                        <button class="route-clear-btn" onclick="cerrarPanelRuta()" title="Cerrar panel" style="width: 32px; height: 32px; padding: 0; display: flex; justify-content: center; align-items: center; border-radius: 6px; background: #FBECEA; color: #C23B2E; border: 1px solid #F0C3BD; font-weight: bold; cursor: pointer;">X</button>
                     </div>
                 </div>
                 
-                <button id="btnProgramarRuta" onclick="window.mostrarDetallesRuta()" style="width: 100%; background: #2563eb; color: white; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 5px; font-size: 15px;">Programar Ruta</button>
+                <button id="btnProgramarRuta" onclick="window.mostrarDetallesRuta()" style="width: 100%; background: #0B4EA2; color: white; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 5px; font-size: 15px;">Programar Ruta</button>
 
                 <div id="routeDetailsFields" class="hidden" style="margin-top: 15px;">
                     <div class="route-field-group">
@@ -74,8 +85,8 @@
                     </div>
 
                     <div class="route-field-group" style="margin-top: 15px;">
-                        <label for="routeDesvioInput" style="display: block; margin-bottom: 5px; font-weight: bold; color: #334155;">Desvío máximo permitido</label>
-                        <select id="routeDesvioInput" onchange="reaplicarFiltroRuta()" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; background-color: white;">
+                        <label for="routeDesvioInput" style="display: block; margin-bottom: 5px; font-weight: bold; color: #2A3B50;">Desvío máximo permitido</label>
+                        <select id="routeDesvioInput" onchange="reaplicarFiltroRuta()" style="width: 100%; padding: 8px; border: 1px solid #C5CFDB; border-radius: 4px; background-color: white;">
                             <option value="2">Muy cerca (2 km)</option>
                             <option value="5" selected>Normal (5 km)</option>
                             <option value="10">Desvío moderado (10 km)</option>
@@ -86,13 +97,13 @@
 
                     <div id="routeMessage" class="route-message"></div>
 
-                    <div id="routeStopsContainer" style="display: none; margin-top: 15px; border-top: 1px solid #cbd5e1; padding-top: 15px;">
-                        <h5 style="margin: 0 0 10px 0; font-size: 13px; color: #334155;">Paradas en ruta (<span id="stopsCount">0</span>)</h5>
-                        <ul id="stopsList" style="list-style: none; padding: 0; margin: 0 0 10px 0; font-size: 12px; color: #475569;"></ul>
+                    <div id="routeStopsContainer" style="display: none; margin-top: 15px; border-top: 1px solid #C5CFDB; padding-top: 15px;">
+                        <h5 style="margin: 0 0 10px 0; font-size: 13px; color: #2A3B50;">Paradas en ruta (<span id="stopsCount">0</span>)</h5>
+                        <ul id="stopsList" style="list-style: none; padding: 0; margin: 0 0 10px 0; font-size: 12px; color: #5A6B7F;"></ul>
                     </div>
                 </div>
 
-                <button id="btnRutaGoogleMaps" onclick="window.abrirRutaEnGoogleMaps()" style="width: 100%; background: #16a34a; color: white; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 15px; font-size: 15px; display: none;">Abrir ruta en Google Maps</button>
+                <button id="btnRutaGoogleMaps" onclick="window.abrirRutaEnGoogleMaps()" style="width: 100%; background: #0F7A55; color: white; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 15px; font-size: 15px; display: none;">Abrir ruta en Google Maps</button>
             </div>
 
             <div id="panelFiltros" class="filter-panel" style="display: none;">
@@ -129,7 +140,7 @@
                 </svg>
             </button>
             <div class="layers-dropdown-container">
-                <button class="btn-layers" onclick="toggleCapasDropdown()" title="Cambiar tipo de mapa">
+                <button class="btn-layers" onclick="toggleCapasDropdown()" title="Cambiar tipo de mapa" aria-label="Cambiar tipo de mapa">
                     <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
                         <polygon points="12 2 2 7 2 12 12 17 22 12 22 7 12 2"/>
                         <polyline points="2 12 2 16 12 21 22 16 22 12"/>
@@ -260,7 +271,9 @@
         // Filtros
         function toggleFiltros() {
             const p = document.getElementById('panelFiltros');
-            p.style.display = p.style.display === 'none' ? 'flex' : 'none';
+            const abrir = p.style.display === 'none';
+            p.style.display = abrir ? 'flex' : 'none';
+            document.getElementById('btnFiltros').setAttribute('aria-expanded', String(abrir));
         }
 
         function aplicarFiltros() {
@@ -331,8 +344,8 @@
 
                 let calculadorHTML = `
                     <div id="calc-container-${id}" style="margin-bottom:10px;">
-                        <button style="width:100%;background:#2563eb;color:white;border:none;padding:6px;border-radius:4px;cursor:pointer;font-weight:600;" onclick="window.calcularCosteLlenado('${id}',${precio})">Calcular Depósito</button>
-                        <div id="res-calc-${id}" style="display:none;margin-top:5px;font-size:12px;text-align:center;font-weight:bold;color:#1e293b;"></div>
+                        <button style="width:100%;background:#0B4EA2;color:white;border:none;padding:6px;border-radius:4px;cursor:pointer;font-weight:600;" onclick="window.calcularCosteLlenado('${id}',${precio})">Calcular depósito</button>
+                        <div id="res-calc-${id}" style="display:none;margin-top:5px;font-size:12px;text-align:center;font-weight:bold;color:#0F2236;"></div>
                     </div>`;
 
                 const rotulo    = escArg(e['Rótulo']);
@@ -341,7 +354,7 @@
 
                 let botonParadaHTML = '';
                 if (rutaActiva) {
-                    const btnParadaStyle = esParada ? "background:#fef2f2; color:#ef4444; border: 1px solid #fecaca;" : "background:#f0fdf4; color:#16a34a; border: 1px solid #bbf7d0;";
+                    const btnParadaStyle = esParada ? "background:#FBECEA; color:#C23B2E; border: 1px solid #F0C3BD;" : "background:#E8F5EF; color:#0F7A55; border: 1px solid #B7E0CC;";
                     botonParadaHTML = `<button id="btn-parada-${id}" onclick="window.toggleParada('${id}', ${lat}, ${lng}, '${rotulo}')" style="width:100%; margin-bottom:10px; padding:8px; border-radius:6px; font-weight:bold; cursor:pointer; transition: all 0.2s; ${btnParadaStyle}">${esParada ? "Quitar parada" : "Añadir a la ruta"}</button>`;
                 }
 
@@ -351,7 +364,7 @@
                         <span class="star-btn ${esFav ? 'active' : ''}" id="star-${id}" onclick="window.gestionarFavorito('${id}','${rotulo}',${lat},${lng},'${direccion}','${localidad}','${precio}')">★</span>
                     </div>
                     <p class="popup-address">${escHTML(e['Dirección'])}, ${escHTML(e['Localidad'])}</p>
-                    <div style="margin:10px 0;padding:8px;background:#f0fdf4;border-radius:6px;text-align:center;"><span style="font-weight:bold;color:#16a34a;font-size:16px;">${precio.toFixed(3)} €/L</span></div>
+                    <div style="margin:10px 0;padding:8px;background:#E8F5EF;border-radius:6px;text-align:center;"><span style="font-weight:bold;color:#0F7A55;font-size:16px;">${precio.toFixed(3)} €/L</span></div>
                     ${calculadorHTML}${botonParadaHTML} 
                     <div class="nav-buttons">
                         <a href="https://waze.com/ul?ll=${lat},${lng}&navigate=yes" target="_blank" rel="noopener" class="btn-nav btn-waze">Waze</a>
@@ -360,7 +373,7 @@
 
                 const zIndexBase = esParada ? 500 : 0;
                 const marcador = L.marker([lat, lng], {
-                    icon: L.divIcon({ className: 'custom-div-icon', html: pinHtml, iconSize: [75, 28], iconAnchor: [37.5, 14], popupAnchor: [0, -15] }),
+                    icon: L.divIcon({ className: 'custom-div-icon', html: pinHtml, iconSize: [76, 30], iconAnchor: [38, 36], popupAnchor: [0, -36] }),
                     zIndexOffset: zIndexBase
                 }).bindPopup(popup, { autoPan: false }).addTo(capaPinesVisibles);
 
@@ -417,12 +430,12 @@
 
                 const clusterIcon = L.divIcon({
                     className: 'custom-div-icon',
-                    html: `<div class="custom-price-pin ${colorClass}" style="flex-direction: column; height: auto; padding: 6px 12px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);"><span style="font-size: 15px; font-weight: bold;">${c.mediaProv.toFixed(3)}€</span><span style="font-size: 11px; font-weight: normal; opacity: 0.9;">${c.prov}</span></div>`,
-                    iconSize: [80, 50], iconAnchor: [40, 25], popupAnchor: [0, -25]
+                    html: `<div class="custom-price-pin cluster-mode ${colorClass}"><span class="cluster-price">${c.mediaProv.toFixed(3)}€</span><span class="cluster-prov">${c.prov}</span></div>`,
+                    iconSize: [74, 42], iconAnchor: [37, 48], popupAnchor: [0, -48]
                 });
 
                 L.marker(c.coords, { icon: clusterIcon, riseOnHover: true })
-                    .bindPopup(`<div class="cluster-popup-simple"><h4>Media en ${c.prov}: ${c.mediaProv.toFixed(3)}€</h4><p>${c.lista.length} gasolineras. Haz clic para acercarte.</p></div>`)
+                    .bindPopup(`<div class="cluster-popup-simple"><h4>${c.prov}: ${c.mediaProv.toFixed(3)} €/L de media</h4><p>${c.lista.length} gasolineras con GLP. Acércate para verlas.</p></div>`)
                     .on('click', () => map.flyTo(c.coords, 10, { duration: 1 }))
                     .addTo(capaPinesVisibles);
             });
@@ -430,6 +443,17 @@
 
         map.on('moveend', window.actualizarPinesVisibles);
         map.on('zoomend', window.actualizarPinesVisibles);
+
+        // "20/10/2026 18:42:05" -> "Precios de hoy, 18:42"
+        function mostrarFechaPrecios(fecha) {
+            const el = document.getElementById('fechaPrecios');
+            if (!el || !fecha) return;
+            const [dia, hora] = String(fecha).split(' ');
+            const [d, m, a] = dia.split('/');
+            const hoy = new Date();
+            const esHoy = +d === hoy.getDate() && +m === hoy.getMonth() + 1 && +a === hoy.getFullYear();
+            el.textContent = `Precios ${esHoy ? 'de hoy' : 'del ' + d + '/' + m}, ${hora.slice(0, 5)}`;
+        }
 
         async function cargarGasolineras() {
     const TIEMPO_EXPIRACION = 60 * 60 * 1000; // los datos se regeneran cada 2 h
@@ -452,6 +476,7 @@
 
     if (datosGuardados) { 
         todasLasEstaciones = datosGuardados; 
+        try { mostrarFechaPrecios(await idbKeyval.get('glp_fecha')); } catch (e) {}
         window.actualizarPinesVisibles(); 
     }
 
@@ -462,6 +487,8 @@
             if (res.ok) {
                 const d = await res.json();
                 todasLasEstaciones = d.ListaEESSPrecio;
+                mostrarFechaPrecios(d.Fecha);
+                try { await idbKeyval.set('glp_fecha', d.Fecha); } catch (e) {}
                 
                 // Intentamos guardar en caché, capturando el error si IndexedDB está bloqueado
                 try {
@@ -489,7 +516,7 @@
                 t = document.createElement('div');
                 t.id = 'avisoFlotante';
                 t.setAttribute('role', 'status');
-                t.style.cssText = 'position:fixed;left:50%;bottom:24px;transform:translateX(-50%);max-width:min(92vw,420px);background:#0f172a;color:#fff;padding:12px 16px;border-radius:10px;font-size:14px;line-height:1.4;box-shadow:0 6px 20px rgba(0,0,0,.3);z-index:10000;text-align:center;';
+                t.style.cssText = 'position:fixed;left:50%;bottom:24px;transform:translateX(-50%);max-width:min(92vw,420px);background:#0F2236;color:#fff;padding:12px 16px;border-radius:10px;font-size:14px;line-height:1.4;box-shadow:0 6px 20px rgba(0,0,0,.3);z-index:10000;text-align:center;';
                 document.body.appendChild(t);
             }
             t.textContent = texto;
@@ -513,7 +540,7 @@
                 puntoReferenciaDistancia = L.latLng(p.coords.latitude, p.coords.longitude);
                 document.getElementById('routeOriginInput').placeholder = 'Ubicación actual';
                 if (marcadorUbicacionUsuario) map.removeLayer(marcadorUbicacionUsuario);
-                marcadorUbicacionUsuario = L.circleMarker([p.coords.latitude, p.coords.longitude], { radius: 8, fillColor: "#2563eb", color: "#fff", weight: 3, fillOpacity: 0.9 }).addTo(map);
+                marcadorUbicacionUsuario = L.circleMarker([p.coords.latitude, p.coords.longitude], { radius: 8, fillColor: "#0B4EA2", color: "#fff", weight: 3, fillOpacity: 0.9 }).addTo(map);
                 if (moverCamara) map.flyTo([p.coords.latitude, p.coords.longitude], 13);
                 else window.actualizarPinesVisibles();
             }, (err) => {
@@ -568,11 +595,11 @@
                 li.textContent = i.display_name;
                 li.onclick = async () => {
                     try { onSelect(await _resolverCoordenadas(i)); }
-                    catch (err) { listaEl.innerHTML = '<li style="color:#ef4444;font-size:12px;padding:8px;">No se pudo localizar ese resultado</li>'; }
+                    catch (err) { listaEl.innerHTML = '<li style="color:#C23B2E;font-size:12px;padding:8px;">No se pudo localizar ese resultado</li>'; }
                 };
                 listaEl.appendChild(li);
             });
-            else listaEl.innerHTML = '<li style="color:#64748b;font-size:12px;padding:8px;">Sin resultados</li>';
+            else listaEl.innerHTML = '<li style="color:#5A6B7F;font-size:12px;padding:8px;">Sin resultados</li>';
             listaEl.style.display = 'block';
         }
 
@@ -592,12 +619,12 @@
                         document.getElementById('searchInput').value = i.display_name.split(',')[0];
                         resC.style.display = 'none';
                         if (marcadorBusqueda) map.removeLayer(marcadorBusqueda);
-                        marcadorBusqueda = L.circleMarker([parseFloat(i.lat), parseFloat(i.lon)], { radius: 8, fillColor: "#2563eb", color: "#ffffff", weight: 3, fillOpacity: 0.9 }).addTo(map).bindPopup(`<b>${i.display_name.split(',')[0]}</b><br>Destino seleccionado`).openPopup();
+                        marcadorBusqueda = L.circleMarker([parseFloat(i.lat), parseFloat(i.lon)], { radius: 8, fillColor: "#0B4EA2", color: "#ffffff", weight: 3, fillOpacity: 0.9 }).addTo(map).bindPopup(`<b>${i.display_name.split(',')[0]}</b><br>Destino seleccionado`).openPopup();
                         actualizarPanelRuta(i.display_name.split(',')[0], parseFloat(i.lat), parseFloat(i.lon));
                         window.actualizarPinesVisibles();
                     });
                 } catch (err) {
-                    if (err.name !== 'AbortError') { resC.innerHTML = `<li style="color:#ef4444;font-size:12px;padding:8px;">${err.is429 ? 'Demasiadas peticiones' : 'Error de conexión'}</li>`; resC.style.display = 'block'; }
+                    if (err.name !== 'AbortError') { resC.innerHTML = `<li style="color:#C23B2E;font-size:12px;padding:8px;">${err.is429 ? 'Demasiadas peticiones' : 'Error de conexión'}</li>`; resC.style.display = 'block'; }
                 }
             }, 400);
         }
@@ -623,7 +650,7 @@
                         origenRuta = L.latLng(parseFloat(i.lat), parseFloat(i.lon));
                     });
                 } catch (err) {
-                    if (err.name !== 'AbortError') { resC.innerHTML = `<li style="color:#ef4444;font-size:12px;padding:8px;">${err.is429 ? 'Demasiadas peticiones' : 'Error de conexión'}</li>`; resC.style.display = 'block'; }
+                    if (err.name !== 'AbortError') { resC.innerHTML = `<li style="color:#C23B2E;font-size:12px;padding:8px;">${err.is429 ? 'Demasiadas peticiones' : 'Error de conexión'}</li>`; resC.style.display = 'block'; }
                 }
             }, 400);
         }
@@ -691,9 +718,9 @@
         }
 
         function mostrarMensajeRuta(texto, tipo) {
-            const c = { info: '#2563eb', success: '#16a34a', warning: '#d97706', error: '#dc2626' };
+            const c = { info: '#0B4EA2', success: '#0F7A55', warning: '#B26A00', error: '#A8301F' };
             const msg = document.getElementById('routeMessage');
-            msg.textContent = texto; msg.style.color = c[tipo] || '#1e293b'; msg.style.fontWeight = '600'; msg.style.fontSize = '13px'; msg.style.display = 'block';
+            msg.textContent = texto; msg.style.color = c[tipo] || '#0F2236'; msg.style.fontWeight = '600'; msg.style.fontSize = '13px'; msg.style.display = 'block';
         }
 
         async function calcularRutaDesdePanel() {
@@ -795,10 +822,10 @@
             lista.innerHTML = '';
             window.paradasSeleccionadas.forEach((p, idx) => {
                 const li = document.createElement('li');
-                li.style.cssText = "display:flex; align-items:center; padding: 4px 0; border-bottom: 1px dashed #e2e8f0; gap: 8px;";
-                const btnArriba = idx > 0 ? `<button onclick="window.moverParadaArriba(${idx})" style="background:none; border:none; color:#475569; cursor:pointer; font-size:14px; padding:0; width:20px; height:16px;">▲</button>` : '<div style="width:20px;"></div>';
-                const btnAbajo = idx < window.paradasSeleccionadas.length - 1 ? `<button onclick="window.moverParadaAbajo(${idx})" style="background:none; border:none; color:#475569; cursor:pointer; font-size:14px; padding:0; width:20px; height:16px;">▼</button>` : '<div style="width:20px;"></div>';
-                li.innerHTML = `<div style="display:flex; flex-direction:column; gap:2px; width:20px; align-items:center;">${btnArriba}${btnAbajo}</div><span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex: 1; font-weight:500;"><strong style="margin-right:6px;color:#2563eb;">${idx + 1}.</strong>${escHTML(p.nombre)}</span><button onclick="window.toggleParada('${escArg(p.id)}', ${p.lat}, ${p.lng}, '${escArg(p.nombre)}')" style="background:none; border:none; color:#ef4444; cursor:pointer; font-weight:bold; font-size:14px; flex-shrink:0;">X</button>`;
+                li.style.cssText = "display:flex; align-items:center; padding: 4px 0; border-bottom: 1px dashed #D8DFE8; gap: 8px;";
+                const btnArriba = idx > 0 ? `<button onclick="window.moverParadaArriba(${idx})" style="background:none; border:none; color:#5A6B7F; cursor:pointer; font-size:14px; padding:0; width:20px; height:16px;">▲</button>` : '<div style="width:20px;"></div>';
+                const btnAbajo = idx < window.paradasSeleccionadas.length - 1 ? `<button onclick="window.moverParadaAbajo(${idx})" style="background:none; border:none; color:#5A6B7F; cursor:pointer; font-size:14px; padding:0; width:20px; height:16px;">▼</button>` : '<div style="width:20px;"></div>';
+                li.innerHTML = `<div style="display:flex; flex-direction:column; gap:2px; width:20px; align-items:center;">${btnArriba}${btnAbajo}</div><span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex: 1; font-weight:500;"><strong style="margin-right:6px;color:#0B4EA2;">${idx + 1}.</strong>${escHTML(p.nombre)}</span><button onclick="window.toggleParada('${escArg(p.id)}', ${p.lat}, ${p.lng}, '${escArg(p.nombre)}')" style="background:none; border:none; color:#C23B2E; cursor:pointer; font-weight:bold; font-size:14px; flex-shrink:0;">X</button>`;
                 lista.appendChild(li);
             });
             document.getElementById('btnRutaGoogleMaps').textContent = window.paradasSeleccionadas.length > 0 ? `Abrir en Google Maps (${window.paradasSeleccionadas.length} paradas)` : 'Abrir ruta en Google Maps';
@@ -838,7 +865,7 @@
             const resDiv = document.getElementById(`res-calc-${id}`);
             const configVehiculo = await leerVehiculo();
             if (!configVehiculo || !configVehiculo.deposito) { resDiv.innerHTML = 'Configura tu depósito en <a href="datos.html">Mi vehículo</a>'; resDiv.style.display = 'block'; return; }
-            resDiv.innerHTML = `Depósito ${configVehiculo.deposito}L: <span style="color:#2563eb;">${(configVehiculo.deposito * precioLitro).toFixed(2)}€</span>`;
+            resDiv.innerHTML = `Depósito ${configVehiculo.deposito}L: <span style="color:#0B4EA2;">${(configVehiculo.deposito * precioLitro).toFixed(2)}€</span>`;
             resDiv.style.display = 'block';
         };
 
@@ -869,5 +896,6 @@
             }
         };
     </script>
+    <script src="nav.js" defer></script>
 </body>
 </html>
