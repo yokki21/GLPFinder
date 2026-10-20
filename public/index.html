@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GLPFinder</title>
-    <link rel="icon" type="image/png" href="LogoPequeño.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
+    <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     
@@ -21,7 +22,7 @@
 
     <header>
         <a href="index.html" class="logo">
-            <img src="Logo.png" alt="Logo GLPFinder">
+            <img src="img/logo.webp" width="183" height="100" alt="Logo GLPFinder">
         </a>
         <div class="nav-links">
             <a href="index.html">Mapa</a>
@@ -170,8 +171,7 @@
     </main>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/idb-keyval@6/dist/umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/idb-keyval@6.2.1/dist/umd.js"></script>
 
     <script>
         // Utilidades UI
@@ -247,10 +247,12 @@
         const estiloZBE = { color: "#ef4444", weight: 1, fillColor: "#ef4444", fillOpacity: 0.3 };
         let capaZBE = null;
         
-        const promesaZBE = fetch('zbe.geojson')
+        // Se descarga solo la primera vez que el usuario activa la capa
+        let promesaZBE = null;
+        const cargarZBE = () => promesaZBE ??= fetch('zbe.geojson')
             .then(res => res.json())
             .then(data => { capaZBE = L.geoJSON(data, { style: estiloZBE }); })
-            .catch(err => console.error("Error cargando ZBE", err));
+            .catch(err => { promesaZBE = null; console.error("Error cargando ZBE", err); });
 
         window.toggleWMS = async function(tipoCapa) {
             const checkbox = document.getElementById(`layer-${tipoCapa}`);
@@ -259,7 +261,7 @@
             if (tipoCapa === 'zbe') {
                 if (!capaZBE) {
                     mostrarCarga("Cargando Zonas de Bajas Emisiones...");
-                    await promesaZBE;
+                    await cargarZBE();
                     ocultarCarga();
                 }
                 if (checkbox.checked && capaZBE) capaZBE.addTo(map);
@@ -294,9 +296,9 @@
         window.isRutaMinimizada = false;
 
         const brandLogos = {
-            "REPSOL": "Repsol.png", "CEPSA": "Cepsa.png", "MOEVE": "Moeve.png",
-            "GALP": "Galp.png", "PLENOIL": "Plenoil.png", "PETROPRIX": "Petroprix.png",
-            "BP": "BP.png", "SHELL": "Shell.png", "BALLENOIL": "Ballenoil.png", "DEFAULT": "Default.png"
+            "REPSOL": "img/marcas/repsol.webp", "CEPSA": "img/marcas/cepsa.webp", "MOEVE": "img/marcas/moeve.webp",
+            "GALP": "img/marcas/galp.webp", "PLENOIL": "img/marcas/plenoil.webp", "PETROPRIX": "img/marcas/petroprix.webp",
+            "BP": "img/marcas/bp.webp", "SHELL": "img/marcas/shell.webp", "BALLENOIL": "img/marcas/ballenoil.webp", "DEFAULT": "img/marcas/default.webp"
         };
 
         // Escapa texto para insertarlo en HTML (datos del Ministerio o de usuarios)
@@ -730,6 +732,7 @@
             if (!window._calcularRuta) return mostrarMensajeRuta('Error: Módulo de rutas no cargado', 'error');
 
             mostrarCarga("Calculando mejor ruta...");
+            try { await cargarTurf(); } catch (e) { ocultarCarga(); return mostrarMensajeRuta('Error: No se pudo cargar el módulo de rutas', 'error'); }
             activarModoRuta();
 
             try {
@@ -754,13 +757,35 @@
             }
         }
         
+        // Turf.js (~500 KB) solo hace falta para las rutas: se carga al calcular la primera
+        let promesaTurf = null;
+        function cargarTurf() {
+            if (window.turf) return Promise.resolve();
+            return promesaTurf ??= new Promise((ok, ko) => {
+                const sc = document.createElement('script');
+                sc.src = 'https://cdn.jsdelivr.net/npm/@turf/turf@6.5.0/turf.min.js';
+                sc.onload = ok;
+                sc.onerror = () => { promesaTurf = null; ko(new Error('turf')); };
+                document.head.appendChild(sc);
+            });
+        }
+
         window.reaplicarFiltroRuta = function() { if (rutaActiva && ultimaRutaGeoJSON) filtrarGasolinerasEnRuta(ultimaRutaGeoJSON); };
 
         function filtrarGasolinerasEnRuta(rutaGeoJSON) {
             if (todasLasEstaciones.length === 0) return;
             const lineaRuta = turf.lineString(rutaGeoJSON.coordinates);
             const maxKm = parseFloat(document.getElementById('routeDesvioInput').value) || 5; 
-            const enRuta = todasLasEstaciones.filter(e => turf.pointToLineDistance(turf.point([parseFloat(e['Longitud (WGS84)'].replace(',', '.')), parseFloat(e['Latitud'].replace(',', '.'))]), lineaRuta, { units: 'kilometers' }) <= maxKm);
+            // Descarte rápido por el rectángulo de la ruta ampliado con el desvío, y luego distancia exacta
+            const [minX, minY, maxX, maxY] = turf.bbox(lineaRuta);
+            const margenLat = maxKm / 111, margenLng = maxKm / (111 * Math.cos((minY + maxY) / 2 * Math.PI / 180));
+            const lineaSimple = turf.simplify(lineaRuta, { tolerance: 0.0005, highQuality: false });
+            const enRuta = todasLasEstaciones.filter(e => {
+                const lng = parseFloat(e['Longitud (WGS84)'].replace(',', '.'));
+                const lat = parseFloat(e['Latitud'].replace(',', '.'));
+                if (lng < minX - margenLng || lng > maxX + margenLng || lat < minY - margenLat || lat > maxY + margenLat) return false;
+                return turf.pointToLineDistance(turf.point([lng, lat]), lineaSimple, { units: 'kilometers' }) <= maxKm;
+            });
             capaPinesVisibles.clearLayers();
             document.getElementById('routeMessage').style.display = 'none';
             if (enRuta.length > 0) {
