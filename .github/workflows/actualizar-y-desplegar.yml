@@ -1,0 +1,54 @@
+# Descarga los precios del Ministerio, genera public/data/*.json y despliega en Firebase Hosting.
+# Sustituye a las Cloud Functions (obtenerGasolineras y guardarHistorialDiario).
+name: Actualizar datos y desplegar
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 */2 * * *"   # cada 2 horas: precios actuales
+    - cron: "47 15 * * *"    # una vez al día: además guarda el historial en el repo
+  workflow_dispatch:
+
+concurrency:
+  group: actualizar-y-desplegar
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  actualizar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Descargar precios y generar JSON
+        run: node scripts/actualizar_datos.mjs
+
+      - name: Guardar historial en el repositorio
+        if: github.event_name == 'workflow_dispatch' || github.event.schedule == '47 15 * * *'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git add public/data/historial
+          if git diff --cached --quiet; then
+            echo "Sin cambios en el historial"
+          else
+            git commit -m "Historial de precios $(TZ=Europe/Madrid date +%F)"
+            git pull --rebase origin main
+            git push
+          fi
+
+      - name: Desplegar en Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_GLPFINDER }}
+          channelId: live
+          projectId: glpfinder

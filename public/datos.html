@@ -118,33 +118,14 @@
 
         async function obtenerMediasNacionales() {
             try {
-                // API optimizada en Cloud Run
-                const res = await fetch('https://obtenergasolineras-5qxjrxfuga-ew.a.run.app');
-                const data = await res.json();
-                const lista = data.ListaEESSPrecio;
+                // Medias nacionales precalculadas por GitHub Actions (scripts/actualizar_datos.mjs)
+                const res = await fetch('/data/gasolineras.json', { cache: 'no-cache' });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const { medias } = await res.json();
 
-                let suma95 = 0, count95 = 0;
-                let sumaDiesel = 0, countDiesel = 0;
-                let sumaGLP = 0, countGLP = 0;
-
-                lista.forEach(e => {
-                    if (e['Precio Gasolina 95 E5']) {
-                        suma95 += parseFloat(e['Precio Gasolina 95 E5'].replace(',', '.'));
-                        count95++;
-                    }
-                    if (e['Precio Gasoleo A']) {
-                        sumaDiesel += parseFloat(e['Precio Gasoleo A'].replace(',', '.'));
-                        countDiesel++;
-                    }
-                    if (e['Precio Gases licuados del petróleo']) {
-                        sumaGLP += parseFloat(e['Precio Gases licuados del petróleo'].replace(',', '.'));
-                        countGLP++;
-                    }
-                });
-
-                mediaGas95 = count95 > 0 ? suma95 / count95 : 1.62;
-                mediaDiesel = countDiesel > 0 ? sumaDiesel / countDiesel : 1.49;
-                mediaGLP = countGLP > 0 ? sumaGLP / countGLP : 0.94;
+                mediaGas95 = medias.gasolina95 || 1.62;
+                mediaDiesel = medias.gasoleoA || 1.49;
+                mediaGLP = medias.glp || 0.94;
 
                 document.getElementById('label-media-actual').innerText = `Medias hoy: G95: ${mediaGas95.toFixed(3)}€ | Diésel: ${mediaDiesel.toFixed(3)}€`;
                 recalcularAhorro(); 

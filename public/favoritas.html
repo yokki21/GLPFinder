@@ -191,13 +191,11 @@
                 }
 
                 let preciosEnVivo = [];
-                const cache = localStorage.getItem('glp_datos');
-                if (cache) {
-                    preciosEnVivo = JSON.parse(cache);
-                } else {
-                    const res = await fetch('https://sedeaplicaciones.minetur.gob.es/ServiciosRESTCarburantes/PreciosCarburantes/EstacionesTerrestres/');
-                    const d = await res.json();
-                    preciosEnVivo = d.ListaEESSPrecio;
+                try {
+                    const res = await fetch('/data/gasolineras.json', { cache: 'no-cache' });
+                    if (res.ok) preciosEnVivo = (await res.json()).ListaEESSPrecio;
+                } catch (errPrecios) {
+                    console.warn("No se pudieron cargar los precios actuales:", errPrecios);
                 }
 
                 container.innerHTML = '';
@@ -281,10 +279,24 @@
             const msgBox = document.getElementById(`msg-chart-${id}`);
             
             try {
-                const q = query(collection(db, "historial_precios", id, "registros"), orderBy("fecha", "desc"), limit(parseInt(dias)));
-                const snap = await getDocs(q);
+                const n = parseInt(dias);
+                const porFecha = new Map();
 
-                if (snap.empty) { 
+                // Registros antiguos guardados en Firestore por la Cloud Function (hasta su retirada)
+                try {
+                    const q = query(collection(db, "historial_precios", id, "registros"), orderBy("fecha", "desc"), limit(n));
+                    (await getDocs(q)).docs.forEach(d => { const r = d.data(); porFecha.set(r.fecha, r); });
+                } catch (errFs) { console.warn("Historial de Firestore no disponible:", errFs); }
+
+                // Historial actual generado por GitHub Actions (tiene prioridad si hay fechas repetidas)
+                try {
+                    const res = await fetch(`/data/historial/${encodeURIComponent(id)}.json`, { cache: 'no-cache' });
+                    if (res.ok) (await res.json()).forEach(r => porFecha.set(r.fecha, r));
+                } catch (errJson) { console.warn("Historial estático no disponible:", errJson); }
+
+                const datos = [...porFecha.values()].sort((a, b) => a.fecha.localeCompare(b.fecha)).slice(-n);
+
+                if (datos.length === 0) { 
                     canvas.style.display = 'none';
                     msgBox.innerHTML = 'Sin datos en el historial';
                     msgBox.style.display = 'block';
@@ -294,7 +306,6 @@
                 canvas.style.display = 'block';
                 msgBox.style.display = 'none';
 
-                const datos = snap.docs.map(d => d.data()).reverse(); 
                 
                 const fechas = datos.map(d => {
                     const partes = d.fecha.split('-');

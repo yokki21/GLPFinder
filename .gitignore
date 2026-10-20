@@ -67,3 +67,6 @@ node_modules/
 
 # dataconnect generated files
 .dataconnect
+
+# Datos generados por GitHub Actions (el historial sí se versiona)
+public/data/gasolineras.json

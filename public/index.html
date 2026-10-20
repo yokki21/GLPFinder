@@ -485,7 +485,7 @@
         map.on('zoomend', window.actualizarPinesVisibles);
 
         async function cargarGasolineras() {
-    const TIEMPO_EXPIRACION = 8 * 60 * 60 * 1000; 
+    const TIEMPO_EXPIRACION = 60 * 60 * 1000; // los datos se regeneran cada 2 h
     const ahora = Date.now();
     
     if (localStorage.getItem('glp_datos')) {
@@ -511,7 +511,7 @@
     if ((ahora - ultimoTimestamp) > TIEMPO_EXPIRACION || todasLasEstaciones.length === 0) {
         try {
             mostrarCarga("Descargando precios actualizados...");
-            const res = await fetch('https://obtenergasolineras-5qxjrxfuga-ew.a.run.app');
+            const res = await fetch('/data/gasolineras.json', { cache: 'no-cache' });
             if (res.ok) {
                 const d = await res.json();
                 todasLasEstaciones = d.ListaEESSPrecio;
