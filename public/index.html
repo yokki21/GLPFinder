@@ -8,7 +8,7 @@
     <link rel="icon" type="image/svg+xml" href="img/icono.svg">
     <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
     <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
-    <link rel="stylesheet" href="styles.css?v=5">
+    <link rel="stylesheet" href="styles.css?v=6">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     
     <style>
@@ -287,7 +287,11 @@
         window.actualizarPinesVisibles = function() {
             if (todasLasEstaciones.length === 0 || rutaActiva) return; 
 
+            // Al repintar se cierran los popups: se marca para que el abierto se reabra después
+            const refrescoPrevio = window.isRefreshingMap;
+            window.isRefreshingMap = true;
             capaPinesVisibles.clearLayers();
+            window.isRefreshingMap = refrescoPrevio;
 
             const limites = map.getBounds();
             const maxP    = parseFloat(document.getElementById('filterPrice').value);
@@ -364,7 +368,7 @@
                         <span class="star-btn ${esFav ? 'active' : ''}" id="star-${id}" onclick="window.gestionarFavorito('${id}','${rotulo}',${lat},${lng},'${direccion}','${localidad}','${precio}')">★</span>
                     </div>
                     <p class="popup-address">${escHTML(e['Dirección'])}, ${escHTML(e['Localidad'])}</p>
-                    <div style="margin:10px 0;padding:8px;background:#E8F5EF;border-radius:6px;text-align:center;"><span style="font-weight:bold;color:#0F7A55;font-size:16px;">${precio.toFixed(3)} €/L</span></div>
+                    <div class="popup-precio ${color}"><strong>${precio.toFixed(3)} €/L</strong><span>${color === 'pin-verde' ? 'Más barata que la media de la zona' : color === 'pin-rojo' ? 'Más cara que la media de la zona' : 'En la media de la zona'}</span></div>
                     ${calculadorHTML}${botonParadaHTML} 
                     <div class="nav-buttons">
                         <a href="https://waze.com/ul?ll=${lat},${lng}&navigate=yes" target="_blank" rel="noopener" class="btn-nav btn-waze">Waze</a>
@@ -375,7 +379,7 @@
                 const marcador = L.marker([lat, lng], {
                     icon: L.divIcon({ className: 'custom-div-icon', html: pinHtml, iconSize: [76, 30], iconAnchor: [38, 36], popupAnchor: [0, -36] }),
                     zIndexOffset: zIndexBase
-                }).bindPopup(popup, { autoPan: false }).addTo(capaPinesVisibles);
+                }).bindPopup(popup, { autoPan: true, autoPanPadding: [16, 16] }).addTo(capaPinesVisibles);
 
                 marcador.on('mouseover', function() { this.setZIndexOffset(1000); });
                 marcador.on('mouseout', function() { this.setZIndexOffset(zIndexBase); });

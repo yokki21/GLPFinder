@@ -476,6 +476,14 @@ header {
 .popup-header h3 { font-size: 20px; }
 .popup-address { margin: 0 0 12px !important; font-size: 14px; color: var(--gris); }
 
+.popup-precio { margin: 4px 0 12px; padding: 10px 12px; border-radius: var(--r-m); background: var(--asfalto); border-left: 4px solid var(--medio); }
+.popup-precio strong { display: block; font-family: var(--f-titulo); font-size: 26px; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.popup-precio span { font-size: 13px; color: var(--gris); }
+.popup-precio.pin-verde { background: var(--barato-fondo); border-left-color: var(--barato); }
+.popup-precio.pin-verde strong { color: var(--barato); }
+.popup-precio.pin-rojo { background: var(--caro-fondo); border-left-color: var(--caro); }
+.popup-precio.pin-rojo strong { color: var(--caro); }
+
 .star-btn { font-size: 24px; line-height: 1; color: var(--linea-2); cursor: pointer; user-select: none; }
 .star-btn:hover { color: var(--llama); }
 .star-btn.active { color: var(--llama); }
