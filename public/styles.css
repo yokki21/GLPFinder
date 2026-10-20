@@ -334,6 +334,12 @@ header {
 .search-controls .btn-icon[aria-expanded="true"] { background: var(--negro); border-color: var(--negro); color: var(--blanco); }
 .filtro-activo { position: absolute; top: 7px; right: 7px; width: 9px; height: 9px; border-radius: 50%; background: var(--verde); box-shadow: 0 0 0 2px var(--blanco); }
 
+/* Destino buscado, dentro de la barra de búsqueda */
+.destino-fila { display: flex; align-items: center; gap: 8px; margin-top: 8px; padding: 6px 4px 6px 10px; border-radius: var(--r-m); background: var(--fondo); }
+.destino-fila > svg { flex-shrink: 0; color: var(--negro); }
+.destino-nombre { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.destino-ir { width: auto; min-height: 36px; padding: 0 14px; }
+
 /* Leyenda: muestras con el mismo aspecto que los pines */
 .map-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 10px 2px 0; }
 .tag {
