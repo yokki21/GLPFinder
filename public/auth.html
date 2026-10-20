@@ -3,19 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#0B4EA2">
-    <title>Acceder - GLPFinder</title>
+    <meta name="theme-color" content="#0E1116">
+    <title>Acceder - glpfinder</title>
     
-    <link rel="icon" type="image/svg+xml" href="img/icono.svg">
+    <link rel="icon" type="image/svg+xml" href="img/favicon.svg">
     <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
     <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
-    <link rel="stylesheet" href="styles.css?v=6">
+    <link rel="stylesheet" href="styles.css?v=7">
 </head>
 <body>
 
     <header>
         <a href="index.html" class="logo" aria-label="GLPFinder, ir al mapa">
-            <img src="img/logo.svg" width="160" height="36" alt="GLPFinder">
+            <img src="img/logo-negativo.svg" width="105" height="26" alt="glpfinder">
         </a>
         <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="menu-principal" aria-label="Abrir menú">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
@@ -30,10 +30,16 @@
         </nav>
     </header>
 
+    <div class="page-band">
+        <div class="page-band-inner">
+            <h1>Accede o crea tu cuenta</h1>
+            <p>Con una cuenta tus favoritas y los datos de tu coche se guardan y los tienes en todos tus dispositivos. Lo que ya tengas guardado en este navegador se pasará a tu cuenta.</p>
+        </div>
+    </div>
+
+
     <main class="form-main auth-main">
-        <h1 class="page-title">Accede o crea tu cuenta</h1>
-        <p class="page-lead">Con una cuenta tus favoritas y los datos de tu coche se guardan y los tienes en todos tus dispositivos. Lo que ya tengas guardado en este navegador se pasará a tu cuenta.</p>
-        <p id="auth-msg" role="alert" style="display:none; max-width:720px; margin:0 auto 16px; padding:10px 14px; border-radius:8px; background:#FBECEA; color:#A8301F; border:1px solid #F0C3BD; font-weight:600; text-align:center;"></p>
+        <p id="auth-msg" role="alert" style="display:none; max-width:720px; margin:0 auto 16px; padding:10px 14px; border-radius:8px; background:#FCEDEB; color:#B02E22; border:1px solid #F2C6C0; font-weight:600; text-align:center;"></p>
         
         <div class="card">
             <div class="form-column">
@@ -128,7 +134,7 @@
             if (!email) return mostrarError('Escribe tu correo arriba y vuelve a pulsar "¿Has olvidado la contraseña?".');
             try {
                 await sendPasswordResetEmail(auth, email);
-                msg.style.background = '#E8F5EF'; msg.style.color = '#0B5E41'; msg.style.borderColor = '#B7E0CC';
+                msg.style.background = '#E6F3EE'; msg.style.color = '#006C46'; msg.style.borderColor = '#B8DCCD';
                 msg.textContent = 'Te hemos enviado un correo para cambiar la contraseña.'; msg.style.display = 'block';
             } catch (err) { console.error(err); mostrarError(errorLegible(err)); }
         });

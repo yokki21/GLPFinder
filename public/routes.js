@@ -87,22 +87,18 @@ export async function calcularRuta(origen, destino) {
   const route = data.routes[0];
   rutaLayer = L.geoJSON(route.geometry, {
     style: {
-      color: '#2563eb',
+      color: '#0B5FFF',
       weight: 6,
       opacity: 0.85
     }
   }).addTo(mapInstance);
 
-  markerOrigen = L.circleMarker([origen.lat, origen.lng], {
-    radius: 7,
-    color: '#1d4ed8',
-    fillColor: '#60a5fa',
-    weight: 2,
-    fillOpacity: 0.95
-  }).addTo(mapInstance).bindPopup('<strong>Origen</strong>');
+  markerOrigen = L.marker([origen.lat, origen.lng], {
+    icon: L.divIcon({ className: 'marca-origen', html: '<span></span>', iconSize: [18, 18], iconAnchor: [9, 9] }),
+    keyboard: false
+  }).addTo(mapInstance).bindPopup('<strong>Salida</strong>');
 
-  mapInstance.fitBounds(rutaLayer.getBounds(), { padding: [40, 40] });
-  mostrarInfoRuta(route.distance, route.duration);
+  mapInstance.fitBounds(rutaLayer.getBounds(), { paddingTopLeft: window.innerWidth > 768 ? [420, 40] : [20, 260], paddingBottomRight: [40, 40] });
 
   return {
     distance: route.distance,

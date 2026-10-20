@@ -3,18 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#0B4EA2">
-    <title>Mi vehículo - GLPFinder</title>
-    <link rel="icon" type="image/svg+xml" href="img/icono.svg">
+    <meta name="theme-color" content="#0E1116">
+    <title>Mi vehículo - glpfinder</title>
+    <link rel="icon" type="image/svg+xml" href="img/favicon.svg">
     <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
     <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
-    <link rel="stylesheet" href="styles.css?v=6">
+    <link rel="stylesheet" href="styles.css?v=7">
 </head>
 <body>
 
     <header>
         <a href="index.html" class="logo" aria-label="GLPFinder, ir al mapa">
-            <img src="img/logo.svg" width="160" height="36" alt="GLPFinder">
+            <img src="img/logo-negativo.svg" width="105" height="26" alt="glpfinder">
         </a>
         <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="menu-principal" aria-label="Abrir menú">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
@@ -29,11 +29,15 @@
         </nav>
     </header>
 
-    <main class="profile-container">
-        <div class="page-head">
-            <h1 class="page-title">Mi vehículo</h1>
-            <p class="page-lead">Con los datos de tu coche calculamos cuánto cuesta llenar el depósito en cada gasolinera y cuánto ahorras con GLP.</p>
+    <div class="page-band">
+        <div class="page-band-inner">
+            <h1>Mi vehículo</h1>
+            <p>Con los datos de tu coche calculamos cuánto cuesta llenar el depósito y cuánto ahorras con GLP.</p>
         </div>
+    </div>
+
+
+    <main class="profile-container">
         <section class="data-card">
             <h2>Tu coche</h2>
             <div class="form-group">
@@ -46,7 +50,7 @@
                 <input type="number" id="inp-consumo" placeholder="Ej: 8.5" step="0.1" inputmode="decimal">
             </div>
             <button class="btn-primary" onclick="guardarDatosVehiculo()">Guardar datos</button>
-            <p id="msg-guardado" style="display:none; margin:10px 0 0; color:#0F7A55; font-weight:600; font-size:14px;">Datos guardados en este dispositivo</p>
+            <p id="msg-guardado" style="display:none; margin:10px 0 0; color:#008456; font-weight:600; font-size:14px;">Datos guardados en este dispositivo</p>
         </section>
 
         <section class="data-card full-width">
