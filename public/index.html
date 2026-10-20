@@ -4,26 +4,49 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#0E1116">
-    <title>glpfinder</title>
+    <title>Gasolineras de GLP más baratas: mapa de precios de autogás en España | glpfinder</title>
+    <meta name="description" content="Encuentra la gasolinera de GLP (autogás) más barata cerca de ti o en tu ruta. Precios oficiales del Ministerio actualizados varias veces al día en un mapa de toda España.">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://yokki21.github.io/GLPFinder/">
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="apple-mobile-web-app-title" content="glpfinder">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="glpfinder">
+    <meta property="og:locale" content="es_ES">
+    <meta property="og:title" content="Gasolineras de GLP más baratas: mapa de precios de autogás en España">
+    <meta property="og:description" content="Encuentra la gasolinera de GLP (autogás) más barata cerca de ti o en tu ruta. Precios oficiales del Ministerio actualizados varias veces al día en un mapa de toda España.">
+    <meta property="og:url" content="https://yokki21.github.io/GLPFinder/">
+    <meta property="og:image" content="https://yokki21.github.io/GLPFinder/img/og.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="glpfinder, mapa de precios del GLP en España">
+    <meta name="twitter:card" content="summary_large_image">
     <link rel="icon" type="image/svg+xml" href="img/favicon.svg">
     <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
     <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
-    <link rel="stylesheet" href="styles.css?v=11">
+    <link rel="stylesheet" href="styles.css?v=12">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     
-    <style>
-        @keyframes girarSpinner { 100% { transform: rotate(360deg); } }
-    </style>
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "glpfinder",
+        "url": "https://yokki21.github.io/GLPFinder/",
+        "description": "Mapa de precios del GLP (autogás) en España con los datos oficiales del Ministerio para la Transición Ecológica, actualizados varias veces al día.",
+        "applicationCategory": "TravelApplication",
+        "operatingSystem": "Web",
+        "inLanguage": "es-ES",
+        "isAccessibleForFree": true,
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" }
+    }
+    </script>
 </head>
 <body>
 
-    <div id="pantallaCarga" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.85); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; backdrop-filter: blur(4px);">
-        <div style="width: 50px; height: 50px; border: 5px solid #E2E5E9; border-top-color: #008456; border-radius: 50%; animation: girarSpinner 1s linear infinite;"></div>
-        <p id="textoCarga" style="margin-top: 20px; font-weight: bold; color: #0E1116; font-size: 18px; text-align: center;">Iniciando GLPFinder...</p>
-    </div>
 
     <header>
-        <a href="index.html" class="logo" aria-label="GLPFinder, ir al mapa">
+        <a href="index.html" class="logo" aria-label="glpfinder, ir al mapa">
             <img src="img/logo-negativo.svg" width="105" height="26" alt="glpfinder">
         </a>
         <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="menu-principal" aria-label="Abrir menú">
@@ -40,6 +63,20 @@
     </header>
 
     <main class="map-main">
+        <h1 class="sr-only">Mapa de gasolineras de GLP (autogás) en España con los precios de hoy</h1>
+        <noscript><p class="error-datos" style="position:static;transform:none;margin:24px auto;">glpfinder necesita JavaScript para mostrar el mapa de precios del GLP. Actívalo en tu navegador.</p></noscript>
+
+        <div id="pantallaCarga" class="carga-estado" role="status" aria-live="polite" hidden>
+            <span class="carga-spinner" aria-hidden="true"></span>
+            <span id="textoCarga">Cargando precios…</span>
+        </div>
+
+        <div id="errorDatos" class="error-datos" role="alert" hidden>
+            <strong>No se han podido cargar los precios</strong>
+            <p>Comprueba tu conexión a internet y vuelve a intentarlo.</p>
+            <button type="button" class="btn btn--primario btn--sm" onclick="reintentarCarga()">Reintentar</button>
+        </div>
+
         <div class="search-wrapper">
             <div class="search-container-box">
                 <div class="search-controls">
@@ -207,11 +244,11 @@
         // Utilidades UI
         function mostrarCarga(texto) {
             document.getElementById('textoCarga').textContent = texto;
-            document.getElementById('pantallaCarga').style.display = 'flex';
+            document.getElementById('pantallaCarga').hidden = false;
         }
 
         function ocultarCarga() {
-            document.getElementById('pantallaCarga').style.display = 'none';
+            document.getElementById('pantallaCarga').hidden = true;
         }
 
         // Recuperar orden favorita
@@ -542,7 +579,12 @@
             document.getElementById('sellosPrecios').hidden = false;
         }
 
-        async function cargarGasolineras() {
+        function reintentarCarga() {
+            document.getElementById('errorDatos').hidden = true;
+            cargarGasolineras(true);
+        }
+
+        async function cargarGasolineras(soloDatos = false) {
     const TIEMPO_EXPIRACION = 60 * 60 * 1000; // los datos se regeneran cada 2 h
     const ahora = Date.now();
     
@@ -572,9 +614,11 @@
 
     if ((ahora - ultimoTimestamp) > TIEMPO_EXPIRACION || todasLasEstaciones.length === 0) {
         try {
-            mostrarCarga("Descargando precios actualizados...");
+            mostrarCarga(todasLasEstaciones.length ? "Actualizando precios…" : "Cargando precios…");
+            document.getElementById('errorDatos').hidden = true;
             const res = await fetch('data/gasolineras.json', { cache: 'no-cache' });
-            if (res.ok) {
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            {
                 const d = await res.json();
                 todasLasEstaciones = d.ListaEESSPrecio;
                 configurarRangoPrecio();
@@ -592,11 +636,14 @@
                 window.actualizarPinesVisibles();
             }
         } catch (e) {
-            console.warn("Fallo al actualizar datos de la API:", e);
+            console.warn("No se pudieron descargar los precios:", e);
+            // Sin datos: se explica y se ofrece reintentar. Con datos guardados: se avisa y se siguen usando
+            if (todasLasEstaciones.length === 0) document.getElementById('errorDatos').hidden = false;
+            else mostrarAviso('No se han podido actualizar los precios. Se muestran los últimos guardados.', 6000);
         }
     }
     ocultarCarga();
-    if (!ordenFavorita) ubicacionAlEntrar();
+    if (!ordenFavorita && !soloDatos) ubicacionAlEntrar();
 }
 
         // GPS
@@ -902,7 +949,7 @@
             if (!origen) return mostrarMensajeRuta('Escribe desde dónde sales o activa tu ubicación.', 'warning');
             if (!window._calcularRuta) return mostrarMensajeRuta('No se ha podido cargar el cálculo de rutas. Recarga la página.', 'error');
 
-            mostrarCarga("Calculando mejor ruta...");
+            mostrarCarga("Calculando la ruta…");
             try { await cargarTurf(); } catch (e) { ocultarCarga(); return mostrarMensajeRuta('No se ha podido cargar el cálculo de rutas. Revisa tu conexión.', 'error'); }
             activarModoRuta();
 
@@ -1032,7 +1079,6 @@
             window.open(url.toString(), '_blank');
         };
 
-        mostrarCarga("Iniciando aplicación...");
         cargarGasolineras();
     </script>
 
