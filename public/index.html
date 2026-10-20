@@ -471,7 +471,7 @@
                 else if (precio >= media + 0.015) color = 'pin-rojo';
 
                 const starIcon = esFav ? `<span class="pin-fav-indicator">★</span>` : '';
-                const pinHtml  = `<div class="custom-price-pin ${color}${esParada ? ' selected-stop' : ''}">${stopBadgeHTML}${starIcon}<img src="${obtenerLogo(e['Rótulo'])}" class="pin-mini-logo" alt=""><span>${precio.toFixed(3)}€</span></div>`;
+                const pinHtml  = `<div class="custom-price-pin ${color}${esParada ? ' selected-stop' : ''}">${stopBadgeHTML}${starIcon}<img src="${obtenerLogo(e['Rótulo'])}" class="pin-mini-logo" alt=""><span>${precio.toFixed(3).replace('.', ',')}€</span></div>`;
 
                 const calculadorHTML = `
                     <div id="calc-container-${id}" class="popup-calc">
@@ -494,7 +494,7 @@
                         <span class="star-btn ${esFav ? 'active' : ''}" id="star-${id}" role="button" tabindex="0" aria-label="${esFav ? 'Quitar de favoritas' : 'Guardar en favoritas'}" onclick="window.gestionarFavorito('${id}','${rotulo}',${lat},${lng},'${direccion}','${localidad}','${precio}')">★</span>
                     </div>
                     <p class="popup-address">${escHTML(e['Dirección'])}, ${escHTML(e['Localidad'])}</p>
-                    <div class="popup-precio ${color}"><strong>${precio.toFixed(3)} €/L</strong><span>${color === 'pin-verde' ? 'Más barata que la media de la zona' : color === 'pin-rojo' ? 'Más cara que la media de la zona' : 'En la media de la zona'}</span></div>
+                    <div class="popup-precio ${color}"><strong>${precio.toFixed(3).replace('.', ',')} €/L</strong><span>${color === 'pin-verde' ? 'Más barata que la media de la zona' : color === 'pin-rojo' ? 'Más cara que la media de la zona' : 'En la media de la zona'}</span></div>
                     ${calculadorHTML}${botonParadaHTML} 
                     <div class="nav-buttons">
                         <a href="https://waze.com/ul?ll=${lat},${lng}&navigate=yes" target="_blank" rel="noopener" class="btn btn--sm btn--azul">Waze</a>
@@ -574,12 +574,12 @@
 
                 const clusterIcon = L.divIcon({
                     className: 'custom-div-icon cluster-icon',
-                    html: `<div class="custom-price-pin cluster-mode ${colorClass}"><span class="cluster-prov">${c.prov === 'Santa Cruz de Tenerife' ? 'S. C. de Tenerife' : c.prov}</span><span class="cluster-price">${c.mediaProv.toFixed(3)}€</span></div>`,
+                    html: `<div class="custom-price-pin cluster-mode ${colorClass}"><span class="cluster-prov">${c.prov === 'Santa Cruz de Tenerife' ? 'S. C. de Tenerife' : c.prov}</span><span class="cluster-price">${c.mediaProv.toFixed(3).replace('.', ',')}€</span></div>`,
                     iconSize: [96, 40], iconAnchor: [48, 46], popupAnchor: [0, -46]
                 });
 
                 L.marker(c.coords, { icon: clusterIcon, riseOnHover: true })
-                    .bindPopup(`<div class="cluster-popup-simple"><h4>${c.prov}: ${c.mediaProv.toFixed(3)} €/L de media</h4><p>${c.lista.length} gasolineras con GLP. ${porCCAA ? 'Acércate para ver cada provincia.' : 'Acércate para verlas.'}</p></div>`)
+                    .bindPopup(`<div class="cluster-popup-simple"><h4>${c.prov}: ${c.mediaProv.toFixed(3).replace('.', ',')} €/L de media</h4><p>${c.lista.length} gasolineras con GLP. ${porCCAA ? 'Acércate para ver cada provincia.' : 'Acércate para verlas.'}</p></div>`)
                     .on('click', () => map.flyTo(c.coords, porCCAA ? 7 : 10, { duration: 1 }))
                     .addTo(capaPinesVisibles);
             });

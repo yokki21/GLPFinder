@@ -148,7 +148,7 @@
                             <img src="${obtenerLogo(data.nombre)}" class="fav-logo" alt="">
                             <h3 class="fav-title">${escHTML(data.nombre)}</h3>
                         </div>
-                        <span class="fav-price-tag">${pActual.toFixed(3)} €/L</span>
+                        <span class="fav-price-tag">${pActual.toFixed(3).replace('.', ',')} €/L</span>
                         <p class="fav-address"> ${escHTML(data.direccion)}</p>
                         
                         <div id="calc-container-${id}" style="margin-bottom: 15px;">
