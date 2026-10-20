@@ -95,6 +95,8 @@
             <a href="index.html">Mapa</a>
             <a href="datos.html">Mi vehículo</a>
             <a href="contacto.html">Contacto</a>
+            <a href="auth.html" id="nav-auth">Acceder</a>
+            <a href="#" id="nav-logout" hidden>Cerrar sesión</a>
         </div>
     </header>
 
@@ -111,9 +113,10 @@
     </main>
 
     <script type="module">
-        import { leerFavoritas, quitarFavorita, leerVehiculo } from './almacen.js';
+        import { leerFavoritas, quitarFavorita, leerVehiculo, leerHistorialAntiguo } from './almacen.js';
 
-        const configVehiculo = leerVehiculo(); // Datos del coche guardados en "Mi vehículo"
+        let configVehiculo = null; // Datos del coche guardados en "Mi vehículo"
+        leerVehiculo().then(v => { configVehiculo = v; }).catch(() => {});
         window.misGraficas = {}; 
 
         const brandLogos = {
@@ -150,7 +153,7 @@
         async function cargarYRenderizarFavoritas() {
             const container = document.getElementById('fav-container');
             try {
-                const favoritas = Object.entries(leerFavoritas());
+                const favoritas = Object.entries(await leerFavoritas());
                 if (favoritas.length === 0) {
                     container.innerHTML = `<div class="empty-state" style="grid-column: 1 / -1;"><h3>Lista vacía</h3><p>Guarda gasolineras desde el mapa pulsando la estrella.</p></div>`;
                     return;
@@ -247,6 +250,9 @@
                 const n = parseInt(dias);
                 const porFecha = new Map();
 
+                // Registros antiguos guardados en Firestore (antes de la GitHub Action)
+                (await leerHistorialAntiguo(id, n)).forEach(r => porFecha.set(r.fecha, r));
+
                 // Historial actual generado por GitHub Actions (tiene prioridad si hay fechas repetidas)
                 try {
                     const res = await fetch(`data/historial/${encodeURIComponent(id)}.json`, { cache: 'no-cache' });
@@ -325,7 +331,7 @@
 
         window.eliminarFavorita = async (id) => {
             if (confirm("¿Estás seguro de que quieres eliminar esta gasolinera de tu lista?")) {
-                quitarFavorita(id);
+                await quitarFavorita(id);
                 document.getElementById(`card-${id}`).remove();
                 
                 const container = document.getElementById('fav-container');

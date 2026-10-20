@@ -28,6 +28,8 @@
             <a href="favoritas.html">Mis favoritas</a>
             <a href="datos.html">Mi vehículo</a>
             <a href="contacto.html">Contacto</a>
+            <a href="auth.html" id="nav-auth">Acceder</a>
+            <a href="#" id="nav-logout" hidden>Cerrar sesión</a>
         </div>
     </header>
 
@@ -824,42 +826,51 @@
 
     <script type="module">
         import { initRouteModule, calcularRuta, limpiarRuta } from './routes.js';
-        import { idsFavoritas, guardarFavorita, quitarFavorita, leerVehiculo } from './almacen.js';
+        import { leerFavoritas, guardarFavorita, quitarFavorita, leerVehiculo } from './almacen.js';
 
         initRouteModule(map);
         window._calcularRuta = calcularRuta;
         window._limpiarRuta  = limpiarRuta;
 
-        // Favoritas y datos del vehículo se guardan en el navegador del usuario
-        window.misFavoritosIds = idsFavoritas();
-        window.actualizarPinesVisibles();
+        // Favoritas y vehículo: en la cuenta si hay sesión, si no en el navegador
+        leerFavoritas().then(favs => {
+            window.misFavoritosIds = Object.keys(favs);
+            window.actualizarPinesVisibles();
+        }).catch(e => console.warn('No se pudieron cargar las favoritas:', e));
 
-        window.calcularCosteLlenado = (id, precioLitro) => {
+        window.calcularCosteLlenado = async (id, precioLitro) => {
             const resDiv = document.getElementById(`res-calc-${id}`);
-            const configVehiculo = leerVehiculo();
+            const configVehiculo = await leerVehiculo();
             if (!configVehiculo || !configVehiculo.deposito) { resDiv.innerHTML = 'Configura tu depósito en <a href="datos.html">Mi vehículo</a>'; resDiv.style.display = 'block'; return; }
             resDiv.innerHTML = `Depósito ${configVehiculo.deposito}L: <span style="color:#2563eb;">${(configVehiculo.deposito * precioLitro).toFixed(2)}€</span>`;
             resDiv.style.display = 'block';
         };
 
-        window.gestionarFavorito = (id, nombre, lat, lng, direccion, localidad, precio) => {
+        window.gestionarFavorito = async (id, nombre, lat, lng, direccion, localidad, precio) => {
             const starBtn = document.getElementById(`star-${id}`);
             const esFav = window.misFavoritosIds.includes(id);
 
+            // Cambio inmediato en pantalla; el guardado va después
             if (esFav) {
-                quitarFavorita(id);
+                window.misFavoritosIds = window.misFavoritosIds.filter(i => i !== id);
                 if (starBtn) starBtn.classList.remove('active');
             } else {
-                guardarFavorita(id, { nombre, lat, lng, direccion, localidad, precio });
+                window.misFavoritosIds.push(id);
                 if (starBtn) starBtn.classList.add('active');
             }
-            window.misFavoritosIds = idsFavoritas();
 
             // Repintamos el mapa sin cerrar el popup abierto
             window.isRefreshingMap = true;
             window.idPopupForzado = id;
             window.actualizarPinesVisibles();
             window.isRefreshingMap = false;
+
+            try {
+                if (esFav) await quitarFavorita(id);
+                else await guardarFavorita(id, { nombre, lat, lng, direccion, localidad, precio });
+            } catch (e) {
+                console.error('No se pudo guardar la favorita:', e);
+            }
         };
     </script>
 </body>

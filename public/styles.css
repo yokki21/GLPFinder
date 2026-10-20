@@ -655,3 +655,5 @@ header {
     .btn-action { padding: 12px; font-size: 14px; }
 
 }
+
+[hidden] { display: none !important; }
