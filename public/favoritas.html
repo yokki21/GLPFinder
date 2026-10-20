@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GLPFinder - Mis Favoritas</title>
     
     <link rel="icon" type="image/png" href="LogoPequeño.png">
@@ -181,6 +181,8 @@
             resDiv.style.display = 'block';
         };
 
+        const escHTML = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
         async function cargarYRenderizarFavoritas(uid) {
             const container = document.getElementById('fav-container');
             try {
@@ -201,7 +203,7 @@
                 container.innerHTML = '';
                 favsSnap.forEach(docSnap => {
                     const data = docSnap.data();
-                    const id = docSnap.id;
+                    const id = escHTML(docSnap.id);
                     
                     let pActual = parseFloat(data.precio);
                     let latSegura = data.lat;
@@ -223,11 +225,11 @@
                     card.id = `card-${id}`;
                     card.innerHTML = `
                         <div class="fav-card-header">
-                            <img src="${obtenerLogo(data.nombre)}" class="fav-logo">
-                            <h3 class="fav-title">${data.nombre}</h3>
+                            <img src="${obtenerLogo(data.nombre)}" class="fav-logo" alt="">
+                            <h3 class="fav-title">${escHTML(data.nombre)}</h3>
                         </div>
                         <span class="fav-price-tag">${pActual.toFixed(3)} €/L</span>
-                        <p class="fav-address"> ${data.direccion}</p>
+                        <p class="fav-address"> ${escHTML(data.direccion)}</p>
                         
                         <div id="calc-container-${id}" style="margin-bottom: 15px;">
                             <button style="width:100%; background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; padding:8px; border-radius:6px; cursor:pointer; font-weight:600; font-size: 13px;"

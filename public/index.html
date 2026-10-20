@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GLPFinder</title>
     <link rel="icon" type="image/png" href="LogoPequeño.png">
     <link rel="stylesheet" href="styles.css">
@@ -201,8 +201,11 @@
         const startZoom = ordenFavorita ? 17 : 6; 
 
         // Capas base
-        const mapaSatelite = L.tileLayer('https://mt1.google.com/vt/lyrs=s&hl=es&x={x}&y={y}&z={z}', { maxZoom: 20, attribution: '© Google' });
-        const mapaCalles   = L.tileLayer('https://mt1.google.com/vt/lyrs=m&hl=es&x={x}&y={y}&z={z}', { maxZoom: 20, attribution: '© Google' });
+        // Ortofoto PNOA y Mapa Base del IGN (WMTS, licencia CC BY 4.0, uso comercial permitido)
+        const wmtsIGN = (servicio, capa, formato) => `https://www.ign.es/wmts/${servicio}?service=WMTS&request=GetTile&version=1.0.0&format=${formato}&layer=${capa}&style=default&tilematrixset=GoogleMapsCompatible&tilematrix={z}&tilerow={y}&tilecol={x}`;
+        const atribIGN = '<a href="https://www.scne.es/" target="_blank" rel="noopener">CC BY 4.0 scne.es</a>';
+        const mapaSatelite = L.tileLayer(wmtsIGN('pnoa-ma', 'OI.OrthoimageCoverage', 'image/jpeg'), { maxZoom: 20, maxNativeZoom: 19, attribution: `PNOA ${atribIGN}` });
+        const mapaCalles   = L.tileLayer(wmtsIGN('ign-base', 'IGNBaseTodo', 'image/png'), { maxZoom: 20, maxNativeZoom: 17, attribution: `Mapa base IGN ${atribIGN}` });
         const mapaOscuro = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 20, attribution: '© CARTO' });
         const mapaClaro = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { maxZoom: 20, attribution: '© CARTO' });
 
@@ -301,6 +304,15 @@
             "BP": "BP.png", "SHELL": "Shell.png", "BALLENOIL": "Ballenoil.png", "DEFAULT": "Default.png"
         };
 
+        // Escapa texto para insertarlo en HTML (datos del Ministerio o de usuarios)
+        function escHTML(v) {
+            return String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        }
+        // Escapa texto para usarlo como argumento '...' dentro de un onclick="..."
+        function escArg(v) {
+            return escHTML(String(v ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'"));
+        }
+
         function obtenerLogo(rotulo) {
             if (!rotulo) return brandLogos["DEFAULT"];
             const r = rotulo.toUpperCase();
@@ -380,7 +392,7 @@
                 else if (precio >= media + 0.015) color = 'pin-rojo';
 
                 const starIcon = esFav ? `<span class="pin-fav-indicator">★</span>` : '';
-                const pinHtml  = `<div class="custom-price-pin ${color}${esParada ? ' selected-stop' : ''}">${stopBadgeHTML}${starIcon}<img src="${obtenerLogo(e['Rótulo'])}" class="pin-mini-logo"><span>${precio.toFixed(3)}€</span></div>`;
+                const pinHtml  = `<div class="custom-price-pin ${color}${esParada ? ' selected-stop' : ''}">${stopBadgeHTML}${starIcon}<img src="${obtenerLogo(e['Rótulo'])}" class="pin-mini-logo" alt=""><span>${precio.toFixed(3)}€</span></div>`;
 
                 let calculadorHTML = window.usuarioLogueado ? `
                     <div id="calc-container-${id}" style="margin-bottom:10px;">
@@ -388,9 +400,9 @@
                         <div id="res-calc-${id}" style="display:none;margin-top:5px;font-size:12px;text-align:center;font-weight:bold;color:#1e293b;"></div>
                     </div>` : '';
 
-                const rotulo    = e['Rótulo'].replace(/'/g, "\\'");
-                const direccion = e['Dirección'].replace(/'/g, "\\'");
-                const localidad = e['Localidad'].replace(/'/g, "\\'");
+                const rotulo    = escArg(e['Rótulo']);
+                const direccion = escArg(e['Dirección']);
+                const localidad = escArg(e['Localidad']);
 
                 let botonParadaHTML = '';
                 if (rutaActiva) {
@@ -400,15 +412,15 @@
 
                 const popup = `
                     <div class="popup-header">
-                        <h3>${e['Rótulo']}</h3>
+                        <h3>${escHTML(e['Rótulo'])}</h3>
                         <span class="star-btn ${esFav ? 'active' : ''}" id="star-${id}" onclick="window.gestionarFavorito('${id}','${rotulo}',${lat},${lng},'${direccion}','${localidad}','${precio}')">★</span>
                     </div>
-                    <p class="popup-address">${e['Dirección']}, ${e['Localidad']}</p>
+                    <p class="popup-address">${escHTML(e['Dirección'])}, ${escHTML(e['Localidad'])}</p>
                     <div style="margin:10px 0;padding:8px;background:#f0fdf4;border-radius:6px;text-align:center;"><span style="font-weight:bold;color:#16a34a;font-size:16px;">${precio.toFixed(3)} €/L</span></div>
                     ${calculadorHTML}${botonParadaHTML} 
                     <div class="nav-buttons">
-                        <a href="https://waze.com/ul?ll=${lat},${lng}&navigate=yes" target="_blank" class="btn-nav btn-waze">Waze</a>
-                        <a href="https://www.google.com/maps/search/?api=1&query=$${lat},${lng}" target="_blank" class="btn-nav btn-gmaps">Google Maps</a>
+                        <a href="https://waze.com/ul?ll=${lat},${lng}&navigate=yes" target="_blank" rel="noopener" class="btn-nav btn-waze">Waze</a>
+                        <a href="https://www.google.com/maps/search/?api=1&query=${lat},${lng}" target="_blank" rel="noopener" class="btn-nav btn-gmaps">Google Maps</a>
                     </div>`;
 
                 const zIndexBase = esParada ? 500 : 0;
@@ -536,7 +548,7 @@
 
         // GPS
         function localizarUsuario(moverCamara = true) {
-            mostrarCarga("Buscando tu ubicación GPS...");
+            if (!navigator.geolocation) return window.actualizarPinesVisibles();
             navigator.geolocation.getCurrentPosition(p => {
                 puntoReferenciaDistancia = L.latLng(p.coords.latitude, p.coords.longitude);
                 document.getElementById('routeOriginInput').placeholder = 'Ubicación actual';
@@ -544,27 +556,54 @@
                 marcadorUbicacionUsuario = L.circleMarker([p.coords.latitude, p.coords.longitude], { radius: 8, fillColor: "#2563eb", color: "#fff", weight: 3, fillOpacity: 0.9 }).addTo(map);
                 if (moverCamara) map.flyTo([p.coords.latitude, p.coords.longitude], 13);
                 else window.actualizarPinesVisibles();
-                ocultarCarga();
             }, () => {
                 puntoReferenciaDistancia = null;
                 document.getElementById('routeOriginInput').placeholder = 'Escribe un origen...';
                 window.actualizarPinesVisibles();
-                ocultarCarga();
-            });
+            }, { timeout: 10000, maximumAge: 5 * 60 * 1000 });
         }
 
         // Buscador Nominatim
         let tempBusq, abortCtrlDestino = null, tempBusqOrigen, abortCtrlOrigen = null;
 
-        async function _nominatimFetch(query, ctrl) {
-            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=es&limit=5`, { signal: ctrl.signal });
+        // Geocodificador CartoCiudad (IGN): gratuito y con autocompletado permitido
+        const CARTOCIUDAD = 'https://www.cartociudad.es/geocoder/api/geocoder';
+
+        async function _geocodificar(query, ctrl) {
+            const res = await fetch(`${CARTOCIUDAD}/candidates?q=${encodeURIComponent(query)}&limit=6`, { signal: ctrl.signal });
             if (res.status === 429) throw Object.assign(new Error('429'), { is429: true });
-            return res.json();
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            return (Array.isArray(data) ? data : []).map(c => ({
+                id: c.id, type: c.type, portal: c.portalNumber,
+                display_name: [c.address, c.type === 'Codpost' ? null : c.province].filter(Boolean).join(', '),
+                lat: c.lat, lon: c.lng
+            }));
+        }
+
+        // Los candidatos de calles y municipios llegan sin coordenadas: se piden al seleccionarlos
+        async function _resolverCoordenadas(c) {
+            if (c.lat && c.lon) return c;
+            const params = new URLSearchParams({ id: c.id, type: c.type });
+            if (c.portal != null) params.set('portal', c.portal);
+            const res = await fetch(`${CARTOCIUDAD}/find?${params}`);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const d = await res.json();
+            if (!d.lat || !d.lng) throw new Error('Sin coordenadas');
+            return { ...c, lat: d.lat, lon: d.lng };
         }
 
         function _renderResultados(listaEl, data, onSelect) {
             listaEl.innerHTML = '';
-            if (data.length > 0) data.forEach(i => { const li = document.createElement('li'); li.textContent = i.display_name; li.onclick = () => onSelect(i); listaEl.appendChild(li); });
+            if (data.length > 0) data.forEach(i => {
+                const li = document.createElement('li');
+                li.textContent = i.display_name;
+                li.onclick = async () => {
+                    try { onSelect(await _resolverCoordenadas(i)); }
+                    catch (err) { listaEl.innerHTML = '<li style="color:#ef4444;font-size:12px;padding:8px;">No se pudo localizar ese resultado</li>'; }
+                };
+                listaEl.appendChild(li);
+            });
             else listaEl.innerHTML = '<li style="color:#64748b;font-size:12px;padding:8px;">Sin resultados</li>';
             listaEl.style.display = 'block';
         }
@@ -578,7 +617,7 @@
                 if (abortCtrlDestino) abortCtrlDestino.abort();
                 abortCtrlDestino = new AbortController();
                 try {
-                    const data = await _nominatimFetch(q, abortCtrlDestino);
+                    const data = await _geocodificar(q, abortCtrlDestino);
                     _renderResultados(resC, data, (i) => {
                         puntoReferenciaDistancia = L.latLng(parseFloat(i.lat), parseFloat(i.lon));
                         map.flyTo([i.lat, i.lon], 14);
@@ -609,7 +648,7 @@
                 if (abortCtrlOrigen) abortCtrlOrigen.abort();
                 abortCtrlOrigen = new AbortController();
                 try {
-                    const data = await _nominatimFetch(q, abortCtrlOrigen);
+                    const data = await _geocodificar(q, abortCtrlOrigen);
                     _renderResultados(resC, data, (i) => {
                         document.getElementById('routeOriginInput').value = i.display_name.split(',')[0];
                         resC.style.display = 'none';
@@ -756,28 +795,6 @@
             if (rutaActiva && ultimaRutaGeoJSON) filtrarGasolinerasEnRuta(ultimaRutaGeoJSON);
         };
 
-        window.moverParadaArriba = function(idx) {
-            if (idx <= 0) return;
-            const temp = window.paradasSeleccionadas[idx - 1];
-            window.paradasSeleccionadas[idx - 1] = window.paradasSeleccionadas[idx];
-            window.paradasSeleccionadas[idx] = temp;
-            actualizarPanelParadas();
-            if (rutaActiva && ultimaRutaGeoJSON) {
-                filtrarGasolinerasEnRuta(ultimaRutaGeoJSON);
-            }
-        };
-
-        window.moverParadaAbajo = function(idx) {
-            if (idx >= window.paradasSeleccionadas.length - 1) return;
-            const temp = window.paradasSeleccionadas[idx + 1];
-            window.paradasSeleccionadas[idx + 1] = window.paradasSeleccionadas[idx];
-            window.paradasSeleccionadas[idx] = temp;
-            actualizarPanelParadas();
-            if (rutaActiva && ultimaRutaGeoJSON) {
-                filtrarGasolinerasEnRuta(ultimaRutaGeoJSON);
-            }
-        };
-
         function actualizarPanelParadas() {
             const c = document.getElementById('routeStopsContainer');
             if (!rutaActiva) return c.style.display = 'none';
@@ -790,7 +807,7 @@
                 li.style.cssText = "display:flex; align-items:center; padding: 4px 0; border-bottom: 1px dashed #e2e8f0; gap: 8px;";
                 const btnArriba = idx > 0 ? `<button onclick="window.moverParadaArriba(${idx})" style="background:none; border:none; color:#475569; cursor:pointer; font-size:14px; padding:0; width:20px; height:16px;">▲</button>` : '<div style="width:20px;"></div>';
                 const btnAbajo = idx < window.paradasSeleccionadas.length - 1 ? `<button onclick="window.moverParadaAbajo(${idx})" style="background:none; border:none; color:#475569; cursor:pointer; font-size:14px; padding:0; width:20px; height:16px;">▼</button>` : '<div style="width:20px;"></div>';
-                li.innerHTML = `<div style="display:flex; flex-direction:column; gap:2px; width:20px; align-items:center;">${btnArriba}${btnAbajo}</div><span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex: 1; font-weight:500;"><strong style="margin-right:6px;color:#2563eb;">${idx + 1}.</strong>${p.nombre}</span><button onclick="window.toggleParada('${p.id}', ${p.lat}, ${p.lng}, '${p.nombre}')" style="background:none; border:none; color:#ef4444; cursor:pointer; font-weight:bold; font-size:14px; flex-shrink:0;">X</button>`;
+                li.innerHTML = `<div style="display:flex; flex-direction:column; gap:2px; width:20px; align-items:center;">${btnArriba}${btnAbajo}</div><span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex: 1; font-weight:500;"><strong style="margin-right:6px;color:#2563eb;">${idx + 1}.</strong>${escHTML(p.nombre)}</span><button onclick="window.toggleParada('${escArg(p.id)}', ${p.lat}, ${p.lng}, '${escArg(p.nombre)}')" style="background:none; border:none; color:#ef4444; cursor:pointer; font-weight:bold; font-size:14px; flex-shrink:0;">X</button>`;
                 lista.appendChild(li);
             });
             document.getElementById('btnRutaGoogleMaps').textContent = window.paradasSeleccionadas.length > 0 ? `Abrir en Google Maps (${window.paradasSeleccionadas.length} paradas)` : 'Abrir ruta en Google Maps';
@@ -882,8 +899,6 @@
                 await deleteDoc(ref);
             } else {
                 await setDoc(ref, { nombre, lat, lng, direccion, localidad, precio });
-                const hoy = new Date().toISOString().split('T')[0];
-                await setDoc(doc(db, "historial_precios", id, "registros", hoy), { precio: parseFloat(String(precio).replace(',', '.')), fecha: hoy }, { merge: true });
             }
         };
 
