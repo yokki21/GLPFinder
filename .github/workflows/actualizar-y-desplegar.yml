@@ -1,5 +1,4 @@
-# Descarga los precios del Ministerio, genera public/data/*.json y despliega en Firebase Hosting.
-# Sustituye a las Cloud Functions (obtenerGasolineras y guardarHistorialDiario).
+# Descarga los precios del Ministerio, genera public/data/*.json y publica la web en GitHub Pages.
 name: Actualizar datos y desplegar
 
 on:
@@ -16,11 +15,16 @@ concurrency:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 jobs:
   actualizar:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    environment:
+      name: github-pages
+      url: ${{ steps.despliegue.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
 
@@ -45,10 +49,12 @@ jobs:
             git push
           fi
 
-      - name: Desplegar en Firebase Hosting
-        uses: FirebaseExtended/action-hosting-deploy@v0
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
         with:
-          repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_GLPFINDER }}
-          channelId: live
-          projectId: glpfinder
+          path: public
+
+      - name: Publicar en GitHub Pages
+        id: despliegue
+        uses: actions/deploy-pages@v4

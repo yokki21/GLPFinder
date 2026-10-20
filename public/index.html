@@ -24,16 +24,10 @@
             <img src="Logo.png" alt="Logo GLPFinder">
         </a>
         <div class="nav-links">
+            <a href="index.html">Mapa</a>
+            <a href="favoritas.html">Mis favoritas</a>
+            <a href="datos.html">Mi vehículo</a>
             <a href="contacto.html">Contacto</a>
-            <a href="auth.html" id="nav-auth">Acceder / Registro</a>
-            <div class="profile-dropdown" id="nav-profile" style="display: none;">
-                <button class="profile-btn">Perfil</button>
-                <div class="dropdown-content">
-                    <a href="datos.html">Mis datos</a>
-                    <a href="favoritas.html">Mis favoritas</a>
-                    <a href="#" id="btn-logout" class="logout-option">Cerrar sesión</a>
-                </div>
-            </div>
         </div>
     </header>
 
@@ -286,7 +280,6 @@
         window.isRefreshingMap       = false; 
         
         window.misFavoritosIds       = [];
-        window.usuarioLogueado       = false;
 
         window._calcularRuta = null;
         window._limpiarRuta  = null;
@@ -394,11 +387,11 @@
                 const starIcon = esFav ? `<span class="pin-fav-indicator">★</span>` : '';
                 const pinHtml  = `<div class="custom-price-pin ${color}${esParada ? ' selected-stop' : ''}">${stopBadgeHTML}${starIcon}<img src="${obtenerLogo(e['Rótulo'])}" class="pin-mini-logo" alt=""><span>${precio.toFixed(3)}€</span></div>`;
 
-                let calculadorHTML = window.usuarioLogueado ? `
+                let calculadorHTML = `
                     <div id="calc-container-${id}" style="margin-bottom:10px;">
                         <button style="width:100%;background:#2563eb;color:white;border:none;padding:6px;border-radius:4px;cursor:pointer;font-weight:600;" onclick="window.calcularCosteLlenado('${id}',${precio})">Calcular Depósito</button>
                         <div id="res-calc-${id}" style="display:none;margin-top:5px;font-size:12px;text-align:center;font-weight:bold;color:#1e293b;"></div>
-                    </div>` : '';
+                    </div>`;
 
                 const rotulo    = escArg(e['Rótulo']);
                 const direccion = escArg(e['Dirección']);
@@ -523,7 +516,7 @@
     if ((ahora - ultimoTimestamp) > TIEMPO_EXPIRACION || todasLasEstaciones.length === 0) {
         try {
             mostrarCarga("Descargando precios actualizados...");
-            const res = await fetch('/data/gasolineras.json', { cache: 'no-cache' });
+            const res = await fetch('data/gasolineras.json', { cache: 'no-cache' });
             if (res.ok) {
                 const d = await res.json();
                 todasLasEstaciones = d.ListaEESSPrecio;
@@ -830,79 +823,44 @@
     </script>
 
     <script type="module">
-        // Firebase
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, deleteDoc, collection, getDocs, getDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
         import { initRouteModule, calcularRuta, limpiarRuta } from './routes.js';
+        import { idsFavoritas, guardarFavorita, quitarFavorita, leerVehiculo } from './almacen.js';
 
         initRouteModule(map);
         window._calcularRuta = calcularRuta;
         window._limpiarRuta  = limpiarRuta;
 
-        const firebaseConfig = { apiKey: "AIzaSyB_2thDoQUjLM34QYO8nmaDAB8HqQIxtIY", authDomain: "glpfinder.firebaseapp.com", projectId: "glpfinder", storageBucket: "glpfinder.firebasestorage.app", messagingSenderId: "173596798895", appId: "1:173596798895:web:d883035f89fa2c139fc95a" };
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-
-        let usuarioActual = null, configVehiculo = null;
-
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                usuarioActual = user; window.usuarioLogueado = true;
-                document.getElementById('nav-auth').style.display = 'none';
-                document.getElementById('nav-profile').style.display = 'inline-block';
-                const fSnap = await getDocs(collection(db, "users", user.uid, "favoritos"));
-                window.misFavoritosIds = fSnap.docs.map(d => d.id);
-                const vSnap = await getDoc(doc(db, "users", user.uid, "configuracion", "vehiculo"));
-                if (vSnap.exists()) configVehiculo = vSnap.data();
-            } else {
-                usuarioActual = null; window.usuarioLogueado = false; window.misFavoritosIds = []; configVehiculo = null;
-                document.getElementById('nav-auth').style.display = 'inline-block';
-                document.getElementById('nav-profile').style.display = 'none';
-            }
-            window.actualizarPinesVisibles();
-        });
+        // Favoritas y datos del vehículo se guardan en el navegador del usuario
+        window.misFavoritosIds = idsFavoritas();
+        window.actualizarPinesVisibles();
 
         window.calcularCosteLlenado = (id, precioLitro) => {
             const resDiv = document.getElementById(`res-calc-${id}`);
-            if (!usuarioActual) return;
-            if (!configVehiculo || !configVehiculo.deposito) { resDiv.innerHTML = "Aviso: Configura tu depósito"; resDiv.style.display = 'block'; return; }
+            const configVehiculo = leerVehiculo();
+            if (!configVehiculo || !configVehiculo.deposito) { resDiv.innerHTML = 'Configura tu depósito en <a href="datos.html">Mi vehículo</a>'; resDiv.style.display = 'block'; return; }
             resDiv.innerHTML = `Depósito ${configVehiculo.deposito}L: <span style="color:#2563eb;">${(configVehiculo.deposito * precioLitro).toFixed(2)}€</span>`;
             resDiv.style.display = 'block';
         };
 
-        window.gestionarFavorito = async (id, nombre, lat, lng, direccion, localidad, precio) => {
-            if (!usuarioActual) return (window.location.href = "auth.html");
-
-            // 1. Optimistic UI: Cambio de color inmediato en la estrella
+        window.gestionarFavorito = (id, nombre, lat, lng, direccion, localidad, precio) => {
             const starBtn = document.getElementById(`star-${id}`);
             const esFav = window.misFavoritosIds.includes(id);
-            
-            if (esFav) {
-                if (starBtn) starBtn.classList.remove('active');
-                window.misFavoritosIds = window.misFavoritosIds.filter(i => i !== id);
-            } else {
-                if (starBtn) starBtn.classList.add('active');
-                window.misFavoritosIds.push(id);
-            }
 
-            // 2. Repintamos el mapa activando la protección para que no se cierre el popup
+            if (esFav) {
+                quitarFavorita(id);
+                if (starBtn) starBtn.classList.remove('active');
+            } else {
+                guardarFavorita(id, { nombre, lat, lng, direccion, localidad, precio });
+                if (starBtn) starBtn.classList.add('active');
+            }
+            window.misFavoritosIds = idsFavoritas();
+
+            // Repintamos el mapa sin cerrar el popup abierto
             window.isRefreshingMap = true;
             window.idPopupForzado = id;
-            if (typeof window.actualizarPinesVisibles === 'function') window.actualizarPinesVisibles();
+            window.actualizarPinesVisibles();
             window.isRefreshingMap = false;
-
-            // 3. Peticiones a Firebase en segundo plano sin interrumpir al usuario
-            const ref = doc(db, "users", usuarioActual.uid, "favoritos", id);
-            if (esFav) {
-                await deleteDoc(ref);
-            } else {
-                await setDoc(ref, { nombre, lat, lng, direccion, localidad, precio });
-            }
         };
-
-        document.getElementById('btn-logout').onclick = (e) => { e.preventDefault(); signOut(auth).then(() => location.reload()); };
     </script>
 </body>
 </html>

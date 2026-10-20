@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GLPFinder - Mis Favoritas</title>
+    <title>Mis favoritas - GLPFinder</title>
     
     <link rel="icon" type="image/png" href="LogoPequeño.png">
     <link rel="stylesheet" href="styles.css">
     
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 
     <style>
         .fav-main { padding: 40px 32px; max-width: 1200px; margin: 0 auto; width: 100%; }
@@ -92,14 +92,9 @@
             <img src="Logo.png" alt="Logo GLPFinder">
         </a>
         <div class="nav-links">
-            <a href="index.html">Volver al Mapa</a>
-            <div class="profile-dropdown" id="nav-profile" style="display: none;">
-                <button class="profile-btn">Perfil <span>▼</span></button>
-                <div class="dropdown-content">
-                    <a href="datos.html">Mis datos</a>
-                    <a href="#" id="btn-logout" class="logout-option">Cerrar sesión</a>
-                </div>
-            </div>
+            <a href="index.html">Mapa</a>
+            <a href="datos.html">Mi vehículo</a>
+            <a href="contacto.html">Contacto</a>
         </div>
     </header>
 
@@ -116,26 +111,9 @@
     </main>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-        // Añadido getDoc para poder leer la configuración del coche
-        import { getFirestore, collection, getDocs, doc, deleteDoc, query, orderBy, limit, getDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        import { leerFavoritas, quitarFavorita, leerVehiculo } from './almacen.js';
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyB_2thDoQUjLM34QYO8nmaDAB8HqQIxtIY",
-            authDomain: "glpfinder.firebaseapp.com",
-            projectId: "glpfinder",
-            storageBucket: "glpfinder.firebasestorage.app",
-            messagingSenderId: "173596798895",
-            appId: "1:173596798895:web:d883035f89fa2c139fc95a"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-
-        let usuarioActual = null;
-        let configVehiculo = null; // Variable para guardar los datos del coche
+        const configVehiculo = leerVehiculo(); // Datos del coche guardados en "Mi vehículo"
         window.misGraficas = {}; 
 
         const brandLogos = {
@@ -152,27 +130,13 @@
             return brandLogos["DEFAULT"];
         }
 
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                usuarioActual = user;
-                document.getElementById('nav-profile').style.display = 'inline-block';
-                
-                // Cargamos la capacidad del depósito del usuario
-                const vSnap = await getDoc(doc(db, "users", user.uid, "configuracion", "vehiculo"));
-                if (vSnap.exists()) configVehiculo = vSnap.data();
-
-                await cargarYRenderizarFavoritas(user.uid);
-            } else { 
-                window.location.href = "auth.html"; 
-            }
-        });
+        cargarYRenderizarFavoritas();
 
         // NUEVO: Función para calcular el llenado igual que en index.html
         window.calcularCosteLlenado = (id, precioLitro) => {
             const resDiv = document.getElementById(`res-calc-${id}`);
-            if (!usuarioActual) return;
             if (!configVehiculo || !configVehiculo.deposito) {
-                resDiv.innerHTML = " Configura tu depósito en 'Mis Datos'";
+                resDiv.innerHTML = " Configura tu depósito en 'Mi vehículo'";
                 resDiv.style.display = 'block';
                 return;
             }
@@ -183,27 +147,26 @@
 
         const escHTML = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-        async function cargarYRenderizarFavoritas(uid) {
+        async function cargarYRenderizarFavoritas() {
             const container = document.getElementById('fav-container');
             try {
-                const favsSnap = await getDocs(collection(db, "users", uid, "favoritos"));
-                if (favsSnap.empty) {
+                const favoritas = Object.entries(leerFavoritas());
+                if (favoritas.length === 0) {
                     container.innerHTML = `<div class="empty-state" style="grid-column: 1 / -1;"><h3>Lista vacía</h3><p>Guarda gasolineras desde el mapa pulsando la estrella.</p></div>`;
                     return;
                 }
 
                 let preciosEnVivo = [];
                 try {
-                    const res = await fetch('/data/gasolineras.json', { cache: 'no-cache' });
+                    const res = await fetch('data/gasolineras.json', { cache: 'no-cache' });
                     if (res.ok) preciosEnVivo = (await res.json()).ListaEESSPrecio;
                 } catch (errPrecios) {
                     console.warn("No se pudieron cargar los precios actuales:", errPrecios);
                 }
 
                 container.innerHTML = '';
-                favsSnap.forEach(docSnap => {
-                    const data = docSnap.data();
-                    const id = escHTML(docSnap.id);
+                favoritas.forEach(([idFav, data]) => {
+                    const id = escHTML(idFav);
                     
                     let pActual = parseFloat(data.precio);
                     let latSegura = data.lat;
@@ -284,15 +247,9 @@
                 const n = parseInt(dias);
                 const porFecha = new Map();
 
-                // Registros antiguos guardados en Firestore por la Cloud Function (hasta su retirada)
-                try {
-                    const q = query(collection(db, "historial_precios", id, "registros"), orderBy("fecha", "desc"), limit(n));
-                    (await getDocs(q)).docs.forEach(d => { const r = d.data(); porFecha.set(r.fecha, r); });
-                } catch (errFs) { console.warn("Historial de Firestore no disponible:", errFs); }
-
                 // Historial actual generado por GitHub Actions (tiene prioridad si hay fechas repetidas)
                 try {
-                    const res = await fetch(`/data/historial/${encodeURIComponent(id)}.json`, { cache: 'no-cache' });
+                    const res = await fetch(`data/historial/${encodeURIComponent(id)}.json`, { cache: 'no-cache' });
                     if (res.ok) (await res.json()).forEach(r => porFecha.set(r.fecha, r));
                 } catch (errJson) { console.warn("Historial estático no disponible:", errJson); }
 
@@ -368,7 +325,7 @@
 
         window.eliminarFavorita = async (id) => {
             if (confirm("¿Estás seguro de que quieres eliminar esta gasolinera de tu lista?")) {
-                await deleteDoc(doc(db, "users", usuarioActual.uid, "favoritos", id));
+                quitarFavorita(id);
                 document.getElementById(`card-${id}`).remove();
                 
                 const container = document.getElementById('fav-container');
@@ -378,10 +335,6 @@
             }
         };
 
-        document.getElementById('btn-logout').onclick = (e) => { 
-            e.preventDefault(); 
-            signOut(auth).then(() => location.href = "index.html"); 
-        };
     </script>
 </body>
 </html>

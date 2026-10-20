@@ -18,16 +18,9 @@
         
         <div class="nav-links">
             <a href="index.html">Mapa</a>
-            <a href="auth.html" id="nav-auth">Acceder / Registro</a>
-            
-            <div class="profile-dropdown" id="nav-profile" style="display: none;">
-                <button class="profile-btn">Perfil</button>
-                <div class="dropdown-content">
-                    <a href="datos.html">Mis datos</a>
-                    <a href="favoritas.html">Mis favoritas</a>
-                    <a href="#" id="btn-logout" class="logout-option">Cerrar sesión</a>
-                </div>
-            </div>
+            <a href="favoritas.html">Mis favoritas</a>
+            <a href="datos.html">Mi vehículo</a>
+            <a href="contacto.html">Contacto</a>
         </div>
     </header>
 
@@ -110,9 +103,10 @@
         
         const mapaContacto = L.map('mapa-contacto').setView([latitudEmpresa, longitudEmpresa], 16);
         
-        L.tileLayer('https://mt1.google.com/vt/lyrs=m&hl=es&x={x}&y={y}&z={z}', {
+        L.tileLayer('https://www.ign.es/wmts/ign-base?service=WMTS&request=GetTile&version=1.0.0&format=image/png&layer=IGNBaseTodo&style=default&tilematrixset=GoogleMapsCompatible&tilematrix={z}&tilerow={y}&tilecol={x}', {
             maxZoom: 20,
-            attribution: '© Google'
+            maxNativeZoom: 17,
+            attribution: 'Mapa base IGN <a href="https://www.scne.es/" target="_blank" rel="noopener">CC BY 4.0 scne.es</a>'
         }).addTo(mapaContacto);
 
         L.circleMarker([latitudEmpresa, longitudEmpresa], {
@@ -126,44 +120,5 @@
           .openPopup();
     </script>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyB_2thDoQUjLM34QYO8nmaDAB8HqQIxtIY",
-            authDomain: "glpfinder.firebaseapp.com",
-            projectId: "glpfinder",
-            storageBucket: "glpfinder.firebasestorage.app",
-            messagingSenderId: "173596798895",
-            appId: "1:173596798895:web:d883035f89fa2c139fc95a"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-
-        const navAuth = document.getElementById('nav-auth');
-        const navProfile = document.getElementById('nav-profile');
-        const btnLogout = document.getElementById('btn-logout');
-
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                if(navAuth) navAuth.style.display = 'none';
-                if(navProfile) navProfile.style.display = 'inline-block';
-            } else {
-                if(navAuth) navAuth.style.display = 'inline-block';
-                if(navProfile) navProfile.style.display = 'none';
-            }
-        });
-
-        if (btnLogout) {
-            btnLogout.addEventListener('click', (e) => {
-                e.preventDefault();
-                signOut(auth).then(() => {
-                    window.location.reload();
-                });
-            });
-        }
-    </script>
 </body>
 </html>

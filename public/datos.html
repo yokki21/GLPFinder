@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GLPFinder - Mis Datos</title>
+    <title>Mi vehículo - GLPFinder</title>
     <link rel="icon" type="image/png" href="LogoPequeño.png">
     <link rel="stylesheet" href="styles.css">
 </head>
@@ -13,18 +13,12 @@
         <a href="index.html" class="logo"><img src="Logo.png" alt="Logo GLPFinder"></a>
         <div class="nav-links">
             <a href="index.html">Mapa</a>
-            <a href="favoritas.html">Mis Favoritas</a>
+            <a href="favoritas.html">Mis favoritas</a>
+            <a href="contacto.html">Contacto</a>
         </div>
     </header>
 
     <main class="profile-container">
-        <section class="data-card">
-            <h2>Mi Perfil</h2>
-            <div class="info-row"><span>Nombre:</span> <span id="txt-nombre">-</span></div>
-            <div class="info-row"><span>Email:</span> <span id="txt-email">-</span></div>
-            <div class="info-row"><span>Cuenta:</span> <span class="status-active">Activa</span></div>
-        </section>
-
         <section class="data-card">
             <h2>Mi Vehículo GLP</h2>
             <div class="form-group">
@@ -35,7 +29,8 @@
                 <label>Consumo Medio (L/100km):</label>
                 <input type="number" id="inp-consumo" placeholder="Ej: 8.5" step="0.1">
             </div>
-            <button class="btn-primary" onclick="guardarDatosVehiculo()">Actualizar Datos</button>
+            <button class="btn-primary" onclick="guardarDatosVehiculo()">Guardar datos</button>
+            <p id="msg-guardado" style="display:none; margin:10px 0 0; color:#16a34a; font-weight:600; font-size:14px;">Datos guardados en este dispositivo</p>
         </section>
 
         <section class="data-card full-width">
@@ -80,46 +75,16 @@
     </main>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyB_2thDoQUjLM34QYO8nmaDAB8HqQIxtIY",
-            authDomain: "glpfinder.firebaseapp.com",
-            projectId: "glpfinder",
-            storageBucket: "glpfinder.firebasestorage.app",
-            messagingSenderId: "173596798895",
-            appId: "1:173596798895:web:d883035f89fa2c139fc95a"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        let userUID = null;
-        
+        // Los datos del vehículo se guardan en el navegador del usuario (localStorage)
+        const CLAVE_VEHICULO = 'glp_vehiculo_datos';
         let mediaGas95 = 0;
         let mediaDiesel = 0;
         let mediaGLP = 0.94;
 
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                userUID = user.uid;
-                document.getElementById('txt-nombre').innerText = user.displayName || "Usuario";
-                document.getElementById('txt-email').innerText = user.email;
-                
-                // Ejecución en paralelo
-                cargarDatosFirestore();
-                obtenerMediasNacionales();
-            } else {
-                window.location.href = "auth.html";
-            }
-        });
-
         async function obtenerMediasNacionales() {
             try {
                 // Medias nacionales precalculadas por GitHub Actions (scripts/actualizar_datos.mjs)
-                const res = await fetch('/data/gasolineras.json', { cache: 'no-cache' });
+                const res = await fetch('data/gasolineras.json', { cache: 'no-cache' });
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const { medias } = await res.json();
 
@@ -128,14 +93,13 @@
                 mediaGLP = medias.glp || 0.94;
 
                 document.getElementById('label-media-actual').innerText = `Medias hoy: G95: ${mediaGas95.toFixed(3)}€ | Diésel: ${mediaDiesel.toFixed(3)}€`;
-                recalcularAhorro(); 
             } catch (e) {
                 console.error("Error cargando medias:", e);
-                mediaGas95 = 1.62; 
+                mediaGas95 = 1.62;
                 mediaDiesel = 1.49;
                 document.getElementById('label-media-actual').innerText = `Medias estimadas: G95: ${mediaGas95.toFixed(3)}€ | Diésel: ${mediaDiesel.toFixed(3)}€`;
-                recalcularAhorro();
             }
+            recalcularAhorro();
         }
 
         function aplicarDatosAInterfaz(d) {
@@ -150,20 +114,11 @@
             recalcularAhorro();
         }
 
-        async function cargarDatosFirestore() {
-            // Carga optimista desde caché local
-            const datosCacheados = localStorage.getItem('glp_vehiculo_datos');
-            if (datosCacheados) {
-                aplicarDatosAInterfaz(JSON.parse(datosCacheados));
-            }
-
-            // Consulta de validación en segundo plano
-            const snap = await getDoc(doc(db, "users", userUID, "configuracion", "vehiculo"));
-            if (snap.exists()) {
-                const d = snap.data();
-                localStorage.setItem('glp_vehiculo_datos', JSON.stringify(d));
-                aplicarDatosAInterfaz(d);
-            }
+        function cargarDatosGuardados() {
+            try {
+                const guardados = localStorage.getItem(CLAVE_VEHICULO);
+                if (guardados) aplicarDatosAInterfaz(JSON.parse(guardados));
+            } catch (e) { console.warn("No se pudieron leer los datos guardados:", e); }
         }
 
         window.guardarDatosVehiculo = async () => {
@@ -176,11 +131,12 @@
                 precioManual: tipo === 'manual' ? parseFloat(document.getElementById('inp-precio-manual').value) : null
             };
             
-            await setDoc(doc(db, "users", userUID, "configuracion", "vehiculo"), datos);
-            localStorage.setItem('glp_vehiculo_datos', JSON.stringify(datos));
-            
+            try { localStorage.setItem(CLAVE_VEHICULO, JSON.stringify(datos)); } catch (e) { console.warn(e); }
+
             recalcularAhorro();
-            alert("¡Perfil actualizado!");
+            const msg = document.getElementById('msg-guardado');
+            msg.style.display = 'block';
+            setTimeout(() => { msg.style.display = 'none'; }, 3000);
         };
 
         window.recalcularAhorro = () => {
@@ -210,6 +166,9 @@
                 document.getElementById('res-ahorro').innerText = "0.00 €";
             }
         };
+
+        cargarDatosGuardados();
+        obtenerMediasNacionales();
     </script>
 </body>
 </html>
