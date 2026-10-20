@@ -8,7 +8,7 @@
     <link rel="icon" type="image/svg+xml" href="img/favicon.svg">
     <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
     <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
-    <link rel="stylesheet" href="styles.css?v=7">
+    <link rel="stylesheet" href="styles.css?v=8">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     
     <style>
@@ -43,7 +43,7 @@
         <div class="search-wrapper">
             <div class="search-container-box">
                 <div class="search-controls">
-                    <input type="search" id="searchInput" placeholder="Ciudad, calle o código postal" aria-label="Buscar un lugar" oninput="manejarEntrada()" onkeydown="if(event.key==='Enter'){ event.preventDefault(); buscarUbicacion(); }" autocomplete="off">
+                    <input type="search" id="searchInput" placeholder="Ciudad, calle o CP" aria-label="Buscar un lugar" oninput="manejarEntrada()" onkeydown="if(event.key==='Enter'){ event.preventDefault(); buscarUbicacion(); }" autocomplete="off">
                     <button onclick="buscarUbicacion()" class="btn-search">Buscar</button>
                     <button class="btn-icon" id="btnFiltros" type="button" onclick="toggleFiltros()" title="Filtrar resultados" aria-label="Filtros" aria-expanded="false" aria-controls="panelFiltros">
                         <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
@@ -56,7 +56,7 @@
                     <span class="tag tag--barato">Barata</span>
                     <span class="tag tag--medio">En la media</span>
                     <span class="tag tag--caro">Cara</span>
-                    <span class="legend-nota">frente a la zona que ves</span>
+                    <span class="legend-nota">respecto a la zona</span>
                 </div>
                 <div class="map-stamp" id="sellosPrecios" hidden>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
@@ -446,7 +446,7 @@
 
                 const zIndexBase = esParada ? 500 : 0;
                 const marcador = L.marker([lat, lng], {
-                    icon: L.divIcon({ className: 'custom-div-icon', html: pinHtml, iconSize: [76, 30], iconAnchor: [38, 36], popupAnchor: [0, -36] }),
+                    icon: L.divIcon({ className: 'custom-div-icon', html: pinHtml, iconSize: [82, 30], iconAnchor: [41, 37], popupAnchor: [0, -38] }),
                     zIndexOffset: zIndexBase
                 }).bindPopup(popup, { autoPan: true, autoPanPadding: [16, 16] }).addTo(capaPinesVisibles);
 
