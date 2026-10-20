@@ -9,7 +9,7 @@
     <link rel="icon" type="image/svg+xml" href="img/icono.svg">
     <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
     <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
-    <link rel="stylesheet" href="styles.css?v=4">
+    <link rel="stylesheet" href="styles.css?v=5">
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 
@@ -89,7 +89,7 @@
             try {
                 const favoritas = Object.entries(await leerFavoritas());
                 if (favoritas.length === 0) {
-                    container.innerHTML = `<div class="empty-state" style="grid-column: 1 / -1;"><h3>Todavía no tienes favoritas</h3><p>Abre una gasolinera en el mapa y pulsa la estrella para guardarla aquí.</p></div>`;
+                    container.innerHTML = `<div class="empty-state" style="grid-column: 1 / -1;"><h3>Todavía no tienes favoritas</h3><p>Abre una gasolinera en el mapa y pulsa la estrella para guardarla aquí.</p><a href="index.html" class="btn-primary" style="width:auto;margin-top:18px;">Ir al mapa</a></div>`;
                     return;
                 }
 
@@ -270,7 +270,7 @@
                 
                 const container = document.getElementById('fav-container');
                 if (container.children.length === 0) {
-                    container.innerHTML = `<div class="empty-state" style="grid-column: 1 / -1;"><h3>Todavía no tienes favoritas</h3><p>Abre una gasolinera en el mapa y pulsa la estrella para guardarla aquí.</p></div>`;
+                    container.innerHTML = `<div class="empty-state" style="grid-column: 1 / -1;"><h3>Todavía no tienes favoritas</h3><p>Abre una gasolinera en el mapa y pulsa la estrella para guardarla aquí.</p><a href="index.html" class="btn-primary" style="width:auto;margin-top:18px;">Ir al mapa</a></div>`;
                 }
             }
         };

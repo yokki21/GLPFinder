@@ -8,7 +8,7 @@
     <link rel="icon" type="image/svg+xml" href="img/icono.svg">
     <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
     <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
-    <link rel="stylesheet" href="styles.css?v=4">
+    <link rel="stylesheet" href="styles.css?v=5">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     
     <style>
@@ -469,6 +469,8 @@
 
     try {
         ultimoTimestamp = await idbKeyval.get('glp_timestamp') || 0;
+        // Cachés antiguas sin fecha de precios: se descargan de nuevo
+        if (!(await idbKeyval.get('glp_fecha'))) ultimoTimestamp = 0;
         datosGuardados = await idbKeyval.get('glp_datos');
     } catch (e) {
         console.warn("IndexedDB no está disponible (posible modo privado/incógnito). Se usarán datos en vivo.", e);

@@ -405,7 +405,7 @@ header {
 /* ==========================================================================
    Pines de precio (estilo tótem) y agrupaciones
    ========================================================================== */
-.custom-div-icon { background: transparent; border: 0; }
+.custom-div-icon { background: transparent; border: 0; display: flex; align-items: flex-end; justify-content: center; }
 
 .custom-price-pin {
     position: relative;
@@ -621,8 +621,8 @@ header {
     .map-legend { font-size: 12px; gap: 4px 10px; }
     .map-legend .l-fecha { margin-left: 0; width: 100%; }
     .cluster-mode .cluster-prov { display: none; }
-    .custom-price-pin.cluster-mode { padding: 3px 6px 3px 8px; }
-    .cluster-mode .cluster-price { font-size: 14px; }
+    .custom-price-pin.cluster-mode { width: auto; height: auto; padding: 2px 6px 2px 7px; border-left-width: 3px; }
+    .cluster-mode .cluster-price { font-size: 13px; }
 
     /* Páginas */
     .form-main, .contacto-main, .fav-main, .profile-container { padding: 28px 16px 48px; }
