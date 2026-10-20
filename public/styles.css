@@ -460,6 +460,20 @@ input[type="range"]::-moz-range-thumb { width: 18px; height: 18px; border-radius
 .parada-nombre { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; font-size: 15px; }
 .parada-acciones { display: flex; }
 
+/* Ruta minimizada: solo destino y resumen en una línea */
+.ruta-cuerpo { display: flex; flex-direction: column; gap: 18px; }
+.ruta-cuerpo > * { flex-shrink: 0; }
+.route-panel.compacto .ruta-cuerpo { display: none; }
+.route-panel.compacto:not(.hidden) { padding: 12px 14px; gap: 0; }
+.route-panel.compacto .panel-titulo { cursor: pointer; }
+.route-panel.compacto h3 { font-size: 19px; }
+.ruta-linea { margin-top: 2px; font-size: 14px; font-weight: 600; color: var(--azul); }
+.btn-plegar svg { transition: transform .2s ease; }
+.route-panel.compacto .btn-plegar svg { transform: rotate(180deg); }
+.btn-editar-ruta { align-self: flex-start; margin: -8px 0 -6px -8px; }
+.route-panel.destello { animation: destello .7s ease; }
+@keyframes destello { 0% { box-shadow: 0 0 0 0 rgba(11, 95, 255, .55), var(--sombra); } 100% { box-shadow: 0 0 0 10px rgba(11, 95, 255, 0), var(--sombra); } }
+
 /* Controles flotantes */
 .map-controls-group { position: absolute; left: 16px; bottom: 28px; z-index: 999; display: flex; gap: 8px; }
 .btn-geo, .btn-layers {
@@ -703,6 +717,8 @@ input[type="range"]::-moz-range-thumb { width: 18px; height: 18px; border-radius
     .panel-pie { margin: 0 -14px -14px; }
     .leaflet-popup-content { width: 240px !important; }
 
+    /* Con una ruta activa se libera espacio para ver el mapa */
+    .modo-ruta .map-legend, .modo-ruta .map-stamp { display: none; }
     .cluster-mode .cluster-prov { display: none; }
     .custom-price-pin.cluster-mode { width: auto; height: auto; padding: 2px 7px; }
     .cluster-mode .cluster-price { font-size: 14px; }
