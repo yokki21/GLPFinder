@@ -581,9 +581,25 @@ input[type="range"]::-moz-range-thumb { width: 18px; height: 18px; border-radius
 .custom-price-pin.selected-stop { box-shadow: 0 0 0 3px var(--azul), 0 4px 12px rgba(14, 17, 22, .25); }
 .custom-price-pin .stop-badge { position: absolute; top: -11px; left: -10px; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; border: 2px solid var(--blanco); border-radius: 50%; background: var(--azul); color: var(--blanco); font-family: var(--f-texto); font-size: 11px; }
 
-.custom-price-pin.cluster-mode { flex-direction: column; gap: 0; padding: 3px 8px 4px; line-height: 1.1; }
-.cluster-mode .cluster-price { font-size: 16px; }
-.cluster-mode .cluster-prov { font-family: var(--f-texto); font-size: 11px; font-weight: 600; color: var(--gris); }
+
+/* Media provincial: ficha oscura para distinguirla de una gasolinera concreta */
+.custom-price-pin.cluster-mode {
+    flex-direction: column;
+    gap: 1px;
+    width: auto;
+    height: auto;
+    min-width: 64px;
+    flex-shrink: 0;
+    padding: 4px 10px 5px;
+    background: var(--negro);
+    border-radius: var(--r-m);
+    line-height: 1.05;
+}
+.custom-price-pin.cluster-mode::after { background: var(--negro); }
+.cluster-mode .cluster-prov { font-family: var(--f-texto); font-size: 11px; font-weight: 600; color: #C9CED6; white-space: nowrap; }
+.cluster-mode .cluster-price { font-size: 16px; color: var(--blanco); }
+.cluster-mode.pin-verde .cluster-price { color: #3CCB92; }
+.cluster-mode.pin-rojo .cluster-price { color: #FF7A6B; }
 
 /* ==========================================================================
    Ventana de gasolinera
@@ -725,8 +741,8 @@ input[type="range"]::-moz-range-thumb { width: 18px; height: 18px; border-radius
 
     /* Con una ruta activa se libera espacio para ver el mapa */
     .modo-ruta .map-legend, .modo-ruta .map-stamp { display: none; }
-    .cluster-mode .cluster-prov { display: none; }
-    .custom-price-pin.cluster-mode { width: auto; height: auto; padding: 2px 7px; }
+    .custom-price-pin.cluster-mode { min-width: 0; padding: 3px 7px 4px; }
+    .cluster-mode .cluster-prov { font-size: 10px; }
     .cluster-mode .cluster-price { font-size: 14px; }
 
     .page-band { padding: 28px 16px 76px; }

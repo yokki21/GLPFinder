@@ -8,7 +8,7 @@
     <link rel="icon" type="image/svg+xml" href="img/favicon.svg">
     <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
     <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
-    <link rel="stylesheet" href="styles.css?v=10">
+    <link rel="stylesheet" href="styles.css?v=11">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     
     <style>
@@ -513,9 +513,9 @@
                 let colorClass = c.mediaProv <= mediaPantalla - 0.015 ? 'pin-verde' : (c.mediaProv >= mediaPantalla + 0.015 ? 'pin-rojo' : 'pin-amarillo');
 
                 const clusterIcon = L.divIcon({
-                    className: 'custom-div-icon',
-                    html: `<div class="custom-price-pin cluster-mode ${colorClass}"><span class="cluster-price">${c.mediaProv.toFixed(3)}€</span><span class="cluster-prov">${c.prov}</span></div>`,
-                    iconSize: [74, 42], iconAnchor: [37, 48], popupAnchor: [0, -48]
+                    className: 'custom-div-icon cluster-icon',
+                    html: `<div class="custom-price-pin cluster-mode ${colorClass}"><span class="cluster-prov">${c.prov === 'Santa Cruz de Tenerife' ? 'S. C. de Tenerife' : c.prov}</span><span class="cluster-price">${c.mediaProv.toFixed(3)}€</span></div>`,
+                    iconSize: [96, 40], iconAnchor: [48, 46], popupAnchor: [0, -46]
                 });
 
                 L.marker(c.coords, { icon: clusterIcon, riseOnHover: true })
