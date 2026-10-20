@@ -113,7 +113,7 @@
     </main>
 
     <script type="module">
-        import { leerFavoritas, quitarFavorita, leerVehiculo, leerHistorialAntiguo } from './almacen.js';
+        import { leerFavoritas, quitarFavorita, leerVehiculo, leerHistorialAntiguo } from './almacen.js?v=2';
 
         let configVehiculo = null; // Datos del coche guardados en "Mi vehículo"
         leerVehiculo().then(v => { configVehiculo = v; }).catch(() => {});
