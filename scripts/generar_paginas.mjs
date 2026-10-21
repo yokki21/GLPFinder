@@ -101,7 +101,7 @@ function pagina({ prefijo, ruta, title, description, h1, lead, cuerpo, jsonld = 
     <link rel="icon" type="image/svg+xml" href="${prefijo}img/favicon.svg">
     <link rel="icon" type="image/png" sizes="32x32" href="${prefijo}img/favicon-32.png">
     <link rel="apple-touch-icon" href="${prefijo}img/apple-touch-icon.png">
-    <link rel="stylesheet" href="${prefijo}styles.css?v=17">
+    <link rel="stylesheet" href="${prefijo}styles.css?v=18">
     <script data-goatcounter="https://glpfinder.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 ${jsonld.map((j) => `    <script type="application/ld+json">${JSON.stringify(j)}</script>`).join("\n")}
 </head>
@@ -137,7 +137,7 @@ ${cuerpo.html}
 
     <footer class="pie">
         <p>Precios oficiales del <a href="https://geoportalgasolineras.es/" rel="noopener">Ministerio para la Transición Ecológica y el Reto Demográfico</a>. glpfinder no está vinculado a ninguna marca de carburantes.</p>
-        <p><a href="${prefijo}index.html">Mapa</a> · <a href="${prefijo}glp/">Precios por provincia</a> · <a href="${prefijo}contacto.html">Contacto</a></p>
+        <p><a href="${prefijo}index.html">Mapa</a> · <a href="${prefijo}glp/">Precios por provincia</a> · <a href="${prefijo}contacto.html">Contacto</a> · <a href="https://t.me/glpfinder" rel="noopener">Canal de Telegram</a></p>
         <p><a href="${prefijo}aviso-legal.html">Aviso legal</a> · <a href="${prefijo}privacidad.html">Privacidad</a> · <a href="${prefijo}cookies.html">Cookies</a></p>
     </footer>
     <script src="${prefijo}nav.js" defer></script>
@@ -193,6 +193,13 @@ function resumen(items) {
 ${items.map(([v, l]) => `            <div><strong>${v}</strong><span>${l}</span></div>`).join("\n")}
         </div>`;
 }
+
+// Invitación al canal de Telegram (resumen diario automático)
+const CTA_TELEGRAM = `        <a class="cta-telegram" href="https://t.me/glpfinder" rel="noopener" target="_blank">
+            <span class="cta-telegram-icono"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21.4 4.2 2.9 11.3c-1.1.4-1.1 1.1-.2 1.4l4.7 1.5 1.8 5.6c.2.6.4.8.8.8.4 0 .6-.2.9-.5l2.3-2.2 4.7 3.5c.9.5 1.5.2 1.7-.8l3.1-14.6c.3-1.3-.5-1.8-1.3-1.8zM8.4 13.9l9.4-5.9c.5-.3.8-.1.5.2l-7.9 7.2-.3 3.3-1.7-4.8z"/></svg></span>
+            <span class="cta-telegram-txt"><strong>El GLP más barato, cada mañana en tu móvil</strong><span>Únete al canal de Telegram de glpfinder: la media del día y las gasolineras más baratas de cada comunidad.</span></span>
+            <span class="cta-telegram-btn">Unirme</span>
+        </a>`;
 
 function faqHTML(pares) {
   return `        <section class="seo-bloque">
@@ -353,6 +360,7 @@ ${listaCercanas}
             </ul>
             <p class="ficha-mas"><a href="../../${mun && mun.ruta ? mun.ruta : `glp/${prov.sp}/`}">Ver todas las gasolineras de GLP de ${esc(mun && mun.ruta ? e.municipio : prov.nombre)}</a></p>
         </section>
+${CTA_TELEGRAM}
 ${faqHTML(faq)}`,
     },
   });
@@ -442,6 +450,7 @@ ${municipios.map((x) => `                <li><a href="${x.sm}/">${esc(x.mun)}</a
 ${tablaEstaciones(lista, prefijo, { mediaRef: m })}
         </section>
 ${htmlMun}
+${CTA_TELEGRAM}
 ${faqHTML(faq)}
         <p class="seo-cta"><a class="btn btn--primario" href="${prefijo}index.html">Abrir el mapa de precios</a></p>`,
       },
@@ -475,6 +484,7 @@ ${faqHTML(faq)}
             <h2>Gasolineras de GLP en ${esc(x.mun)}</h2>
 ${tablaEstaciones(x.l, pm, { conMunicipio: false, mediaRef: x.media })}
         </section>
+${CTA_TELEGRAM}
 ${faqHTML(faqM)}
         <p class="seo-cta"><a class="btn btn--primario" href="${pm}index.html">Abrir el mapa de precios</a></p>`,
         },
@@ -531,6 +541,7 @@ ${tablaEstaciones(top, "../", { mediaRef: mediaNac })}
 ${bloquesCCAA}
             </div>
         </section>
+${CTA_TELEGRAM}
 ${faqHTML(faqG)}
         <p class="seo-cta"><a class="btn btn--primario" href="../index.html">Abrir el mapa de precios</a></p>`,
     },
