@@ -1,0 +1,22 @@
+# Publica cada mañana el resumen del precio del GLP en el canal de Telegram.
+name: Publicar en Telegram
+
+on:
+  schedule:
+    - cron: "41 6 * * *"   # 8:41 en horario de verano, 7:41 en invierno (hora peninsular)
+  workflow_dispatch:
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Publicar resumen del día
+        run: node scripts/publicar_telegram.mjs
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CANAL: ${{ secrets.TELEGRAM_CANAL }}
