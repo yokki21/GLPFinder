@@ -24,10 +24,9 @@
     <link rel="icon" type="image/svg+xml" href="img/favicon.svg">
     <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
     <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
-    <link rel="stylesheet" href="styles.css?v=16">
+    <link rel="stylesheet" href="styles.css?v=17">
     <link rel="preconnect" href="https://www.ign.es" crossorigin>
-    <link rel="preconnect" href="https://unpkg.com" crossorigin>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
     
     <script type="application/ld+json">
     {
@@ -270,8 +269,8 @@
         <div id="map"></div>
     </main>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/idb-keyval@6.2.1/dist/umd.js"></script>
+    <script src="vendor/leaflet/leaflet.js"></script>
+    <script src="vendor/almacen-local.js"></script>
 
     <script>
         // Utilidades UI
@@ -816,7 +815,15 @@
             const cuando = es(hoy) ? 'hoy' : es(ayer) ? 'ayer' : `el ${+d}/${+m}`;
             const [hh, mm] = String(hora).split(':');
             el.textContent = `Actualizado ${cuando} a las ${hh.padStart(2, '0')}:${mm}`;
-            document.getElementById('sellosPrecios').hidden = false;
+            // Si los precios tienen más de 24 h es que algo ha fallado al actualizarlos: se avisa
+            const horas = (Date.now() - new Date(+a, +m - 1, +d, +hh, +mm).getTime()) / 36e5;
+            const sello = document.getElementById('sellosPrecios');
+            const viejo = isFinite(horas) && horas > 24;
+            sello.classList.toggle('map-stamp--viejo', viejo);
+            sello.querySelector('span').textContent = viejo
+                ? 'Estos precios pueden no estar al día: no hemos podido actualizarlos. Comprueba el precio en la gasolinera.'
+                : 'Precios oficiales del Ministerio para la Transición Ecológica';
+            sello.hidden = false;
         }
 
         function reintentarCarga() {
@@ -1326,7 +1333,7 @@
     </script>
 
     <script type="module">
-        import { initRouteModule, calcularRuta, limpiarRuta } from './routes.js?v=2';
+        import { initRouteModule, calcularRuta, limpiarRuta } from './routes.js?v=3';
         import { leerFavoritas, guardarFavorita, quitarFavorita, leerVehiculo } from './almacen.js?v=3';
 
         initRouteModule(map);

@@ -101,7 +101,7 @@ function pagina({ prefijo, ruta, title, description, h1, lead, cuerpo, jsonld = 
     <link rel="icon" type="image/svg+xml" href="${prefijo}img/favicon.svg">
     <link rel="icon" type="image/png" sizes="32x32" href="${prefijo}img/favicon-32.png">
     <link rel="apple-touch-icon" href="${prefijo}img/apple-touch-icon.png">
-    <link rel="stylesheet" href="${prefijo}styles.css?v=16">
+    <link rel="stylesheet" href="${prefijo}styles.css?v=17">
     <script data-goatcounter="https://glpfinder.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 ${jsonld.map((j) => `    <script type="application/ld+json">${JSON.stringify(j)}</script>`).join("\n")}
 </head>

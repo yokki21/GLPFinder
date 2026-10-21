@@ -955,3 +955,8 @@ input[type="range"]::-moz-range-thumb { width: 18px; height: 18px; border-radius
     .map-main:has(.baratas:not([hidden])) .leaflet-bottom { bottom: 70px; }
     .map-main:has(.baratas:not([hidden])) .carga-estado { bottom: 140px; }
 }
+
+/* Precios sin actualizar */
+.map-stamp--viejo svg { color: var(--caro); }
+.map-stamp--viejo strong { color: var(--caro-texto); }
+.map-stamp--viejo span { display: block !important; color: var(--caro-texto); }
