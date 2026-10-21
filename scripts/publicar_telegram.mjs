@@ -96,19 +96,29 @@ async function main() {
     "📍 <b>La más barata de cada comunidad</b>",
     ...lineasCCAA,
     "",
-    `🗺 Busca la más barata cerca de ti: <a href="${SITE}">glpfinder.es</a>`,
+    "__BOT__",
     "<i>Precios oficiales del Ministerio para la Transición Ecológica.</i>",
   ].join("\n");
 
-  if (prueba) { console.log(texto); return; }
-
   const token = process.env.TELEGRAM_TOKEN, canal = process.env.TELEGRAM_CANAL;
-  if (!token || !canal) { console.log("Faltan los secretos TELEGRAM_TOKEN o TELEGRAM_CANAL: no se publica nada."); return; }
+  if (prueba || !token || !canal) {
+    console.log(texto.replace("__BOT__", "🤖 ¿Dónde repostar ahora mismo? Escríbele una dirección o mándale tu ubicación a @bot"));
+    if (!prueba) console.log("Faltan los secretos TELEGRAM_TOKEN o TELEGRAM_CANAL: no se publica nada.");
+    return;
+  }
+
+  // Nombre del bot (para invitar a hablarle en privado)
+  let bot = null;
+  try { const me = await (await fetch(`https://api.telegram.org/bot${token}/getMe`)).json(); bot = me.ok ? me.result.username : null; } catch { /* sin bot: se omite */ }
+  const textoFinal = texto.replace("__BOT__", bot
+    ? `🤖 ¿Dónde repostar ahora mismo? Escríbele una dirección o mándale tu ubicación a @${bot}`
+    : `🗺 Busca la más barata cerca de ti: <a href="${SITE}">glpfinder.es</a>`);
+  const botones = [[...(bot ? [{ text: "🤖 Buscar GLP cerca de mí", url: `https://t.me/${bot}` }] : []), { text: "🗺 Abrir el mapa", url: SITE }]];
 
   const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ chat_id: canal, text: texto, parse_mode: "HTML", link_preview_options: { is_disabled: true } }),
+    body: JSON.stringify({ chat_id: canal, text: textoFinal, parse_mode: "HTML", link_preview_options: { is_disabled: true }, reply_markup: { inline_keyboard: botones } }),
   });
   const r = await res.json();
   if (!r.ok) throw new Error(`Telegram respondió: ${r.description}`);
