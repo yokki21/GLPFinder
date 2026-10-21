@@ -8,7 +8,7 @@
 import { readFile, writeFile, mkdir, rm } from "node:fs/promises";
 import path from "node:path";
 
-const SITE_URL = (process.env.SITE_URL || "https://yokki21.github.io/GLPFinder/").replace(/\/?$/, "/");
+const SITE_URL = (process.env.SITE_URL || "https://glpfinder.es/").replace(/\/?$/, "/");
 const PUBLIC = "public";
 const MIN_MUNICIPIO = 3; // gasolineras mínimas para que un municipio tenga página propia
 

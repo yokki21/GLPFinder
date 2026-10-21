@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://yokki21.github.io/GLPFinder/sitemap.xml
+Sitemap: https://glpfinder.es/sitemap.xml
