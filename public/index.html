@@ -301,7 +301,7 @@
 
         const startLat  = ordenFavorita ? ordenFavorita.lat  : 40.4168;
         const startLng  = ordenFavorita ? ordenFavorita.lng  : -3.7038;
-        const startZoom = ordenFavorita ? 17 : 6; 
+        const startZoom = ordenFavorita ? (ordenFavorita.id ? 17 : 14) : 6; 
 
         // Capas base
         // Ortofoto PNOA y Mapa Base del IGN (WMTS, licencia CC BY 4.0, uso comercial permitido)
