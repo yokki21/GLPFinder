@@ -600,7 +600,8 @@
             const ayer = new Date(Date.now() - 864e5);
             const es = (f) => +d === f.getDate() && +m === f.getMonth() + 1 && +a === f.getFullYear();
             const cuando = es(hoy) ? 'hoy' : es(ayer) ? 'ayer' : `el ${+d}/${+m}`;
-            el.textContent = `Actualizado ${cuando} a las ${hora.slice(0, 5)}`;
+            const [hh, mm] = String(hora).split(':');
+            el.textContent = `Actualizado ${cuando} a las ${hh.padStart(2, '0')}:${mm}`;
             document.getElementById('sellosPrecios').hidden = false;
         }
 

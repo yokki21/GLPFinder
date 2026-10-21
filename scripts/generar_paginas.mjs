@@ -66,7 +66,8 @@ function fechaLarga(f) {
   // "20/10/2026 23:32:05" -> "20 de octubre de 2026 a las 23:32"
   const [dia, hora] = String(f).split(" ");
   const [d, m, a] = dia.split("/").map(Number);
-  return `${d} de ${MESES[m - 1]} de ${a} a las ${String(hora).slice(0, 5)}`;
+  const [hh, mm] = String(hora).split(":");
+  return `${d} de ${MESES[m - 1]} de ${a} a las ${hh.padStart(2, "0")}:${mm}`;
 }
 
 // ---------- plantilla común ----------
