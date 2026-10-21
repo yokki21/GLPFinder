@@ -976,3 +976,30 @@ input[type="range"]::-moz-range-thumb { width: 18px; height: 18px; border-radius
     .cta-telegram { flex-wrap: wrap; padding: 16px; }
     .cta-telegram-btn { width: 100%; text-align: center; }
 }
+
+/* Guías */
+.guia { max-width: 100%; }
+.guia > * + * { margin-top: 14px; }
+.guia p, .guia li { font-size: 17px; line-height: 1.6; color: var(--negro-2); max-width: 72ch; }
+.guia h2 { margin-top: 30px; margin-bottom: 0; }
+.guia h2:first-child { margin-top: 0; }
+.guia h3 { margin-top: 20px; font-size: 20px; }
+.guia ul, .guia ol { padding-left: 22px; display: flex; flex-direction: column; gap: 8px; }
+.guia-sello { font-size: 14px !important; color: var(--gris) !important; }
+.calc-nota { font-size: 14px; color: var(--gris); }
+.calc-campos { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin: 16px 0; }
+.calc-campos label { display: flex; flex-direction: column; justify-content: space-between; gap: 6px; font-size: 14px; font-weight: 600; }
+.calc-campos input, .calc-campos select { height: 44px; padding: 0 12px; border: 1.5px solid var(--linea); border-radius: var(--r-m); background: var(--fondo); font-size: 16px; font-weight: 400; }
+.calc-campos input:focus, .calc-campos select:focus { outline: none; border-color: var(--azul); background: var(--blanco); box-shadow: var(--foco); }
+.calc-res { margin-bottom: 12px; }
+.guias-rejilla { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+.guia-tarjeta { display: flex; flex-direction: column; gap: 6px; padding: 22px; background: var(--blanco); border: 1px solid var(--linea); border-radius: var(--r-l); color: var(--negro); text-decoration: none; }
+.guia-tarjeta:hover { border-color: var(--verde); box-shadow: var(--sombra); }
+.guia-tarjeta strong { font-family: var(--f-titulo); font-size: 22px; line-height: 1.15; }
+.guia-tarjeta span { color: var(--gris); font-size: 15px; flex: 1; }
+.guia-tarjeta em { font-style: normal; font-weight: 600; color: var(--verde); }
+@media (max-width: 768px) {
+    .guia p, .guia li { font-size: 16px; }
+    .calc-res strong { font-size: 19px; }
+    .guias-rejilla { grid-template-columns: 1fr; }
+}

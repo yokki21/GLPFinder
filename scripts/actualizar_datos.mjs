@@ -88,6 +88,7 @@ async function main() {
       gasoleoA: media(todas, "Precio Gasoleo A"),
       gasolina95: media(todas, "Precio Gasolina 95 E5"),
     },
+    totalEstaciones: todas.length,
     campos: CAMPOS,
     filas: conGLP.map((e) => CAMPOS.map((c) => e[c])),
   };

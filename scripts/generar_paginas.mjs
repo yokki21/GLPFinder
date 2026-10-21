@@ -8,6 +8,7 @@
 
 import { readFile, writeFile, mkdir, rm } from "node:fs/promises";
 import { existsSync } from "node:fs";
+import { construirGuias } from "./guias.mjs";
 import path from "node:path";
 
 const SITE_URL = (process.env.SITE_URL || "https://glpfinder.es/").replace(/\/?$/, "/");
@@ -75,7 +76,7 @@ function fechaLarga(f) {
 }
 
 // ---------- plantilla común ----------
-function pagina({ prefijo, ruta, title, description, h1, lead, cuerpo, jsonld = [] }) {
+function pagina({ prefijo, ruta, title, description, h1, lead, cuerpo, jsonld = [], seccion = "precios" }) {
   const url = SITE_URL + ruta;
   return `<!DOCTYPE html>
 <html lang="es">
@@ -101,7 +102,7 @@ function pagina({ prefijo, ruta, title, description, h1, lead, cuerpo, jsonld = 
     <link rel="icon" type="image/svg+xml" href="${prefijo}img/favicon.svg">
     <link rel="icon" type="image/png" sizes="32x32" href="${prefijo}img/favicon-32.png">
     <link rel="apple-touch-icon" href="${prefijo}img/apple-touch-icon.png">
-    <link rel="stylesheet" href="${prefijo}styles.css?v=18">
+    <link rel="stylesheet" href="${prefijo}styles.css?v=19">
     <script data-goatcounter="https://glpfinder.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 ${jsonld.map((j) => `    <script type="application/ld+json">${JSON.stringify(j)}</script>`).join("\n")}
 </head>
@@ -115,7 +116,8 @@ ${jsonld.map((j) => `    <script type="application/ld+json">${JSON.stringify(j)}
         </button>
         <nav class="nav-links" id="menu-principal" aria-label="Principal">
             <a href="${prefijo}index.html">Mapa</a>
-            <a href="${prefijo}glp/" aria-current="page">Precios</a>
+            <a href="${prefijo}glp/"${seccion === "precios" ? ' aria-current="page"' : ""}>Precios</a>
+            <a href="${prefijo}guias/"${seccion === "guias" ? ' aria-current="page"' : ""}>Guías</a>
             <a href="${prefijo}favoritas.html">Mis favoritas</a>
             <a href="${prefijo}datos.html">Mi vehículo</a>
             <a href="${prefijo}contacto.html">Contacto</a>
@@ -137,7 +139,7 @@ ${cuerpo.html}
 
     <footer class="pie">
         <p>Precios oficiales del <a href="https://geoportalgasolineras.es/" rel="noopener">Ministerio para la Transición Ecológica y el Reto Demográfico</a>. glpfinder no está vinculado a ninguna marca de carburantes.</p>
-        <p><a href="${prefijo}index.html">Mapa</a> · <a href="${prefijo}glp/">Precios por provincia</a> · <a href="${prefijo}contacto.html">Contacto</a> · <a href="https://t.me/glpfinder" rel="noopener">Canal de Telegram</a></p>
+        <p><a href="${prefijo}index.html">Mapa</a> · <a href="${prefijo}glp/">Precios por provincia</a> · <a href="${prefijo}guias/">Guías</a> · <a href="${prefijo}contacto.html">Contacto</a> · <a href="https://t.me/glpfinder" rel="noopener">Canal de Telegram</a></p>
         <p><a href="${prefijo}aviso-legal.html">Aviso legal</a> · <a href="${prefijo}privacidad.html">Privacidad</a> · <a href="${prefijo}cookies.html">Cookies</a></p>
     </footer>
     <script src="${prefijo}nav.js" defer></script>
@@ -394,6 +396,7 @@ async function main() {
 
   await rm(path.join(PUBLIC, "glp"), { recursive: true, force: true });
   await rm(path.join(PUBLIC, "gasolinera"), { recursive: true, force: true });
+  await rm(path.join(PUBLIC, "guias"), { recursive: true, force: true });
   const infoProv = {};  // cod -> { nombre, sp, ccaa, media, lista ordenada }
   const infoMun = {};   // "cod|municipio" -> { media, n, ruta (si tiene página) }
   const urls = [{ loc: SITE_URL, freq: "hourly", pri: "1.0" }, { loc: SITE_URL + "glp/", freq: "hourly", pri: "0.9" }];
@@ -501,6 +504,63 @@ ${faqHTML(faqM)}
     urls.push({ loc: `${SITE_URL}gasolinera/${e.slug}/`, freq: "daily", pri: "0.5" });
   }
 
+
+  // ---------- guías ----------
+  const guias = construirGuias({ medias: datos.medias, nGLP: estaciones.length, totalEstaciones: datos.totalEstaciones, fecha, esc });
+  const itemsGu = [{ nombre: "Guías", href: "../", ruta: "guias/" }];
+  for (const g of guias) {
+    const ruta = `guias/${g.slug}/`;
+    const items = [...itemsGu, { nombre: g.corto, href: "./", ruta }];
+    const html = pagina({
+      prefijo: "../../", ruta, seccion: "guias", title: g.title, description: g.description, h1: g.h1, lead: esc(g.lead),
+      jsonld: [jsonMigas(items), {
+        "@context": "https://schema.org", "@type": "Article", headline: g.h1, description: g.description,
+        inLanguage: "es-ES", datePublished: "2026-10-21", dateModified: hoyISO, mainEntityOfPage: SITE_URL + ruta,
+        image: `${SITE_URL}img/og.png`, author: { "@type": "Organization", name: "glpfinder", url: SITE_URL },
+        publisher: { "@type": "Organization", name: "glpfinder", logo: { "@type": "ImageObject", url: `${SITE_URL}img/icono-512.png` } },
+      }, jsonFAQ(g.faq)],
+      cuerpo: {
+        migas: migas("../../", items),
+        html: `${g.html}
+        <section class="seo-bloque">
+            <h2>Otras guías</h2>
+            <ul class="lista-enlaces">
+${guias.filter((o) => o !== g).map((o) => `                <li><a href="../${o.slug}/">${esc(o.corto)}</a><span>${esc(o.resumen)}</span></li>`).join("\n")}
+            </ul>
+        </section>
+${CTA_TELEGRAM}
+${faqHTML(g.faq)}
+        <p class="seo-cta"><a class="btn btn--primario" href="../../index.html">Buscar el GLP más barato</a></p>`,
+      },
+    });
+    await mkdir(path.join(PUBLIC, ruta), { recursive: true });
+    await writeFile(path.join(PUBLIC, ruta, "index.html"), html);
+    urls.push({ loc: SITE_URL + ruta, freq: "daily", pri: "0.7" });
+  }
+  const htmlGu = pagina({
+    prefijo: "../", ruta: "guias/", seccion: "guias",
+    title: "Guías del GLP: ahorro, etiqueta ECO y transformación | glpfinder",
+    description: "Guías prácticas sobre el GLP (autogás): cuánto se ahorra, la etiqueta ECO y las zonas de bajas emisiones, cómo pasar el coche a GLP y cómo usar glpfinder.",
+    h1: "Guías del GLP",
+    lead: "Todo lo que necesitas saber sobre el autogás, con cifras actualizadas cada día con los precios oficiales.",
+    jsonld: [jsonMigas(itemsGu)],
+    cuerpo: {
+      migas: migas("../", itemsGu),
+      html: `        <div class="guias-rejilla">
+${guias.map((g) => `            <a class="guia-tarjeta" href="${g.slug}/"><strong>${esc(g.corto)}</strong><span>${esc(g.resumen)}</span><em>Leer la guía →</em></a>`).join("\n")}
+        </div>
+${CTA_TELEGRAM}`,
+    },
+  });
+  await writeFile(path.join(PUBLIC, "guias", "index.html"), htmlGu);
+  urls.push({ loc: SITE_URL + "guias/", freq: "daily", pri: "0.7" });
+  const bloqueGuias = `        <section class="seo-bloque">
+            <h2>Guías del GLP</h2>
+            <ul class="lista-enlaces">
+${guias.map((g) => `                <li><a href="../guias/${g.slug}/">${esc(g.corto)}</a><span>${esc(g.resumen)}</span></li>`).join("\n")}
+            </ul>
+        </section>`;
+
   // ---------- página general ----------
   const porCCAA = {};
   for (const p of resumenProv) (porCCAA[p.ccaa] ||= []).push(p);
@@ -541,6 +601,7 @@ ${tablaEstaciones(top, "../", { mediaRef: mediaNac })}
 ${bloquesCCAA}
             </div>
         </section>
+${bloqueGuias}
 ${CTA_TELEGRAM}
 ${faqHTML(faqG)}
         <p class="seo-cta"><a class="btn btn--primario" href="../index.html">Abrir el mapa de precios</a></p>`,
