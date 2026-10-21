@@ -865,3 +865,12 @@ input[type="range"]::-moz-range-thumb { width: 18px; height: 18px; border-radius
     .t-precio { grid-column: 2; grid-row: 1; align-self: start; }
     .t-mapa { grid-column: 1 / -1; text-align: left; padding-left: 32px !important; font-size: 14px; }
 }
+
+/* Páginas legales */
+.legal h2 { font-size: 24px; margin: 28px 0 10px; }
+.legal h2:first-child { margin-top: 0; }
+.legal h3 { font-size: 19px; margin: 20px 0 6px; }
+.legal p, .legal li { max-width: 75ch; color: var(--negro-2); }
+.legal p + p { margin-top: 10px; }
+.legal ul { margin: 8px 0 0 20px; display: flex; flex-direction: column; gap: 6px; }
+.leaflet-control-attribution a { color: var(--azul); }

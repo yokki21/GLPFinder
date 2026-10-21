@@ -70,5 +70,6 @@ node_modules/
 
 # Datos generados por GitHub Actions (el historial sí se versiona)
 public/data/gasolineras.json
+public/data/precios.json
 public/fonts/
 public/glp/

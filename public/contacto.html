@@ -25,7 +25,8 @@
     <link rel="icon" type="image/svg+xml" href="img/favicon.svg">
     <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
     <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
-    <link rel="stylesheet" href="styles.css?v=13">
+    <link rel="stylesheet" href="styles.css?v=14">
+    <script data-goatcounter="https://glpfinder.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 </head>
 <body>
 
@@ -97,9 +98,10 @@
                         <textarea id="mensaje" name="mensaje" placeholder="Cuéntanos qué necesitas" required></textarea>
                     </div>
                     
-                    <input type="hidden" name="_next" value="index.html">
+                    <input type="hidden" name="_next" value="https://glpfinder.es/contacto.html?enviado=1">
                     
                     <button type="submit" class="btn-primary">Enviar mensaje</button>
+                    <p class="ayuda" style="margin-top:10px;">Usaremos tus datos solo para responderte. Más información en la <a href="privacidad.html">política de privacidad</a>.</p>
                 </form>
             </div>
 
@@ -107,8 +109,20 @@
 
     </main>
 
+    <footer class="pie">
+        <p>Precios oficiales del Ministerio para la Transición Ecológica y el Reto Demográfico. glpfinder no está vinculado a ninguna marca de carburantes.</p>
+        <p><a href="aviso-legal.html">Aviso legal</a> · <a href="privacidad.html">Privacidad</a> · <a href="cookies.html">Cookies</a> · <a href="contacto.html">Contacto</a></p>
+    </footer>
+
     <script type="module">
         import './almacen.js?v=3';
+    </script>
+    <script>
+        // Vuelta desde Formspree tras enviar el formulario
+        if (new URLSearchParams(location.search).get('enviado')) {
+            const f = document.querySelector('form[action*="formspree"]');
+            if (f) f.outerHTML = '<div role="status"><h2 style="font-size:24px;margin-bottom:6px;">Mensaje enviado</h2><p>Gracias por escribirnos. Te responderemos lo antes posible.</p></div>';
+        }
     </script>
     <script src="nav.js" defer></script>
 </body>

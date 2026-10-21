@@ -1,4 +1,4 @@
-// Genera páginas estáticas indexables a partir de public/data/gasolineras.json:
+// Genera páginas estáticas indexables a partir de public/data/precios.json:
 //   public/glp/index.html                         -> precio del GLP hoy en España (todas las provincias)
 //   public/glp/<provincia>/index.html             -> gasolineras de GLP de cada provincia
 //   public/glp/<provincia>/<municipio>/index.html -> municipios con varias gasolineras
@@ -96,7 +96,8 @@ function pagina({ prefijo, ruta, title, description, h1, lead, cuerpo, jsonld = 
     <link rel="icon" type="image/svg+xml" href="${prefijo}img/favicon.svg">
     <link rel="icon" type="image/png" sizes="32x32" href="${prefijo}img/favicon-32.png">
     <link rel="apple-touch-icon" href="${prefijo}img/apple-touch-icon.png">
-    <link rel="stylesheet" href="${prefijo}styles.css?v=13">
+    <link rel="stylesheet" href="${prefijo}styles.css?v=14">
+    <script data-goatcounter="https://glpfinder.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 ${jsonld.map((j) => `    <script type="application/ld+json">${JSON.stringify(j)}</script>`).join("\n")}
 </head>
 <body>
@@ -132,6 +133,7 @@ ${cuerpo.html}
     <footer class="pie">
         <p>Precios oficiales del <a href="https://geoportalgasolineras.es/" rel="noopener">Ministerio para la Transición Ecológica y el Reto Demográfico</a>. glpfinder no está vinculado a ninguna marca de carburantes.</p>
         <p><a href="${prefijo}index.html">Mapa</a> · <a href="${prefijo}glp/">Precios por provincia</a> · <a href="${prefijo}contacto.html">Contacto</a></p>
+        <p><a href="${prefijo}aviso-legal.html">Aviso legal</a> · <a href="${prefijo}privacidad.html">Privacidad</a> · <a href="${prefijo}cookies.html">Cookies</a></p>
     </footer>
     <script src="${prefijo}nav.js" defer></script>
 </body>
@@ -202,13 +204,14 @@ const comparar = (m, nac) => {
 
 // ---------- principal ----------
 async function main() {
-  const datos = JSON.parse(await readFile(path.join(PUBLIC, "data", "gasolineras.json"), "utf8"));
+  const datos = JSON.parse(await readFile(path.join(PUBLIC, "data", "precios.json"), "utf8"));
+  datos.ListaEESSPrecio = datos.filas.map((f) => Object.fromEntries(datos.campos.map((c, i) => [c, f[i]])));
   const fecha = fechaLarga(datos.Fecha);
   const hoyISO = new Date().toISOString().slice(0, 10);
 
   const estaciones = datos.ListaEESSPrecio.map((e) => ({
     id: e.IDEESS, rotulo: (e["Rótulo"] || "Sin rótulo").trim(), direccion: titulo(e["Dirección"] || ""),
-    municipio: (e.Municipio || titulo(e.Localidad || "")).trim(), cp: e["C.P."], horario: e.Horario,
+    municipio: (e.Municipio || titulo(e.Localidad || "")).trim(), cp: e["C.P."],
     lat: num(e.Latitud), lng: num(e["Longitud (WGS84)"]), precio: num(e[CAMPO_GLP]),
     prov: String(e.IDProvincia || String(e["C.P."] || "").padStart(5, "0").slice(0, 2)).padStart(2, "0"),
   })).filter((e) => e.precio > 0 && PROVINCIAS[e.prov] && isFinite(e.lat) && isFinite(e.lng));
@@ -363,7 +366,7 @@ ${faqHTML(faqG)}
   await mkdir(path.join(PUBLIC, "glp"), { recursive: true });
   await writeFile(path.join(PUBLIC, "glp", "index.html"), htmlG);
 
-  urls.push({ loc: SITE_URL + "contacto.html", freq: "yearly", pri: "0.3" });
+  for (const pg of ["contacto.html", "aviso-legal.html", "privacidad.html", "cookies.html"]) urls.push({ loc: SITE_URL + pg, freq: "yearly", pri: "0.2" });
   const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${urls.map((u) => `  <url><loc>${u.loc}</loc><lastmod>${hoyISO}</lastmod><changefreq>${u.freq}</changefreq><priority>${u.pri}</priority></url>`).join("\n")}

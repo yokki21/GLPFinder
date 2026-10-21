@@ -24,7 +24,7 @@
     <link rel="icon" type="image/svg+xml" href="img/favicon.svg">
     <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
     <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
-    <link rel="stylesheet" href="styles.css?v=13">
+    <link rel="stylesheet" href="styles.css?v=14">
     <link rel="preconnect" href="https://www.ign.es" crossorigin>
     <link rel="preconnect" href="https://unpkg.com" crossorigin>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -43,6 +43,7 @@
         "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" }
     }
     </script>
+    <script data-goatcounter="https://glpfinder.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 </head>
 <body>
 
@@ -281,6 +282,7 @@
 
         const map = L.map('map', { zoomControl: false, layers: [mapaSatelite] }).setView([startLat, startLng], startZoom);
         L.control.zoom({ position: 'bottomright' }).addTo(map);
+        map.attributionControl.setPrefix('<a href="aviso-legal.html">Aviso legal</a> · <a href="privacidad.html">Privacidad</a> · <a href="https://leafletjs.com" rel="noopener">Leaflet</a>');
 
         const capasDisponibles = { satelite: mapaSatelite, calles: mapaCalles };
         let capaActual = 'satelite';
@@ -639,11 +641,11 @@
         try {
             mostrarCarga(todasLasEstaciones.length ? "Actualizando precios…" : "Cargando precios…");
             document.getElementById('errorDatos').hidden = true;
-            const res = await fetch('data/gasolineras.json', { cache: 'no-cache' });
+            const res = await fetch('data/precios.json', { cache: 'no-cache' });
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             {
                 const d = await res.json();
-                todasLasEstaciones = d.ListaEESSPrecio;
+                todasLasEstaciones = d.filas.map(f => Object.fromEntries(d.campos.map((c, i) => [c, f[i]])));
                 configurarRangoPrecio();
                 mostrarFechaPrecios(d.Fecha);
                 try { await idbKeyval.set('glp_fecha', d.Fecha); } catch (e) {}

@@ -1,5 +1,5 @@
 // Descarga los precios del Ministerio y genera los datos estáticos de la web:
-//   public/data/gasolineras.json      -> estaciones con GLP + medias nacionales
+//   public/data/precios.json          -> estaciones con GLP (formato compacto: campos + filas) y medias nacionales
 //   public/data/historial/<IDEESS>.json -> histórico diario del precio del GLP
 // Se ejecuta desde GitHub Actions (ver .github/workflows/actualizar-datos.yml).
 // Uso local: node scripts/actualizar_datos.mjs [fichero_json_del_ministerio]
@@ -14,10 +14,10 @@ const DIR_HISTORIAL = path.join(DIR_DATOS, "historial");
 const DIAS_HISTORIAL = 400;
 
 const CAMPO_GLP = "Precio Gases licuados del petróleo";
+// Solo los campos que usa la web. Se guardan como filas (sin repetir nombres) para que el archivo pese menos
 const CAMPOS = [
   "IDEESS", "Rótulo", "Dirección", "Localidad", "Municipio", "Provincia", "C.P.",
-  "Horario", "Latitud", "Longitud (WGS84)", "IDProvincia", "IDCCAA",
-  CAMPO_GLP, "Precio Gasoleo A", "Precio Gasolina 95 E5",
+  "Latitud", "Longitud (WGS84)", "IDProvincia", "IDCCAA", CAMPO_GLP,
 ];
 
 const aNumero = (txt) => (txt ? parseFloat(String(txt).replace(",", ".")) : NaN);
@@ -78,7 +78,7 @@ async function main() {
 
   const conGLP = todas
     .filter((e) => aNumero(e[CAMPO_GLP]) > 0)
-    .map((e) => Object.fromEntries(CAMPOS.map((c) => [c, e[c] ?? ""])));
+    .map((e) => Object.fromEntries(CAMPOS.map((c) => [c, (e[c] ?? "").toString().trim()])));
 
   const salida = {
     Fecha: datos.Fecha,
@@ -88,11 +88,12 @@ async function main() {
       gasoleoA: media(todas, "Precio Gasoleo A"),
       gasolina95: media(todas, "Precio Gasolina 95 E5"),
     },
-    ListaEESSPrecio: conGLP,
+    campos: CAMPOS,
+    filas: conGLP.map((e) => CAMPOS.map((c) => e[c])),
   };
 
   await mkdir(DIR_DATOS, { recursive: true });
-  await writeFile(path.join(DIR_DATOS, "gasolineras.json"), JSON.stringify(salida));
+  await writeFile(path.join(DIR_DATOS, "precios.json"), JSON.stringify(salida));
   const n = await actualizarHistorial(conGLP);
   console.log(`OK: ${conGLP.length} gasolineras con GLP (de ${todas.length}); historial de ${n}. Medias:`, salida.medias);
 }
