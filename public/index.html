@@ -24,7 +24,7 @@
     <link rel="icon" type="image/svg+xml" href="img/favicon.svg">
     <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
     <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
-    <link rel="stylesheet" href="styles.css?v=14">
+    <link rel="stylesheet" href="styles.css?v=15">
     <link rel="preconnect" href="https://www.ign.es" crossorigin>
     <link rel="preconnect" href="https://unpkg.com" crossorigin>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -234,6 +234,10 @@
                         <input type="radio" name="mapLayer" id="layer-calles" style="pointer-events: none;">
                         <label for="layer-calles" style="pointer-events: none;">Callejero</label>
                     </div>
+                    <div class="layers-option layers-option--sep" id="opcionNombres" onclick="alternarNombres()">
+                        <input type="checkbox" id="layer-nombres" checked style="pointer-events: none;">
+                        <label for="layer-nombres" style="pointer-events: none;">Nombres y carreteras</label>
+                    </div>
                 </div>
             </div>
         </div>
@@ -279,13 +283,34 @@
         const atribIGN = '<a href="https://www.scne.es/" target="_blank" rel="noopener">CC BY 4.0 scne.es</a>';
         const mapaSatelite = L.tileLayer(wmtsIGN('pnoa-ma', 'OI.OrthoimageCoverage', 'image/jpeg'), { maxZoom: 20, maxNativeZoom: 19, attribution: `PNOA ${atribIGN}` });
         const mapaCalles   = L.tileLayer(wmtsIGN('ign-base', 'IGNBaseTodo', 'image/png'), { maxZoom: 20, maxNativeZoom: 17, attribution: `Mapa base IGN ${atribIGN}` });
+        // Rótulos de comunidades, provincias, municipios, localidades y carreteras sobre la ortofoto (como el modo híbrido de Google).
+        // El IGN decide qué nombres salen según el zoom. Va en su propio panel para quedar por encima de la foto y por debajo de los pines.
+        let nombresActivos = true;
+        try { nombresActivos = localStorage.getItem('glp_nombres') !== '0'; } catch (e) { }
 
         const map = L.map('map', { zoomControl: false, layers: [mapaSatelite] }).setView([startLat, startLng], startZoom);
         L.control.zoom({ position: 'bottomright' }).addTo(map);
+        map.createPane('rotulos');
+        map.getPane('rotulos').style.zIndex = 350;
+        map.getPane('rotulos').style.pointerEvents = 'none';
+        const capaNombres = L.tileLayer(wmtsIGN('ign-base', 'IGNBaseOrto', 'image/png'), { pane: 'rotulos', maxZoom: 20, maxNativeZoom: 17, attribution: `Mapa base IGN ${atribIGN}` });
+        function actualizarNombres() {
+            const ver = nombresActivos && capaActual === 'satelite';
+            if (ver && !map.hasLayer(capaNombres)) capaNombres.addTo(map);
+            if (!ver && map.hasLayer(capaNombres)) map.removeLayer(capaNombres);
+            document.getElementById('layer-nombres').checked = nombresActivos;
+            document.getElementById('opcionNombres').hidden = capaActual !== 'satelite';
+        }
+        function alternarNombres() {
+            nombresActivos = !nombresActivos;
+            try { localStorage.setItem('glp_nombres', nombresActivos ? '1' : '0'); } catch (e) { }
+            actualizarNombres();
+        }
         map.attributionControl.setPrefix('<a href="aviso-legal.html">Aviso legal</a> · <a href="privacidad.html">Privacidad</a> · <a href="https://leafletjs.com" rel="noopener">Leaflet</a>');
 
         const capasDisponibles = { satelite: mapaSatelite, calles: mapaCalles };
         let capaActual = 'satelite';
+        actualizarNombres();
 
         function toggleCapasDropdown() {
             const dd = document.getElementById('capasDropdown');
@@ -300,6 +325,7 @@
             document.getElementById('layer-satelite').checked = (nombre === 'satelite');
             document.getElementById('layer-calles').checked   = (nombre === 'calles');
             document.getElementById('capasDropdown').style.display = 'none';
+            actualizarNombres();
         }
 
         document.addEventListener('click', (e) => {
