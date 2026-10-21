@@ -2,10 +2,12 @@
 //   public/glp/index.html                         -> precio del GLP hoy en España (todas las provincias)
 //   public/glp/<provincia>/index.html             -> gasolineras de GLP de cada provincia
 //   public/glp/<provincia>/<municipio>/index.html -> municipios con varias gasolineras
+//   public/gasolinera/<rotulo>-<municipio>-<id>/  -> ficha de cada gasolinera (precio, evolución y cercanas)
 //   public/sitemap.xml                            -> mapa del sitio con todas las páginas
 // Se ejecuta en GitHub Actions después de scripts/actualizar_datos.mjs.
 
 import { readFile, writeFile, mkdir, rm } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import path from "node:path";
 
 const SITE_URL = (process.env.SITE_URL || "https://glpfinder.es/").replace(/\/?$/, "/");
@@ -52,6 +54,8 @@ const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "
 const euro = (v, dec = 3) => v.toFixed(dec).replace(".", ",") + " €";
 const slug = (t) => String(t).normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase()
   .replace(/\(.*?\)/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+// Misma regla que en index.html (fichaEstacion) para que los enlaces del mapa coincidan
+const slugEstacion = (rotulo, municipio, id) => [slug(rotulo) || "gasolinera", slug(municipio), id].filter(Boolean).join("-");
 const media = (arr) => arr.reduce((a, b) => a + b, 0) / arr.length;
 const titulo = (t) => String(t).toLowerCase().replace(/(^|[\s(/-])([a-záéíóúñü])/g, (m, a, b) => a + b.toUpperCase())
   .replace(/\b(De|Del|La|Las|Los|El|Y|E)\b/g, (m) => m.toLowerCase()).replace(/^./, (c) => c.toUpperCase());
@@ -97,7 +101,7 @@ function pagina({ prefijo, ruta, title, description, h1, lead, cuerpo, jsonld = 
     <link rel="icon" type="image/svg+xml" href="${prefijo}img/favicon.svg">
     <link rel="icon" type="image/png" sizes="32x32" href="${prefijo}img/favicon-32.png">
     <link rel="apple-touch-icon" href="${prefijo}img/apple-touch-icon.png">
-    <link rel="stylesheet" href="${prefijo}styles.css?v=15">
+    <link rel="stylesheet" href="${prefijo}styles.css?v=16">
     <script data-goatcounter="https://glpfinder.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 ${jsonld.map((j) => `    <script type="application/ld+json">${JSON.stringify(j)}</script>`).join("\n")}
 </head>
@@ -169,7 +173,7 @@ function tablaEstaciones(lista, prefijo, { conMunicipio = true, mediaRef }) {
     const mapa = `${prefijo}index.html?id=${encodeURIComponent(e.id)}&lat=${e.lat}&lng=${e.lng}`;
     return `            <tr>
                 <td class="t-pos">${i + 1}</td>
-                <td class="t-est"><div class="t-est-in"><img src="${prefijo}img/marcas/${logo(e.rotulo)}" alt="" width="22" height="22" loading="lazy"><span><strong>${esc(e.rotulo)}</strong><small>${esc(e.direccion)}${conMunicipio ? ", " + esc(e.municipio) : ""}</small></span></div></td>
+                <td class="t-est"><div class="t-est-in"><img src="${prefijo}img/marcas/${logo(e.rotulo)}" alt="" width="22" height="22" loading="lazy"><span><a class="t-ficha" href="${prefijo}gasolinera/${e.slug}/"><strong>${esc(e.rotulo)}</strong></a><small>${esc(e.direccion)}${conMunicipio ? ", " + esc(e.municipio) : ""}</small></span></div></td>
                 <td class="t-precio"><span class="tag tag--${cls}">${euro(e.precio)}</span></td>
                 <td class="t-mapa"><a href="${mapa}" aria-label="Ver ${esc(e.rotulo)} en el mapa">Ver en el mapa</a></td>
             </tr>`;
@@ -203,6 +207,159 @@ const comparar = (m, nac) => {
   return `${euro(Math.abs(d))} ${d < 0 ? "por debajo" : "por encima"} de la media nacional`;
 };
 
+// ---------- ficha de una gasolinera ----------
+const R_TIERRA = 6371;
+function distanciaKm(a, b) {
+  const rad = Math.PI / 180;
+  const dLat = (b.lat - a.lat) * rad, dLng = (b.lng - a.lng) * rad;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(dLng / 2) ** 2;
+  return 2 * R_TIERRA * Math.asin(Math.sqrt(h));
+}
+const km = (d) => (d < 10 ? d.toFixed(1) : Math.round(d).toString()).replace(".", ",") + " km";
+const cts = (d) => {
+  const c = Math.round(Math.abs(d) * 1000) / 10;
+  return (Number.isInteger(c) ? String(c) : c.toFixed(1).replace(".", ",")) + (c === 1 ? " céntimo" : " céntimos");
+};
+const fechaCorta = (iso) => { const [, m, d] = iso.split("-").map(Number); return `${d} ${MESES[m - 1].slice(0, 3)}`; };
+
+async function leerHistorial(id) {
+  const f = path.join(PUBLIC, "data", "historial", `${id}.json`);
+  if (!existsSync(f)) return [];
+  try { return JSON.parse(await readFile(f, "utf8")).filter((r) => r.precio > 0); } catch { return []; }
+}
+
+// Precio de hace n días (el último registro anterior o igual a esa fecha)
+function precioHace(hist, hoyISO, dias) {
+  const lim = new Date(Date.parse(hoyISO) - dias * 864e5).toISOString().slice(0, 10);
+  const prev = hist.filter((r) => r.fecha <= lim);
+  return prev.length ? prev[prev.length - 1].precio : null;
+}
+
+// Gráfica SVG estática (sin JavaScript): se ve al instante y la lee cualquier navegador
+function graficaSVG(hist) {
+  const W = 640, H = 220, L = 66, R = 14, T = 14, B = 30;
+  const xs = hist.map((r) => Date.parse(r.fecha));
+  const ys = hist.map((r) => r.precio);
+  let y0 = Math.min(...ys), y1 = Math.max(...ys);
+  if (y1 - y0 < 0.02) { const c = (y0 + y1) / 2; y0 = c - 0.01; y1 = c + 0.01; }
+  const pad = (y1 - y0) * 0.12; y0 -= pad; y1 += pad;
+  const x0 = xs[0], x1 = xs[xs.length - 1] === x0 ? x0 + 864e5 : xs[xs.length - 1];
+  const X = (t) => L + ((t - x0) / (x1 - x0)) * (W - L - R);
+  const Y = (v) => T + (1 - (v - y0) / (y1 - y0)) * (H - T - B);
+  const pts = hist.map((r, i) => `${X(xs[i]).toFixed(1)},${Y(r.precio).toFixed(1)}`);
+  const linea = hist.length === 1 ? `M${L},${Y(ys[0]).toFixed(1)} H${W - R}` : `M${pts.join(" L")}`;
+  const area = hist.length === 1 ? "" : `<path d="${linea} L${X(x1).toFixed(1)},${H - B} L${L},${H - B} Z" class="g-area"/>`;
+  const marcas = [y0 + (y1 - y0) * 0.1, (y0 + y1) / 2, y1 - (y1 - y0) * 0.1]
+    .map((v) => `<line x1="${L}" x2="${W - R}" y1="${Y(v).toFixed(1)}" y2="${Y(v).toFixed(1)}" class="g-rejilla"/><text x="0" y="${(Y(v) + 4).toFixed(1)}">${v.toFixed(3).replace(".", ",")}</text>`).join("");
+  const ult = hist[hist.length - 1];
+  return `<svg class="grafica" viewBox="0 0 ${W} ${H}" role="img" aria-label="Evolución del precio del GLP desde el ${fechaCorta(hist[0].fecha)} hasta el ${fechaCorta(ult.fecha)}">
+                ${marcas}${area}<path d="${linea}" class="g-linea"/>
+                <circle cx="${X(xs[xs.length - 1]).toFixed(1)}" cy="${Y(ult.precio).toFixed(1)}" r="4.5" class="g-punto"/>
+                <text x="${L}" y="${H - 8}">${fechaCorta(hist[0].fecha)}</text><text x="${W - R}" y="${H - 8}" text-anchor="end">${fechaCorta(ult.fecha)}</text>
+            </svg>`;
+}
+
+async function fichaEstacion(e, { estaciones, infoProv, infoMun, mediaNac, fecha, hoyISO }) {
+  const prov = infoProv[e.prov];
+  const mun = infoMun[`${e.prov}|${e.municipio}`];
+  const prefijo = "../../";
+  const ruta = `gasolinera/${e.slug}/`;
+  const pos = prov.lista.indexOf(e) + 1;
+  const nProv = prov.lista.length;
+
+  const hist = (await leerHistorial(e.id)).slice(-180);
+  const hace7 = precioHace(hist, hoyISO, 7), hace30 = precioHace(hist, hoyISO, 30);
+  const ult90 = hist.slice(-90).map((r) => r.precio);
+
+  const cercanas = estaciones.filter((o) => o !== e).map((o) => ({ ...o, d: distanciaKm(e, o) }))
+    .sort((a, b) => a.d - b.d).slice(0, 6);
+  const masBarataCerca = cercanas.filter((o) => o.d <= 15 && o.precio < e.precio - 0.0005).sort((a, b) => a.precio - b.precio)[0];
+
+  const refZona = mun && mun.n >= 2 ? { nombre: e.municipio, media: mun.media, tipo: "municipio" } : { nombre: prov.nombre, media: prov.media, tipo: "provincia" };
+  const dif = e.precio - refZona.media;
+  const cls = dif <= -0.015 ? "barato" : dif >= 0.015 ? "caro" : "medio";
+  const fraseZona = Math.abs(dif) < 0.0005 ? `justo en la media ${refZona.tipo === "municipio" ? "del municipio" : "de la provincia"}`
+    : `${cts(dif)} ${dif < 0 ? "más barata" : "más cara"} que la media ${refZona.tipo === "municipio" ? "de " + refZona.nombre : "de la provincia"} (${euro(refZona.media)})`;
+  let fraseTendencia = "";
+  if (hace7 != null && Math.abs(e.precio - hace7) >= 0.0005) fraseTendencia = `En la última semana ha ${e.precio < hace7 ? "bajado" : "subido"} ${cts(e.precio - hace7)}.`;
+  else if (hace7 != null) fraseTendencia = "El precio no ha cambiado en la última semana.";
+
+  const nombreCorto = `${e.rotulo} ${e.municipio}`;
+  const lugar = `${e.direccion}, ${e.municipio} (${prov.nombre})`;
+  const mapa = `${prefijo}index.html?id=${encodeURIComponent(e.id)}&lat=${e.lat}&lng=${e.lng}`;
+
+  const items = [{ nombre: "Precios del GLP", href: "../../glp/", ruta: "glp/" }, { nombre: prov.nombre, href: `../../glp/${prov.sp}/`, ruta: `glp/${prov.sp}/` }];
+  if (mun && mun.ruta) items.push({ nombre: e.municipio, href: `../../${mun.ruta}`, ruta: mun.ruta });
+  items.push({ nombre: e.rotulo, href: "./", ruta });
+
+  const faq = [
+    [`¿Cuánto cuesta el GLP en ${nombreCorto}?`, `Según los precios oficiales del ${fecha}, el GLP (autogás) cuesta ${euro(e.precio)} el litro en ${e.rotulo}, ${lugar}.`],
+    [`¿Es barata la gasolinera ${nombreCorto}?`, `Está ${fraseZona}. Es la ${pos}.ª más barata de las ${nProv} gasolineras con GLP de ${prov.nombre}.`],
+    [`¿Hay GLP más barato cerca de ${e.rotulo} ${e.municipio}?`, masBarataCerca
+      ? `Sí: ${masBarataCerca.rotulo} en ${masBarataCerca.municipio}, a ${km(masBarataCerca.d)}, lo vende a ${euro(masBarataCerca.precio)} el litro.`
+      : "No hay ninguna gasolinera con el GLP más barato en 15 km a la redonda."],
+  ];
+
+  const grafica = hist.length >= 2 ? graficaSVG(hist)
+    : `<p class="ficha-vacio">Guardamos el precio de esta gasolinera cada día desde el ${fechaCorta(hist[0]?.fecha || hoyISO)}. En unos días verás aquí cómo evoluciona.</p>`;
+  const cifrasHist = hist.length >= 2 ? `
+            <div class="ficha-cifras">
+                <div><span>Hace 7 días</span><strong>${hace7 != null ? euro(hace7) : "—"}</strong></div>
+                <div><span>Hace 30 días</span><strong>${hace30 != null ? euro(hace30) : "—"}</strong></div>
+                <div><span>Mínimo ${ult90.length >= 90 ? "90 días" : "del periodo"}</span><strong>${euro(Math.min(...ult90))}</strong></div>
+                <div><span>Máximo ${ult90.length >= 90 ? "90 días" : "del periodo"}</span><strong>${euro(Math.max(...ult90))}</strong></div>
+            </div>` : "";
+
+  const listaCercanas = cercanas.map((o) => {
+    const c = o.precio <= e.precio - 0.0005 ? "barato" : o.precio >= e.precio + 0.0005 ? "caro" : "medio";
+    return `                <li><img src="${prefijo}img/marcas/${logo(o.rotulo)}" alt="" width="22" height="22" loading="lazy"><span class="cerca-txt"><a href="../${o.slug}/">${esc(o.rotulo)}</a><small>${esc(o.municipio)} · a ${km(o.d)}</small></span><span class="tag tag--${c}">${euro(o.precio)}</span></li>`;
+  }).join("\n");
+
+  const jsonGas = {
+    "@context": "https://schema.org", "@type": "GasStation", name: `${e.rotulo} ${e.municipio}`, url: SITE_URL + ruta,
+    address: { "@type": "PostalAddress", streetAddress: e.direccion, postalCode: e.cp || undefined, addressLocality: e.municipio, addressRegion: prov.nombre, addressCountry: "ES" },
+    geo: { "@type": "GeoCoordinates", latitude: +e.lat.toFixed(6), longitude: +e.lng.toFixed(6) },
+    ...(e.rotulo !== "Sin rótulo" ? { brand: { "@type": "Brand", name: e.rotulo } } : {}),
+  };
+
+  const html = pagina({
+    prefijo, ruta,
+    title: `GLP en ${e.rotulo} ${e.municipio}: ${euro(e.precio)}/L hoy | glpfinder`,
+    description: `Precio del GLP hoy en ${e.rotulo}, ${lugar}: ${euro(e.precio)} el litro. ${fraseZona.charAt(0).toUpperCase() + fraseZona.slice(1)}. Evolución del precio y gasolineras con autogás cercanas.`,
+    h1: `GLP en ${e.rotulo} ${e.municipio}`,
+    lead: `${esc(lugar)}. Precio oficial del ${esc(fecha)}.`,
+    jsonld: [jsonMigas(items), jsonGas, jsonFAQ(faq)],
+    cuerpo: {
+      migas: migas(prefijo, items),
+      html: `        <div class="seo-resumen">
+            <div><strong class="precio-${cls}">${euro(e.precio)}</strong><span>Precio del GLP hoy</span></div>
+            <div><strong>${euro(refZona.media)}</strong><span>Media ${refZona.tipo === "municipio" ? "en " + esc(e.municipio) : "en la provincia"}</span></div>
+            <div><strong>${pos}.ª</strong><span>más barata de ${nProv} en ${esc(prov.nombre)}</span></div>
+        </div>
+        <div class="ficha-acciones">
+            <a class="btn btn--primario" href="${mapa}">Ver en el mapa</a>
+            <a class="btn btn--verde" href="https://www.google.com/maps/dir/?api=1&amp;destination=${e.lat},${e.lng}" rel="noopener" target="_blank">Cómo llegar con Google Maps</a>
+            <a class="btn btn--azul" href="https://waze.com/ul?ll=${e.lat},${e.lng}&amp;navigate=yes" rel="noopener" target="_blank">Ir con Waze</a>
+        </div>
+        <p class="seo-texto">El GLP en <strong>${esc(e.rotulo)}</strong>, en ${esc(e.direccion)}, ${esc(e.municipio)}, cuesta hoy ${euro(e.precio)} el litro, ${esc(fraseZona)}. Es la ${pos}.ª gasolinera con autogás más barata de las ${nProv} de ${esc(prov.nombre)}${Math.abs(e.precio - mediaNac) >= 0.005 ? ` y está ${comparar(e.precio, mediaNac)} (${euro(mediaNac)})` : ""}. ${fraseTendencia} Llenar un depósito de 40 litros cuesta unos ${euro(e.precio * 40, 2)}.</p>
+        <section class="seo-bloque">
+            <h2>Evolución del precio</h2>
+            ${grafica}${cifrasHist}
+        </section>
+        <section class="seo-bloque">
+            <h2>Gasolineras con GLP cerca</h2>
+            <ul class="lista-cercanas">
+${listaCercanas}
+            </ul>
+            <p class="ficha-mas"><a href="../../${mun && mun.ruta ? mun.ruta : `glp/${prov.sp}/`}">Ver todas las gasolineras de GLP de ${esc(mun && mun.ruta ? e.municipio : prov.nombre)}</a></p>
+        </section>
+${faqHTML(faq)}`,
+    },
+  });
+  await mkdir(path.join(PUBLIC, ruta), { recursive: true });
+  await writeFile(path.join(PUBLIC, ruta, "index.html"), html);
+}
+
 // ---------- principal ----------
 async function main() {
   const datos = JSON.parse(await readFile(path.join(PUBLIC, "data", "precios.json"), "utf8"));
@@ -216,6 +373,7 @@ async function main() {
     lat: num(e.Latitud), lng: num(e["Longitud (WGS84)"]), precio: num(e[CAMPO_GLP]),
     prov: String(e.IDProvincia || String(e["C.P."] || "").padStart(5, "0").slice(0, 2)).padStart(2, "0"),
   })).filter((e) => e.precio > 0 && PROVINCIAS[e.prov] && isFinite(e.lat) && isFinite(e.lng));
+  for (const e of estaciones) e.slug = slugEstacion(e.rotulo, e.municipio, e.id);
 
   if (estaciones.length < 100) throw new Error(`Muy pocas estaciones (${estaciones.length}); no se regeneran las páginas`);
 
@@ -227,6 +385,9 @@ async function main() {
   for (const e of estaciones) (porProv[e.prov] ||= []).push(e);
 
   await rm(path.join(PUBLIC, "glp"), { recursive: true, force: true });
+  await rm(path.join(PUBLIC, "gasolinera"), { recursive: true, force: true });
+  const infoProv = {};  // cod -> { nombre, sp, ccaa, media, lista ordenada }
+  const infoMun = {};   // "cod|municipio" -> { media, n, ruta (si tiene página) }
   const urls = [{ loc: SITE_URL, freq: "hourly", pri: "1.0" }, { loc: SITE_URL + "glp/", freq: "hourly", pri: "0.9" }];
   const resumenProv = [];
 
@@ -237,10 +398,14 @@ async function main() {
     const m = media(lista.map((e) => e.precio));
     const barata = lista[0];
     resumenProv.push({ cod, nombre, ccaa, sp, n: lista.length, media: m, min: barata.precio });
+    infoProv[cod] = { nombre, sp, ccaa, media: m, lista };
 
     // Municipios con varias gasolineras
     const porMun = {};
     for (const e of lista) (porMun[e.municipio] ||= []).push(e);
+    for (const [mun, l] of Object.entries(porMun)) {
+      infoMun[`${cod}|${mun}`] = { media: media(l.map((e) => e.precio)), n: l.length, lista: l, ruta: l.length >= MIN_MUNICIPIO ? `glp/${sp}/${slug(mun)}/` : null };
+    }
     const municipios = Object.entries(porMun).filter(([, l]) => l.length >= MIN_MUNICIPIO)
       .map(([mun, l]) => ({ mun, l, sm: slug(mun), media: media(l.map((e) => e.precio)) }))
       .sort((a, b) => a.mun.localeCompare(b.mun, "es"));
@@ -320,6 +485,12 @@ ${faqHTML(faqM)}
     }
   }
 
+  // ---------- fichas de gasolinera ----------
+  for (const e of estaciones) {
+    await fichaEstacion(e, { estaciones, infoProv, infoMun, mediaNac, fecha, hoyISO });
+    urls.push({ loc: `${SITE_URL}gasolinera/${e.slug}/`, freq: "daily", pri: "0.5" });
+  }
+
   // ---------- página general ----------
   const porCCAA = {};
   for (const p of resumenProv) (porCCAA[p.ccaa] ||= []).push(p);
@@ -375,7 +546,7 @@ ${urls.map((u) => `  <url><loc>${u.loc}</loc><lastmod>${hoyISO}</lastmod><change
 `;
   await writeFile(path.join(PUBLIC, "sitemap.xml"), sitemap);
   await writeFile(path.join(PUBLIC, "robots.txt"), `User-agent: *\nAllow: /\n\nSitemap: ${SITE_URL}sitemap.xml\n`);
-  console.log(`Páginas generadas: ${urls.length - 1} (provincias: ${resumenProv.length}).`);
+  console.log(`Páginas generadas: ${urls.length - 1} (provincias: ${resumenProv.length}, fichas: ${estaciones.length}).`);
 }
 
 main().catch((e) => { console.error("Error generando páginas:", e); process.exit(1); });

@@ -842,6 +842,39 @@ input[type="range"]::-moz-range-thumb { width: 18px; height: 18px; border-radius
 .ccaa-rejilla { display: flex; flex-direction: column; gap: 20px; }
 .ccaa-bloque h3 { font-size: 19px; margin-bottom: 4px; }
 
+/* Ficha de gasolinera */
+.precio-barato { color: var(--verde) !important; }
+.precio-medio { color: var(--negro) !important; }
+.precio-caro { color: var(--caro-texto) !important; }
+.ficha-acciones { display: flex; flex-wrap: wrap; gap: 10px; }
+.ficha-acciones .btn { width: auto; }
+.grafica { display: block; width: 100%; height: auto; overflow: visible; }
+.grafica text { font-family: var(--f-texto); font-size: 12px; fill: var(--gris); font-variant-numeric: tabular-nums; }
+.g-rejilla { stroke: var(--linea); stroke-width: 1; }
+.g-linea { fill: none; stroke: var(--verde); stroke-width: 2.5; vector-effect: non-scaling-stroke; stroke-linejoin: round; stroke-linecap: round; }
+.g-area { fill: var(--verde); opacity: .08; }
+.g-punto { fill: var(--verde); stroke: var(--blanco); stroke-width: 2; }
+.ficha-vacio { padding: 18px; border-radius: var(--r-m); background: var(--fondo); color: var(--gris); }
+.ficha-cifras { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--linea); }
+.ficha-cifras span { display: block; font-size: 13px; color: var(--gris); }
+.ficha-cifras strong { font-family: var(--f-titulo); font-size: 20px; font-variant-numeric: tabular-nums; }
+.lista-cercanas { list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 0 24px; }
+.lista-cercanas li { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--linea); }
+.lista-cercanas img { width: 22px; height: 22px; object-fit: contain; flex-shrink: 0; }
+.cerca-txt { flex: 1; min-width: 0; }
+.cerca-txt a { display: block; font-weight: 600; color: var(--negro); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cerca-txt a:hover { color: var(--azul); }
+.cerca-txt small { display: block; font-size: 13px; color: var(--gris); }
+.ficha-mas { margin-top: 14px; }
+.t-ficha { color: inherit; text-decoration: none; }
+.t-ficha:hover strong { color: var(--azul); text-decoration: underline; }
+@media (max-width: 768px) {
+    .ficha-acciones .btn { flex: 1 1 100%; }
+    .ficha-cifras { grid-template-columns: repeat(2, 1fr); }
+    .grafica text { font-size: 24px; }
+    .seo-resumen strong.precio-barato, .seo-resumen strong.precio-medio, .seo-resumen strong.precio-caro { font-size: 22px; }
+}
+
 .faq { border-bottom: 1px solid var(--linea); }
 .faq:last-child { border-bottom: 0; }
 .faq summary { padding: 12px 0; font-weight: 600; cursor: pointer; }
@@ -876,3 +909,49 @@ input[type="range"]::-moz-range-thumb { width: 18px; height: 18px; border-radius
 .legal p + p { margin-top: 10px; }
 .legal ul { margin: 8px 0 0 20px; display: flex; flex-direction: column; gap: 6px; }
 .leaflet-control-attribution a { color: var(--azul); }
+
+/* Lista de las más baratas: tarjeta a la derecha en escritorio, hoja inferior en móvil */
+.baratas { position: absolute; top: 16px; right: 16px; z-index: 998; width: 360px; max-height: calc(100% - 150px); display: flex; flex-direction: column; background: var(--blanco); border-radius: var(--r-l); box-shadow: var(--sombra); overflow: hidden; }
+.baratas-cabeza { position: relative; display: flex; align-items: center; gap: 10px; width: 100%; padding: 14px 14px 14px 16px; border: 0; background: transparent; text-align: left; cursor: pointer; }
+.baratas-asa { display: none; }
+.baratas-titulo { flex: 1; min-width: 0; }
+.baratas-titulo strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--f-titulo); font-size: 19px; line-height: 1.2; }
+.baratas-titulo span { display: block; font-size: 13px; color: var(--gris); }
+.baratas-mejor { display: none; flex-shrink: 0; font-family: var(--f-titulo); font-size: 18px; font-weight: 700; color: var(--verde); text-align: right; line-height: 1.1; }
+.baratas-mejor small { display: block; font-family: var(--f-texto); font-size: 11px; font-weight: 400; color: var(--gris); }
+.baratas:not(.abierta) .baratas-mejor { display: block; }
+.baratas-flecha { flex-shrink: 0; color: var(--gris); transition: transform .2s; transform: rotate(180deg); }
+.baratas.abierta .baratas-flecha { transform: none; }
+.baratas-cuerpo { display: none; flex-direction: column; min-height: 0; border-top: 1px solid var(--linea); }
+.baratas.abierta .baratas-cuerpo { display: flex; }
+.baratas-opciones { display: flex; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--linea); }
+.baratas-opciones[hidden] { display: none; }
+.segmentado--sm { grid-template-columns: repeat(4, 1fr); flex: 1.6; padding: 2px; gap: 2px; }
+.segmentado--sm.segmentado--2 { grid-template-columns: repeat(2, 1fr); flex: 1.2; }
+.segmentado--sm button { height: 30px; font-size: 13px; padding: 0 2px; white-space: nowrap; }
+.baratas-lista { list-style: none; overflow-y: auto; overscroll-behavior: contain; }
+.baratas-lista li + li { border-top: 1px solid var(--linea); }
+.barata { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 14px; border: 0; background: transparent; text-align: left; cursor: pointer; }
+.barata:hover { background: var(--fondo); }
+.barata-pos { width: 20px; flex-shrink: 0; font-family: var(--f-titulo); font-weight: 700; color: var(--gris-claro); text-align: center; }
+.barata img { width: 26px; height: 26px; object-fit: contain; flex-shrink: 0; }
+.barata-txt { flex: 1; min-width: 0; }
+.barata-txt strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; font-size: 15px; }
+.barata-txt small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; color: var(--gris); }
+.barata-precio { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; flex-shrink: 0; }
+.barata-precio small { font-size: 12px; color: var(--gris); font-variant-numeric: tabular-nums; }
+.baratas-vacio { padding: 14px 16px 16px; font-size: 14px; color: var(--gris); }
+.baratas-vacio .btn { width: auto; margin-top: 10px; }
+.popup-ficha { display: inline-block; margin: -6px 0 12px; font-size: 14px; font-weight: 600; }
+
+@media (max-width: 768px) {
+    .baratas { top: auto; right: 0; bottom: 0; left: 0; width: auto; max-height: 62%; border-radius: var(--r-l) var(--r-l) 0 0; box-shadow: 0 -4px 24px rgba(14, 17, 22, .18); z-index: 1000; }
+    .baratas-cabeza { padding: 18px 14px 12px 16px; min-height: 64px; }
+    .baratas-asa { display: block; position: absolute; top: 6px; left: 50%; width: 36px; height: 4px; margin-left: -18px; border-radius: 2px; background: var(--linea-2); }
+    .baratas-titulo strong { font-size: 17px; }
+    .baratas-lista { padding-bottom: env(safe-area-inset-bottom); }
+    /* Los controles del mapa y la atribución quedan por encima de la hoja plegada */
+    .map-main:has(.baratas:not([hidden])) .map-controls-group { bottom: 96px; }
+    .map-main:has(.baratas:not([hidden])) .leaflet-bottom { bottom: 70px; }
+    .map-main:has(.baratas:not([hidden])) .carga-estado { bottom: 140px; }
+}

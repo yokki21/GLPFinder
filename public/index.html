@@ -24,7 +24,7 @@
     <link rel="icon" type="image/svg+xml" href="img/favicon.svg">
     <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
     <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
-    <link rel="stylesheet" href="styles.css?v=15">
+    <link rel="stylesheet" href="styles.css?v=16">
     <link rel="preconnect" href="https://www.ign.es" crossorigin>
     <link rel="preconnect" href="https://unpkg.com" crossorigin>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -242,6 +242,31 @@
             </div>
         </div>
 
+        <section id="baratas" class="baratas" aria-label="Gasolineras de GLP más baratas" hidden>
+            <button type="button" class="baratas-cabeza" id="baratasCabeza" aria-expanded="false" aria-controls="baratasCuerpo" onclick="alternarBaratas()">
+                <span class="baratas-asa" aria-hidden="true"></span>
+                <span class="baratas-titulo"><strong id="baratasTitulo">Las más baratas cerca de ti</strong><span id="baratasSub"></span></span>
+                <span class="baratas-mejor" id="baratasMejor"></span>
+                <svg class="baratas-flecha" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg>
+            </button>
+            <div class="baratas-cuerpo" id="baratasCuerpo">
+                <div class="baratas-opciones" id="baratasOpciones">
+                    <div class="segmentado segmentado--sm" role="radiogroup" aria-label="Distancia máxima" id="baratasRadio">
+                        <button type="button" role="radio" aria-checked="false" data-v="5">5 km</button>
+                        <button type="button" role="radio" aria-checked="true" data-v="10">10 km</button>
+                        <button type="button" role="radio" aria-checked="false" data-v="25">25 km</button>
+                        <button type="button" role="radio" aria-checked="false" data-v="50">50 km</button>
+                    </div>
+                    <div class="segmentado segmentado--sm segmentado--2" role="radiogroup" aria-label="Ordenar por" id="baratasOrden">
+                        <button type="button" role="radio" aria-checked="true" data-v="precio">Precio</button>
+                        <button type="button" role="radio" aria-checked="false" data-v="distancia">Distancia</button>
+                    </div>
+                </div>
+                <ol class="baratas-lista" id="baratasLista"></ol>
+                <div class="baratas-vacio" id="baratasVacio" hidden></div>
+            </div>
+        </section>
+
         <div id="map"></div>
     </main>
 
@@ -389,6 +414,7 @@
             const p = document.getElementById('panelFiltros');
             const abrir = p.style.display === 'none';
             p.style.display = abrir ? 'flex' : 'none';
+            if (abrir && esMovil()) alternarBaratas(false);
             if (abrir) document.getElementById('searchResults').style.display = 'none';
             document.getElementById('btnFiltros').setAttribute('aria-expanded', String(abrir));
         }
@@ -422,6 +448,7 @@
             document.getElementById('distanceLabel').textContent = dv == 0 ? 'Sin límite' : 'Hasta ' + dv + ' km';
             document.getElementById('filtroActivo').hidden = !filtrosActivos();
             if (repintar) actualizarPinesVisibles();
+            if (repintar && rutaActiva) actualizarBaratas();
         }
 
         function restablecerFiltros() {
@@ -471,6 +498,7 @@
             });
 
             resumenFiltros(filtradas.length);
+            actualizarBaratas();
             if (filtradas.length === 0) return;
 
             if (map.getZoom() < 9 && filtradas.length > 20) {
@@ -522,6 +550,7 @@
                         <span class="star-btn ${esFav ? 'active' : ''}" id="star-${id}" role="button" tabindex="0" aria-label="${esFav ? 'Quitar de favoritas' : 'Guardar en favoritas'}" onclick="window.gestionarFavorito('${id}','${rotulo}',${lat},${lng},'${direccion}','${localidad}','${precio}')">★</span>
                     </div>
                     <p class="popup-address">${escHTML(e['Dirección'])}, ${escHTML(e['Localidad'])}</p>
+                    <a class="popup-ficha" href="${fichaEstacion(e)}">Ficha y evolución del precio</a>
                     <div class="popup-precio ${color}"><strong>${precio.toFixed(3).replace('.', ',')} €/L</strong><span>${color === 'pin-verde' ? 'Más barata que la media de la zona' : color === 'pin-rojo' ? 'Más cara que la media de la zona' : 'En la media de la zona'}</span></div>
                     ${calculadorHTML}${botonParadaHTML} 
                     <div class="nav-buttons">
@@ -532,8 +561,8 @@
                 const zIndexBase = esParada ? 500 : 0;
                 const marcador = L.marker([lat, lng], {
                     icon: L.divIcon({ className: 'custom-div-icon', html: pinHtml, iconSize: [82, 30], iconAnchor: [41, 37], popupAnchor: [0, -38] }),
-                    zIndexOffset: zIndexBase
-                }).bindPopup(popup, { autoPan: true, autoPanPadding: [16, 16] }).addTo(capaPinesVisibles);
+                    zIndexOffset: zIndexBase, idEst: id
+                }).bindPopup(popup, esMovil() ? { autoPan: true, autoPanPaddingTopLeft: [12, 215], autoPanPaddingBottomRight: [12, 90] } : { autoPan: true, autoPanPadding: [16, 16] }).addTo(capaPinesVisibles);
 
                 marcador.on('mouseover', function() { this.setZIndexOffset(1000); });
                 marcador.on('mouseout', function() { this.setZIndexOffset(zIndexBase); });
@@ -611,6 +640,165 @@
                     .on('click', () => map.flyTo(c.coords, porCCAA ? 7 : 10, { duration: 1 }))
                     .addTo(capaPinesVisibles);
             });
+        }
+
+
+        // ----- Lista de las más baratas -----
+        // Escritorio: tarjeta a la derecha. Móvil: hoja que se despliega desde abajo, como en Google Maps.
+        const esMovil = () => window.innerWidth < 768;
+        const precioDe = (e) => parseFloat(e['Precio Gases licuados del petróleo'].replace(',', '.'));
+        const posDe = (e) => L.latLng(parseFloat(e['Latitud'].replace(',', '.')), parseFloat(e['Longitud (WGS84)'].replace(',', '.')));
+        const fmtPrecio = (v) => v.toFixed(3).replace('.', ',') + ' €';
+        const fmtKm = (d) => (d < 10 ? d.toFixed(1) : Math.round(d).toString()).replace('.', ',') + ' km';
+        let estacionesRuta = null;
+
+        // Enlace a la ficha de la gasolinera (misma regla que scripts/generar_paginas.mjs)
+        const slugTxt = (t) => String(t ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+            .replace(/\(.*?\)/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+        function fichaEstacion(e) {
+            const rot = (e['Rótulo'] || '').trim() || 'Sin rótulo';
+            const partes = [slugTxt(rot) || 'gasolinera', slugTxt(e['Municipio'] || e['Localidad']), e['IDEESS']].filter(Boolean);
+            return 'gasolinera/' + partes.join('-') + '/';
+        }
+
+        const prefBaratas = (() => { try { return JSON.parse(localStorage.getItem('glp_baratas')) || {}; } catch (e) { return {}; } })();
+        const BARATAS = { radio: [5, 10, 25, 50].includes(prefBaratas.radio) ? prefBaratas.radio : 10, orden: prefBaratas.orden === 'distancia' ? 'distancia' : 'precio' };
+        const guardarPrefBaratas = (extra = {}) => { try { localStorage.setItem('glp_baratas', JSON.stringify({ ...prefBaratas, ...BARATAS, ...extra })); Object.assign(prefBaratas, extra); } catch (e) { } };
+
+        function marcarSegmentado(idGrupo, valor) {
+            document.querySelectorAll(`#${idGrupo} button`).forEach(b => b.setAttribute('aria-checked', String(b.dataset.v === String(valor))));
+        }
+        marcarSegmentado('baratasRadio', BARATAS.radio);
+        marcarSegmentado('baratasOrden', BARATAS.orden);
+        document.getElementById('baratasRadio').addEventListener('click', (ev) => {
+            const b = ev.target.closest('button[data-v]'); if (!b) return;
+            BARATAS.radio = +b.dataset.v; marcarSegmentado('baratasRadio', BARATAS.radio); guardarPrefBaratas(); actualizarBaratas();
+        });
+        document.getElementById('baratasOrden').addEventListener('click', (ev) => {
+            const b = ev.target.closest('button[data-v]'); if (!b) return;
+            BARATAS.orden = b.dataset.v; marcarSegmentado('baratasOrden', BARATAS.orden); guardarPrefBaratas(); actualizarBaratas();
+        });
+
+        // abrir: true/false; sin argumento alterna
+        function alternarBaratas(abrir) {
+            const caja = document.getElementById('baratas');
+            const ab = abrir === undefined ? !caja.classList.contains('abierta') : abrir;
+            caja.classList.toggle('abierta', ab);
+            document.getElementById('baratasCabeza').setAttribute('aria-expanded', String(ab));
+            if (abrir === undefined && !esMovil()) guardarPrefBaratas({ cerrada: !ab });
+            if (ab && esMovil()) {
+                document.getElementById('searchResults').style.display = 'none';
+                const pf = document.getElementById('panelFiltros');
+                if (pf.style.display !== 'none') toggleFiltros();
+                map.closePopup();
+            }
+        }
+        // En escritorio empieza abierta (salvo que el usuario la cerrara); en móvil, plegada
+        if (!esMovil() && !prefBaratas.cerrada) alternarBaratas(true);
+        map.on('popupopen', () => { if (esMovil()) alternarBaratas(false); });
+
+        function pasaFiltrosBasicos(e) {
+            const maxP = parseFloat(document.getElementById('filterPrice').value);
+            if (precioDe(e) > maxP) return false;
+            const selB = Array.from(document.querySelectorAll('.brand-grid input:checked')).map(c => c.value);
+            if (selB.length) {
+                const m = (e['Rótulo'] || '').toUpperCase();
+                if (!selB.some(b => (b === 'CEPSA' && (m.includes('CEPSA') || m.includes('MOEVE'))) || m.includes(b))) return false;
+            }
+            return true;
+        }
+
+        // Punto desde el que se mide "cerca": tu ubicación o el lugar buscado si están a la vista; si no, el centro del mapa
+        function referenciaBaratas() {
+            if (puntoReferenciaDistancia && map.getBounds().pad(0.25).contains(puntoReferenciaDistancia)) {
+                const esUsuario = marcadorUbicacionUsuario && marcadorUbicacionUsuario.getLatLng().equals(puntoReferenciaDistancia);
+                const lugar = esUsuario ? '' : document.getElementById('searchInput').value.trim();
+                return { punto: puntoReferenciaDistancia, texto: esUsuario ? 'cerca de ti' : lugar ? `cerca de ${lugar}` : 'en esta zona' };
+            }
+            if (map.getZoom() >= 10) return { punto: map.getCenter(), texto: 'en esta zona' };
+            return null;
+        }
+
+        function actualizarBaratas() {
+            const caja = document.getElementById('baratas');
+            if (!todasLasEstaciones.length) return;
+            const tit = document.getElementById('baratasTitulo'), sub = document.getElementById('baratasSub');
+            const mejor = document.getElementById('baratasMejor'), ol = document.getElementById('baratasLista');
+            const vacio = document.getElementById('baratasVacio');
+            document.getElementById('baratasOpciones').hidden = rutaActiva;
+
+            let lista;
+            if (rutaActiva) {
+                if (!estacionesRuta) { caja.hidden = true; return; }
+                const desvio = document.getElementById('routeDesvioInput').value;
+                lista = estacionesRuta.filter(pasaFiltrosBasicos).map(e => ({ e, p: precioDe(e), d: null }));
+                tit.textContent = 'Las más baratas en tu ruta';
+                sub.textContent = `${lista.length} con GLP a ${desvio} km o menos del trayecto`;
+            } else {
+                const ref = referenciaBaratas();
+                if (!ref) {
+                    caja.hidden = false;
+                    tit.textContent = 'Las más baratas cerca de ti';
+                    sub.textContent = 'Activa tu ubicación o busca un lugar';
+                    mejor.textContent = '';
+                    ol.innerHTML = '';
+                    vacio.innerHTML = '<p>Para ordenar las gasolineras por precio necesitamos saber dónde estás. También puedes buscar un lugar o acercar el mapa.</p><button type="button" class="btn btn--primario btn--sm" onclick="localizarUsuario(true, true)">Usar mi ubicación</button>';
+                    vacio.hidden = false;
+                    document.getElementById('baratasOpciones').hidden = true;
+                    return;
+                }
+                lista = [];
+                for (const e of todasLasEstaciones) {
+                    if (!pasaFiltrosBasicos(e)) continue;
+                    const d = ref.punto.distanceTo(posDe(e)) / 1000;
+                    if (d <= BARATAS.radio) lista.push({ e, p: precioDe(e), d });
+                }
+                tit.textContent = `Las más baratas ${ref.texto}`;
+                sub.textContent = `${lista.length} con GLP a menos de ${BARATAS.radio} km`;
+            }
+            caja.hidden = false;
+
+            if (!lista.length) {
+                ol.innerHTML = '';
+                mejor.textContent = '';
+                vacio.innerHTML = rutaActiva ? '<p>No hay gasolineras que cumplan los filtros en esta ruta.</p>'
+                    : `<p>No hay gasolineras con GLP${filtrosActivos() ? ' que cumplan los filtros' : ''} a menos de ${BARATAS.radio} km.${BARATAS.radio < 50 ? ' Prueba con más distancia.' : ''}</p>`;
+                vacio.hidden = false;
+                return;
+            }
+            vacio.hidden = true;
+
+            const mediaZona = lista.reduce((a, x) => a + x.p, 0) / lista.length;
+            const porPrecio = (a, b) => a.p - b.p || (a.d ?? 0) - (b.d ?? 0);
+            lista.sort(rutaActiva || BARATAS.orden === 'precio' ? porPrecio : (a, b) => a.d - b.d || a.p - b.p);
+            const minimo = Math.min(...lista.map(x => x.p));
+            mejor.innerHTML = `<small>desde</small>${fmtPrecio(minimo)}`;
+
+            ol.innerHTML = lista.slice(0, 10).map((x, i) => {
+                const dif = x.p - mediaZona;
+                const cls = dif <= -0.015 ? 'barato' : dif >= 0.015 ? 'caro' : 'medio';
+                const c = Math.round(Math.abs(dif) * 1000) / 10;
+                const difTxt = c < 0.1 ? 'en la media' : `${dif < 0 ? '−' : '+'}${String(c).replace('.', ',')} cts`;
+                const lugar = escHTML(x.e['Municipio'] || x.e['Localidad'] || '');
+                return `<li><button type="button" class="barata" onclick="irAEstacion('${escArg(x.e['IDEESS'])}')">
+                    <span class="barata-pos">${i + 1}</span>
+                    <img src="${obtenerLogo(x.e['Rótulo'])}" alt="" width="26" height="26" loading="lazy">
+                    <span class="barata-txt"><strong>${escHTML(x.e['Rótulo'])}</strong><small>${x.d != null ? fmtKm(x.d) + ' · ' : ''}${lugar}</small></span>
+                    <span class="barata-precio"><span class="tag tag--${cls}">${fmtPrecio(x.p)}</span><small title="Diferencia con la media de la lista">${difTxt}</small></span>
+                </button></li>`;
+            }).join('');
+        }
+
+        // Lleva el mapa a una gasolinera de la lista y abre su ficha
+        function irAEstacion(id) {
+            const e = todasLasEstaciones.find(x => x['IDEESS'] === id);
+            if (!e) return;
+            window.idPopupForzado = id;
+            if (esMovil()) alternarBaratas(false);
+            map.once('moveend', () => setTimeout(() => {
+                capaPinesVisibles.eachLayer(l => { if (l.options && l.options.idEst === id && !l.isPopupOpen()) l.openPopup(); });
+            }, 120));
+            map.flyTo(posDe(e), Math.max(map.getZoom(), rutaActiva ? 12 : 15), { duration: 0.8 });
         }
 
         map.on('moveend', window.actualizarPinesVisibles);
@@ -981,6 +1169,7 @@
             destinoRuta = null;
             ultimaRutaGeoJSON = null;
             window.paradasSeleccionadas = [];
+            estacionesRuta = null;
             actualizarPanelParadas();
             if (window._limpiarRuta) window._limpiarRuta();
             window.actualizarPinesVisibles();
@@ -1066,6 +1255,8 @@
             capaPinesVisibles.clearLayers();
             document.getElementById('routeMessage').style.display = 'none';
             document.getElementById('rutaGasolineras').textContent = enRuta.length;
+            estacionesRuta = enRuta;
+            actualizarBaratas();
             if (enRuta.length > 0) mostrarPinesIndividuales(enRuta);
             else mostrarMensajeRuta(`No hay gasolineras con GLP a menos de ${maxKm} km del trayecto. Prueba con un desvío mayor.`, 'warning');
         }
