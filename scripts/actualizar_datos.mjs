@@ -4,7 +4,7 @@
 // Se ejecuta desde GitHub Actions (ver .github/workflows/actualizar-datos.yml).
 // Uso local: node scripts/actualizar_datos.mjs [fichero_json_del_ministerio]
 
-import { readFile, writeFile, mkdir } from "node:fs/promises";
+import { readFile, writeFile, mkdir, readdir } from "node:fs/promises";
 import path from "node:path";
 
 const URL_MINISTERIO =
@@ -50,6 +50,20 @@ function hoyMadrid() {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Madrid" }).format(new Date());
 }
 
+// Media nacional del GLP de un día, a partir del historial guardado (para comparar con ayer)
+async function mediaHistorial(fecha) {
+  let nombres = [];
+  try { nombres = await readdir(DIR_HISTORIAL); } catch { return null; }
+  const precios = [];
+  for (const n of nombres) {
+    try {
+      const r = JSON.parse(await readFile(path.join(DIR_HISTORIAL, n), "utf8")).find((x) => x.fecha === fecha);
+      if (r && r.precio > 0) precios.push(r.precio);
+    } catch { /* fichero dañado */ }
+  }
+  return precios.length > 100 ? +(precios.reduce((a, b) => a + b, 0) / precios.length).toFixed(4) : null;
+}
+
 async function actualizarHistorial(estaciones) {
   await mkdir(DIR_HISTORIAL, { recursive: true });
   const hoy = hoyMadrid();
@@ -80,6 +94,7 @@ async function main() {
     .filter((e) => aNumero(e[CAMPO_GLP]) > 0)
     .map((e) => Object.fromEntries(CAMPOS.map((c) => [c, (e[c] ?? "").toString().trim()])));
 
+  const ayer = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Madrid" }).format(new Date(Date.now() - 864e5));
   const salida = {
     Fecha: datos.Fecha,
     generado: new Date().toISOString(),
@@ -88,6 +103,7 @@ async function main() {
       gasoleoA: media(todas, "Precio Gasoleo A"),
       gasolina95: media(todas, "Precio Gasolina 95 E5"),
     },
+    mediaGlpAyer: await mediaHistorial(ayer),
     totalEstaciones: todas.length,
     campos: CAMPOS,
     filas: conGLP.map((e) => CAMPOS.map((c) => e[c])),

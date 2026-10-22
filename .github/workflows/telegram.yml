@@ -1,9 +1,8 @@
-# Publica cada mañana el resumen del precio del GLP en el canal de Telegram.
-name: Publicar en Telegram
+# Publicación manual del resumen en el canal de Telegram (respaldo).
+# La publicación diaria la hace el Worker de Cloudflare a las 8:30 (bot/worker.js), que es puntual.
+name: Publicar en Telegram (manual)
 
 on:
-  schedule:
-    - cron: "41 6 * * *"   # 8:41 en horario de verano, 7:41 en invierno (hora peninsular)
   workflow_dispatch:
 
 jobs:

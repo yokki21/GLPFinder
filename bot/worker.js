@@ -7,6 +7,11 @@
 //   WEBHOOK_SECRET  -> una contraseña inventada (letras y números) que protege el bot
 // Para conectarlo con Telegram, una vez desplegado, abre en el navegador:
 //   https://<tu-worker>.workers.dev/configurar?clave=<WEBHOOK_SECRET>
+//
+// Resumen diario en el canal: Settings → Triggers → Cron Triggers → "30 6,7 * * *".
+// Cloudflare usa hora UTC; el Worker solo publica en la ejecución que cae a las 8:30 de Madrid,
+// así sale a la misma hora en verano y en invierno. Canal: variable TELEGRAM_CANAL (por defecto @glpfinder).
+// Para publicarlo a mano: https://<tu-worker>.workers.dev/publicar?clave=<WEBHOOK_SECRET>
 
 const SITE = "https://glpfinder.es/";
 const CARTOCIUDAD = "https://www.cartociudad.es/geocoder/api/geocoder";
@@ -17,10 +22,21 @@ const RADIO_INICIAL = 10;
 const LITROS_LLENADO = 40, CONSUMO_100KM = 7.5;
 
 export default {
+  async scheduled(event, env, ctx) {
+    const hora = +new Intl.DateTimeFormat("es-ES", { timeZone: "Europe/Madrid", hour: "numeric", hour12: false }).format(new Date(event.scheduledTime));
+    if (hora !== 8) return; // la otra ejecución del cron es la de la otra estación del año
+    ctx.waitUntil(publicarResumen(env));
+  },
+
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     try {
       if (url.pathname === "/configurar") return configurar(url, env);
+      if (url.pathname === "/publicar") {
+        if (!env.WEBHOOK_SECRET || url.searchParams.get("clave") !== env.WEBHOOK_SECRET) return texto("Clave incorrecta.", 401);
+        const r = await publicarResumen(env);
+        return texto(r.ok ? "✅ Resumen publicado en el canal." : `❌ Telegram ha respondido: ${r.description}`, r.ok ? 200 : 500);
+      }
       if (url.pathname === "/webhook" && request.method === "POST") {
         if (request.headers.get("X-Telegram-Bot-Api-Secret-Token") !== env.WEBHOOK_SECRET) return new Response("No autorizado", { status: 401 });
         const update = await request.json();
@@ -150,7 +166,7 @@ async function geocodificar(q) {
 }
 
 // ---------- Datos de precios (se reutilizan mientras el Worker siga vivo) ----------
-let cache = { t: 0, est: null, fecha: "" };
+let cache = { t: 0, est: null, fecha: "", mediaAyer: null };
 async function estaciones() {
   if (cache.est && Date.now() - cache.t < 20 * 60 * 1000) return cache;
   const res = await fetch(`${SITE}data/precios.json`, { cf: { cacheTtl: 900, cacheEverything: true } });
@@ -164,10 +180,10 @@ async function estaciones() {
     if (!(precio > 0) || !isFinite(lat) || !isFinite(lng)) continue;
     est.push({
       id: f[i.IDEESS], rotulo: (f[i["Rótulo"]] || "").trim() || "Sin rótulo", dir: f[i["Dirección"]] || "",
-      municipio: (f[i.Municipio] || f[i.Localidad] || "").trim(), precio, lat, lng,
+      municipio: (f[i.Municipio] || f[i.Localidad] || "").trim(), precio, lat, lng, ccaa: f[i.IDCCAA],
     });
   }
-  cache = { t: Date.now(), est, fecha: d.Fecha || "" };
+  cache = { t: Date.now(), est, fecha: d.Fecha || "", mediaAyer: d.mediaGlpAyer ?? null };
   return cache;
 }
 
@@ -234,4 +250,64 @@ async function componer(lugar, radio) {
   if (barata !== compensa) filas.push([{ text: `🏆 Ir a la más barata (${barata.rotulo.slice(0, 18)})`, url: gmaps(barata) }]);
   filas.push(...botonesRadio);
   return { text, reply_markup: { inline_keyboard: filas } };
+}
+
+// ---------- Resumen diario en el canal ----------
+const CCAA = {
+  "01": "Andalucía", "02": "Aragón", "03": "Asturias", "04": "Illes Balears", "05": "Canarias",
+  "06": "Cantabria", "07": "Castilla-La Mancha", "08": "Castilla y León", "09": "Cataluña",
+  "10": "C. Valenciana", "11": "Extremadura", "12": "Galicia", "13": "Madrid",
+  "14": "Murcia", "15": "Navarra", "16": "País Vasco", "17": "La Rioja", "18": "Ceuta", "19": "Melilla",
+};
+const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+const DIAS = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+
+async function publicarResumen(env) {
+  cache.t = 0; // siempre con los precios más recientes
+  const { est, mediaAyer } = await estaciones();
+  if (est.length < 100) throw new Error("Muy pocas gasolineras; no se publica");
+
+  const partes = Object.fromEntries(new Intl.DateTimeFormat("en-US", { timeZone: "Europe/Madrid", weekday: "short", day: "numeric", month: "numeric" })
+    .formatToParts(new Date()).map((p) => [p.type, p.value]));
+  const dia = DIAS[["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(partes.weekday)];
+  const mNac = est.reduce((a, e) => a + e.precio, 0) / est.length;
+  let variacion = "";
+  if (mediaAyer) {
+    const c = Math.round((mNac - mediaAyer) * 1000) / 10;
+    variacion = Math.abs(c) < 0.1 ? " (igual que ayer)" : ` (${c < 0 ? "▼" : "▲"} ${String(Math.abs(c)).replace(".", ",")} cts respecto a ayer)`;
+  }
+
+  const top = [...est].sort((a, b) => a.precio - b.precio).slice(0, 5);
+  const porCCAA = {};
+  for (const e of est) if (CCAA[e.ccaa]) (porCCAA[e.ccaa] ||= []).push(e);
+  const lineasCCAA = Object.entries(porCCAA)
+    .sort((a, b) => CCAA[a[0]].localeCompare(CCAA[b[0]], "es"))
+    .map(([c, l]) => {
+      const b = l.reduce((x, y) => (y.precio < x.precio ? y : x));
+      return `• <b>${esc(CCAA[c])}</b>: ${eur(b.precio)}, <a href="${ficha(b)}">${esc(b.rotulo)} ${esc(b.municipio)}</a>`;
+    });
+
+  const me = await tg(env, "getMe", {});
+  const bot = me.ok ? me.result.username : null;
+  const text = [
+    `⛽ <b>Precio del GLP hoy, ${dia} ${partes.day} de ${MESES[+partes.month - 1]}</b>`,
+    "",
+    `Media en España: <b>${eur(mNac)}/L</b>${variacion}`,
+    "",
+    "🏆 <b>Las 5 más baratas de España</b>",
+    ...top.map((e, k) => `${k + 1}. ${eur(e.precio)} · <a href="${ficha(e)}">${esc(e.rotulo)} ${esc(e.municipio)}</a>`),
+    "",
+    "📍 <b>La más barata de cada comunidad</b>",
+    ...lineasCCAA,
+    "",
+    bot ? `🤖 ¿Dónde repostar ahora mismo? Escríbele una dirección o mándale tu ubicación a @${bot}` : `🗺 Busca la más barata cerca de ti: <a href="${SITE}">glpfinder.es</a>`,
+    "<i>Precios oficiales del Ministerio para la Transición Ecológica.</i>",
+  ].join("\n");
+  const botones = [[...(bot ? [{ text: "🤖 Buscar GLP cerca de mí", url: `https://t.me/${bot}` }] : []), { text: "🗺 Abrir el mapa", url: SITE }]];
+  const r = await tg(env, "sendMessage", {
+    chat_id: env.TELEGRAM_CANAL || "@glpfinder", text, parse_mode: "HTML",
+    link_preview_options: { is_disabled: true }, reply_markup: { inline_keyboard: botones },
+  });
+  if (!r.ok) console.error("No se pudo publicar el resumen:", r.description);
+  return r;
 }
