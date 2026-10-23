@@ -293,7 +293,7 @@ async function fichaEstacion(e, { estaciones, infoProv, infoMun, mediaNac, fecha
   if (hace7 != null && Math.abs(e.precio - hace7) >= 0.0005) fraseTendencia = `En la última semana ha ${e.precio < hace7 ? "bajado" : "subido"} ${cts(e.precio - hace7)}.`;
   else if (hace7 != null) fraseTendencia = "El precio no ha cambiado en la última semana.";
 
-  const nombreCorto = `${e.rotulo} ${e.municipio}`;
+  const nombreCorto = e.nombre;
   const lugar = `${e.direccion}, ${e.municipio} (${prov.nombre})`;
   const mapa = `${prefijo}index.html?id=${encodeURIComponent(e.id)}&lat=${e.lat}&lng=${e.lng}`;
 
@@ -325,7 +325,7 @@ async function fichaEstacion(e, { estaciones, infoProv, infoMun, mediaNac, fecha
   }).join("\n");
 
   const jsonGas = {
-    "@context": "https://schema.org", "@type": "GasStation", name: `${e.rotulo} ${e.municipio}`, url: SITE_URL + ruta,
+    "@context": "https://schema.org", "@type": "GasStation", name: e.nombre, url: SITE_URL + ruta,
     address: { "@type": "PostalAddress", streetAddress: e.direccion, postalCode: e.cp || undefined, addressLocality: e.municipio, addressRegion: prov.nombre, addressCountry: "ES" },
     geo: { "@type": "GeoCoordinates", latitude: +e.lat.toFixed(6), longitude: +e.lng.toFixed(6) },
     ...(e.rotulo !== "Sin rótulo" ? { brand: { "@type": "Brand", name: e.rotulo } } : {}),
@@ -333,9 +333,9 @@ async function fichaEstacion(e, { estaciones, infoProv, infoMun, mediaNac, fecha
 
   const html = pagina({
     prefijo, ruta,
-    title: `GLP en ${e.rotulo} ${e.municipio}: ${euro(e.precio)}/L hoy | glpfinder`,
+    title: `GLP en ${e.nombre}: ${euro(e.precio)}/L hoy | glpfinder`,
     description: `Precio del GLP hoy en ${e.rotulo}, ${lugar}: ${euro(e.precio)} el litro. ${fraseZona.charAt(0).toUpperCase() + fraseZona.slice(1)}. Evolución del precio y gasolineras con autogás cercanas.`,
-    h1: `GLP en ${e.rotulo} ${e.municipio}`,
+    h1: `GLP en ${e.nombre}`,
     lead: `${esc(lugar)}. Precio oficial del ${esc(fecha)}.`,
     jsonld: [jsonMigas(items), jsonGas, jsonFAQ(faq)],
     cuerpo: {
@@ -384,6 +384,14 @@ async function main() {
     prov: String(e.IDProvincia || String(e["C.P."] || "").padStart(5, "0").slice(0, 2)).padStart(2, "0"),
   })).filter((e) => e.precio > 0 && PROVINCIAS[e.prov] && isFinite(e.lat) && isFinite(e.lng));
   for (const e of estaciones) e.slug = slugEstacion(e.rotulo, e.municipio, e.id);
+  // Nombre para títulos: "REPSOL Getafe"; si hay varias de la misma marca en el municipio, se añade la calle
+  const repetidos = {};
+  for (const e of estaciones) repetidos[`${e.rotulo}|${e.municipio}`] = (repetidos[`${e.rotulo}|${e.municipio}`] || 0) + 1;
+  for (const e of estaciones) {
+    const base = `${e.rotulo} ${e.municipio}`;
+    const calle = e.direccion.replace(/,?\s*(s\/n|km\.?\s*[\d.,]+|\d+.*)$/i, "").trim();
+    e.nombre = repetidos[`${e.rotulo}|${e.municipio}`] > 1 && calle ? `${base} (${calle.length > 32 ? calle.slice(0, 31).trim() + "…" : calle})` : base;
+  }
 
   if (estaciones.length < 100) throw new Error(`Muy pocas estaciones (${estaciones.length}); no se regeneran las páginas`);
 

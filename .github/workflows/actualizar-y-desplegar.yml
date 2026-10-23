@@ -5,8 +5,7 @@ on:
   push:
     branches: [main]
   schedule:
-    - cron: "17 */2 * * *"   # cada 2 horas: precios actuales
-    - cron: "47 15 * * *"    # una vez al día: además guarda el historial en el repo
+    - cron: "17 */2 * * *"   # cada 2 horas: precios actuales e historial
   workflow_dispatch:
 
 concurrency:
@@ -40,19 +39,25 @@ jobs:
         env:
           SITE_URL: https://glpfinder.es/
 
+      # Se guarda en cada ejecución que cambie algo (antes solo una vez al día, y si esa ejecución
+      # se retrasaba o GitHub la cancelaba, se perdía el día). Si falla, no impide publicar la web.
       - name: Guardar historial en el repositorio
-        if: github.event_name == 'workflow_dispatch' || github.event.schedule == '47 15 * * *'
+        continue-on-error: true
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
           git add public/data/historial
           if git diff --cached --quiet; then
             echo "Sin cambios en el historial"
-          else
-            git commit -m "Historial de precios $(TZ=Europe/Madrid date +%F)"
-            git pull --rebase origin main
-            git push
+            exit 0
           fi
+          git commit -q -m "Historial de precios $(TZ=Europe/Madrid date '+%F %H:%M')"
+          for intento in 1 2 3 4; do
+            git pull -q --rebase -X theirs origin main && git push -q && exit 0
+            echo "Reintentando la subida ($intento)…"; sleep $((intento * 10))
+          done
+          echo "::error::No se pudo guardar el historial en el repositorio"
+          exit 1
 
       - name: Descargar tipografías (Barlow, licencia SIL OFL)
         run: |

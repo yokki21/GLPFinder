@@ -64,9 +64,10 @@ async function mediaHistorial(fecha) {
   return precios.length > 100 ? +(precios.reduce((a, b) => a + b, 0) / precios.length).toFixed(4) : null;
 }
 
-async function actualizarHistorial(estaciones) {
+// Guarda el precio de una fecha en el historial de cada gasolinera.
+// soloSiFalta: no sobrescribe un registro existente (para rellenar días pasados).
+async function guardarEnHistorial(estaciones, fecha, soloSiFalta = false) {
   await mkdir(DIR_HISTORIAL, { recursive: true });
-  const hoy = hoyMadrid();
   let n = 0;
   for (const e of estaciones) {
     const precio = aNumero(e[CAMPO_GLP]);
@@ -74,14 +75,51 @@ async function actualizarHistorial(estaciones) {
     const fichero = path.join(DIR_HISTORIAL, `${e.IDEESS}.json`);
     let registros = [];
     try { registros = JSON.parse(await readFile(fichero, "utf8")); } catch { /* nuevo */ }
-    registros = registros.filter((r) => r.fecha !== hoy);
-    registros.push({ fecha: hoy, precio });
+    if (soloSiFalta && registros.some((r) => r.fecha === fecha)) continue;
+    registros = registros.filter((r) => r.fecha !== fecha);
+    registros.push({ fecha, precio });
     registros.sort((a, b) => a.fecha.localeCompare(b.fecha));
     registros = registros.slice(-DIAS_HISTORIAL);
     await writeFile(fichero, JSON.stringify(registros));
     n++;
   }
   return n;
+}
+
+// Cuántas gasolineras tienen registro en cada fecha
+async function fechasEnHistorial() {
+  const cuenta = {};
+  let nombres = [];
+  try { nombres = await readdir(DIR_HISTORIAL); } catch { return cuenta; }
+  for (const n of nombres) {
+    try { for (const r of JSON.parse(await readFile(path.join(DIR_HISTORIAL, n), "utf8"))) cuenta[r.fecha] = (cuenta[r.fecha] || 0) + 1; } catch { /* dañado */ }
+  }
+  return cuenta;
+}
+
+// Si falta algún día de la última semana (por ejemplo, porque falló una ejecución), se rellena con el
+// histórico oficial del Ministerio: EstacionesTerrestresHist/{dd-mm-aaaa}
+async function rellenarHuecos(hoy) {
+  const cuenta = await fechasEnHistorial();
+  const conDatos = Object.keys(cuenta).filter((f) => cuenta[f] >= 100).sort();
+  if (!conDatos.length) return;
+  const primera = conDatos[0];
+  for (let k = 7; k >= 1; k--) {
+    const f = new Date(Date.parse(hoy + "T12:00:00Z") - k * 864e5).toISOString().slice(0, 10);
+    if (f < primera || (cuenta[f] || 0) >= 100) continue;
+    const [a, m, d] = f.split("-");
+    try {
+      const res = await fetch(`${URL_MINISTERIO.replace("EstacionesTerrestres/", "EstacionesTerrestresHist/")}${d}-${m}-${a}`, { signal: AbortSignal.timeout(120_000) });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const lista = (await res.json()).ListaEESSPrecio || [];
+      const conGLP = lista.filter((e) => aNumero(e[CAMPO_GLP]) > 0);
+      if (conGLP.length < 100) throw new Error(`solo ${conGLP.length} con GLP`);
+      const n = await guardarEnHistorial(conGLP, f, true);
+      console.log(`Historial: rellenado el ${f} con el histórico del Ministerio (${n} gasolineras).`);
+    } catch (e) {
+      console.warn(`Historial: no se pudo rellenar el ${f}: ${e.message}`);
+    }
+  }
 }
 
 async function main() {
@@ -93,6 +131,10 @@ async function main() {
   const conGLP = todas
     .filter((e) => aNumero(e[CAMPO_GLP]) > 0)
     .map((e) => Object.fromEntries(CAMPOS.map((c) => [c, (e[c] ?? "").toString().trim()])));
+
+  const hoy = hoyMadrid();
+  if (!process.argv[2]) await rellenarHuecos(hoy);
+  const n = await guardarEnHistorial(conGLP, hoy);
 
   const ayer = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Madrid" }).format(new Date(Date.now() - 864e5));
   const salida = {
@@ -111,7 +153,6 @@ async function main() {
 
   await mkdir(DIR_DATOS, { recursive: true });
   await writeFile(path.join(DIR_DATOS, "precios.json"), JSON.stringify(salida));
-  const n = await actualizarHistorial(conGLP);
   console.log(`OK: ${conGLP.length} gasolineras con GLP (de ${todas.length}); historial de ${n}. Medias:`, salida.medias);
 }
 

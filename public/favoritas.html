@@ -74,7 +74,7 @@
     </footer>
 
     <script type="module">
-        import { leerFavoritas, quitarFavorita, leerVehiculo, leerHistorialAntiguo } from './almacen.js?v=3';
+        import { leerFavoritas, quitarFavorita, leerVehiculo } from './almacen.js?v=3';
 
         let configVehiculo = null; // Datos del coche guardados en "Mi vehículo"
         leerVehiculo().then(v => { configVehiculo = v; }).catch(() => {});
@@ -105,7 +105,7 @@
                 return;
             }
             const total = configVehiculo.deposito * precioLitro;
-            resDiv.innerHTML = `Llenar depósito (${configVehiculo.deposito}L): <span style="color:#008456;">${total.toFixed(2)}€</span>`;
+            resDiv.innerHTML = `Llenar depósito (${String(configVehiculo.deposito).replace('.', ',')} L): <span style="color:#008456;">${total.toFixed(2).replace('.', ',')} €</span>`;
             resDiv.style.display = 'block';
         };
 
@@ -217,20 +217,30 @@
             const canvas = document.getElementById(`canvas-${id}`);
             const msgBox = document.getElementById(`msg-chart-${id}`);
             
+            msgBox.style.color = '#D23A2C';
             try {
                 const n = parseInt(dias);
                 const porFecha = new Map();
-
-                // Registros antiguos guardados en Firestore (antes de la GitHub Action)
-                (await leerHistorialAntiguo(id, n)).forEach(r => porFecha.set(r.fecha, r));
-
-                // Historial actual generado por GitHub Actions (tiene prioridad si hay fechas repetidas)
                 try {
                     const res = await fetch(`data/historial/${encodeURIComponent(id)}.json`, { cache: 'no-cache' });
-                    if (res.ok) (await res.json()).forEach(r => porFecha.set(r.fecha, r));
-                } catch (errJson) { console.warn("Historial estático no disponible:", errJson); }
+                    if (res.ok) (await res.json()).forEach(r => porFecha.set(r.fecha, r.precio));
+                } catch (errJson) { console.warn("Historial no disponible:", errJson); }
 
-                const datos = [...porFecha.values()].sort((a, b) => a.fecha.localeCompare(b.fecha)).slice(-n);
+                // Un punto por día del periodo (no por registro): si falta algún día queda el hueco
+                // en su sitio, en lugar de juntar fechas separadas como si fueran seguidas
+                const isoLocal = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                const hoyD = new Date();
+                const desdeISO = isoLocal(new Date(hoyD.getFullYear(), hoyD.getMonth(), hoyD.getDate() - (n - 1)));
+                const primera = [...porFecha.keys()].sort().find(f => f >= desdeISO);
+                const datos = [];
+                if (primera) {
+                    const [a, m, d] = primera.split('-').map(Number);
+                    for (let f = new Date(a, m - 1, d); isoLocal(f) <= isoLocal(hoyD); f.setDate(f.getDate() + 1)) {
+                        const k = isoLocal(f);
+                        datos.push({ fecha: k, precio: porFecha.has(k) ? porFecha.get(k) : null });
+                    }
+                }
+                while (datos.length && datos[datos.length - 1].precio == null) datos.pop();
 
                 if (datos.length === 0) { 
                     canvas.style.display = 'none';
@@ -248,9 +258,11 @@
                     return `${partes[2]}/${partes[1]}`; 
                 });
                 const precios = datos.map(d => d.precio);
-                
-                const minPrecio = Math.min(...precios);
-                const maxPrecio = Math.max(...precios);
+                const validos = precios.filter(v => v != null);
+                const minPrecio = Math.min(...validos);
+                const maxPrecio = Math.max(...validos);
+                const sinDatos = precios.length - validos.length;
+                if (sinDatos) { msgBox.textContent = `Sin datos ${sinDatos === 1 ? 'de 1 día' : `de ${sinDatos} días`} del periodo`; msgBox.style.display = 'block'; msgBox.style.color = '#5D6673'; }
 
                 if (window.misGraficas[id]) {
                     window.misGraficas[id].destroy();
@@ -268,6 +280,7 @@
                             borderWidth: 2,
                             pointBackgroundColor: '#008456',
                             pointRadius: 3,
+                            spanGaps: true,
                             fill: true, 
                             tension: 0.3 
                         }]
@@ -276,7 +289,8 @@
                         responsive: true,
                         maintainAspectRatio: false, 
                         plugins: {
-                            legend: { display: false } 
+                            legend: { display: false },
+                            tooltip: { callbacks: { label: (c) => c.parsed.y == null ? 'Sin datos' : c.parsed.y.toFixed(3).replace('.', ',') + ' €/L' } }
                         },
                         scales: {
                             x: {
@@ -286,7 +300,7 @@
                             y: {
                                 min: minPrecio - 0.02,
                                 max: maxPrecio + 0.02,
-                                ticks: { font: { size: 10 }, stepSize: 0.02 }
+                                ticks: { font: { size: 10 }, stepSize: 0.02, callback: (v) => Number(v).toFixed(2).replace('.', ',') }
                             }
                         }
                     }

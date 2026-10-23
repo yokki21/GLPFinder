@@ -61,12 +61,12 @@
             <h2>Tu coche</h2>
             <div class="form-group">
                 <label for="inp-deposito">Litros útiles del depósito de GLP</label>
-                <input type="number" id="inp-deposito" placeholder="Ej: 40" inputmode="decimal">
+                <input type="number" id="inp-deposito" placeholder="Ej: 40" inputmode="decimal" oninput="recalcularAhorro()">
                 <small style="display:block;margin-top:6px;color:var(--gris);font-size:13px;">Los depósitos de GLP se llenan como máximo al 80 %: si el tuyo es de 50 L, pon 40.</small>
             </div>
             <div class="form-group">
                 <label for="inp-consumo">Consumo medio de GLP (L/100 km)</label>
-                <input type="number" id="inp-consumo" placeholder="Ej: 8.5" step="0.1" inputmode="decimal">
+                <input type="number" id="inp-consumo" placeholder="Ej: 8,5" step="0.1" inputmode="decimal" oninput="recalcularAhorro()">
             </div>
             <button class="btn-primary" onclick="guardarDatosVehiculo()">Guardar datos</button>
             <p id="msg-guardado" style="display:none; margin:10px 0 0; color:#008456; font-weight:600; font-size:14px;">Datos guardados en este dispositivo</p>
@@ -105,7 +105,7 @@
                         <span class="stat-icon"></span>
                         <div>
                             <small class="stat-label">Ahorro estimado al mes</small>
-                            <strong id="res-ahorro" class="stat-value-success">0.00 €</strong>
+                            <strong id="res-ahorro" class="stat-value-success">0,00 €</strong>
                         </div>
                     </div>
                 </div>
@@ -124,6 +124,7 @@
         let mediaGas95 = 0;
         let mediaDiesel = 0;
         let mediaGLP = 0.94;
+        const fmt = (v, d) => v.toFixed(d).replace('.', ',');
 
         async function obtenerMediasNacionales() {
             try {
@@ -136,12 +137,12 @@
                 mediaDiesel = medias.gasoleoA || 1.49;
                 mediaGLP = medias.glp || 0.94;
 
-                document.getElementById('label-media-actual').innerText = `Medias hoy: G95: ${mediaGas95.toFixed(3)}€ | Diésel: ${mediaDiesel.toFixed(3)}€`;
+                document.getElementById('label-media-actual').innerText = `Medias de hoy: gasolina 95 ${fmt(mediaGas95, 3)} € · diésel ${fmt(mediaDiesel, 3)} € · GLP ${fmt(mediaGLP, 3)} €`;
             } catch (e) {
                 console.error("Error cargando medias:", e);
                 mediaGas95 = 1.62;
                 mediaDiesel = 1.49;
-                document.getElementById('label-media-actual').innerText = `Medias estimadas: G95: ${mediaGas95.toFixed(3)}€ | Diésel: ${mediaDiesel.toFixed(3)}€`;
+                document.getElementById('label-media-actual').innerText = `Medias estimadas: gasolina 95 ${fmt(mediaGas95, 3)} € · diésel ${fmt(mediaDiesel, 3)} €`;
             }
             recalcularAhorro();
         }
@@ -204,12 +205,16 @@
             }
 
             if (kmMes > 0 && precioRef > 0 && cons > 0) {
+                // Un coche gasta con GLP un 15 % más de litros que con gasolina, y un diésel un 20 % menos que un gasolina
+                // (los mismos supuestos que la calculadora de la guía "¿Merece la pena el GLP?")
+                const consGasolina = cons / 1.15;
+                const consAnterior = tipo === 'diesel' ? consGasolina / 1.2 : consGasolina;
                 const costeMensualGLP = (kmMes / 100) * cons * mediaGLP;
-                const costeMensualAnterior = (kmMes / 100) * (cons * 0.85) * precioRef;
+                const costeMensualAnterior = (kmMes / 100) * consAnterior * precioRef;
                 const ahorro = costeMensualAnterior - costeMensualGLP;
-                document.getElementById('res-ahorro').innerText = (ahorro > 0 ? ahorro.toFixed(2) : "0.00") + " €";
+                document.getElementById('res-ahorro').innerText = fmt(Math.max(ahorro, 0), 2) + " €";
             } else {
-                document.getElementById('res-ahorro').innerText = "0.00 €";
+                document.getElementById('res-ahorro').innerText = "0,00 €";
             }
         };
 

@@ -295,7 +295,8 @@
         }
         const buzonStr = ordenFavorita ? null : localStorage.getItem('orden_ir_a_gasolinera');
         if (buzonStr) {
-            ordenFavorita = JSON.parse(buzonStr);
+            try { ordenFavorita = JSON.parse(buzonStr); } catch (e) { ordenFavorita = null; }
+            if (!ordenFavorita || !isFinite(ordenFavorita.lat) || !isFinite(ordenFavorita.lng)) ordenFavorita = null;
             localStorage.removeItem('orden_ir_a_gasolinera');
         }
 
@@ -1352,7 +1353,7 @@
             const resDiv = document.getElementById(`res-calc-${id}`);
             const configVehiculo = await leerVehiculo();
             if (!configVehiculo || !configVehiculo.deposito) { resDiv.innerHTML = 'Configura tu depósito en <a href="datos.html">Mi vehículo</a>'; resDiv.style.display = 'block'; return; }
-            resDiv.innerHTML = `Depósito ${configVehiculo.deposito}L: <span style="color:#008456;">${(configVehiculo.deposito * precioLitro).toFixed(2)}€</span>`;
+            resDiv.innerHTML = `Llenar ${String(configVehiculo.deposito).replace('.', ',')} L: <span style="color:#008456;">${(configVehiculo.deposito * precioLitro).toFixed(2).replace('.', ',')} €</span>`;
             resDiv.style.display = 'block';
         };
 
