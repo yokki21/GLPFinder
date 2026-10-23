@@ -44,6 +44,9 @@ jobs:
       - name: Guardar historial en el repositorio
         continue-on-error: true
         run: |
+          # Deja constancia del resultado en la web (data/estado-historial.txt) para poder revisarlo
+          exec > >(tee public/data/estado-historial.txt) 2>&1
+          date -u
           git config user.name "github-actions[bot]"
           git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
           git add public/data/historial
@@ -53,7 +56,7 @@ jobs:
           fi
           git commit -q -m "Historial de precios $(TZ=Europe/Madrid date '+%F %H:%M')"
           for intento in 1 2 3 4; do
-            git pull -q --rebase -X theirs origin main && git push -q && exit 0
+            git pull --rebase -X theirs origin main && git push && exit 0
             echo "Reintentando la subida ($intento)…"; sleep $((intento * 10))
           done
           echo "::error::No se pudo guardar el historial en el repositorio"
