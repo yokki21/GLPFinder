@@ -56,7 +56,7 @@ jobs:
           fi
           git commit -q -m "Historial de precios $(TZ=Europe/Madrid date '+%F %H:%M')"
           for intento in 1 2 3 4; do
-            git pull --rebase -X theirs origin main && git push && exit 0
+            git pull --rebase --autostash -X theirs origin main && git push && exit 0
             echo "Reintentando la subida ($intento)…"; sleep $((intento * 10))
           done
           echo "::error::No se pudo guardar el historial en el repositorio"
