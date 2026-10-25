@@ -102,7 +102,7 @@ function pagina({ prefijo, ruta, title, description, h1, lead, cuerpo, jsonld = 
     <link rel="icon" type="image/svg+xml" href="${prefijo}img/favicon.svg">
     <link rel="icon" type="image/png" sizes="32x32" href="${prefijo}img/favicon-32.png">
     <link rel="apple-touch-icon" href="${prefijo}img/apple-touch-icon.png">
-    <link rel="stylesheet" href="${prefijo}styles.css?v=19">
+    <link rel="stylesheet" href="${prefijo}styles.css?v=20">
     <script data-goatcounter="https://glpfinder.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 ${jsonld.map((j) => `    <script type="application/ld+json">${JSON.stringify(j)}</script>`).join("\n")}
 </head>
@@ -246,25 +246,60 @@ function precioHace(hist, hoyISO, dias) {
 
 // Gráfica SVG estática (sin JavaScript): se ve al instante y la lee cualquier navegador
 function graficaSVG(hist) {
-  const W = 640, H = 220, L = 66, R = 14, T = 14, B = 30;
-  const xs = hist.map((r) => Date.parse(r.fecha));
+  const W = 640, H = 230, L = 70, R = 40, T = 14, B = 34;
+  const DIA = 864e5;
+  const t = (f) => Date.parse(f + "T12:00:00Z");
   const ys = hist.map((r) => r.precio);
   let y0 = Math.min(...ys), y1 = Math.max(...ys);
   if (y1 - y0 < 0.02) { const c = (y0 + y1) / 2; y0 = c - 0.01; y1 = c + 0.01; }
-  const pad = (y1 - y0) * 0.12; y0 -= pad; y1 += pad;
-  const x0 = xs[0], x1 = xs[xs.length - 1] === x0 ? x0 + 864e5 : xs[xs.length - 1];
-  const X = (t) => L + ((t - x0) / (x1 - x0)) * (W - L - R);
+  const pad = (y1 - y0) * 0.15; y0 -= pad; y1 += pad;
+  const x0 = t(hist[0].fecha), x1 = t(hist[hist.length - 1].fecha);
+  const nDias = Math.round((x1 - x0) / DIA) + 1;
+  const X = (ms) => nDias === 1 ? (L + W - R) / 2 : L + ((ms - x0) / (x1 - x0)) * (W - L - R);
   const Y = (v) => T + (1 - (v - y0) / (y1 - y0)) * (H - T - B);
-  const pts = hist.map((r, i) => `${X(xs[i]).toFixed(1)},${Y(r.precio).toFixed(1)}`);
-  const linea = hist.length === 1 ? `M${L},${Y(ys[0]).toFixed(1)} H${W - R}` : `M${pts.join(" L")}`;
-  const area = hist.length === 1 ? "" : `<path d="${linea} L${X(x1).toFixed(1)},${H - B} L${L},${H - B} Z" class="g-area"/>`;
-  const marcas = [y0 + (y1 - y0) * 0.1, (y0 + y1) / 2, y1 - (y1 - y0) * 0.1]
-    .map((v) => `<line x1="${L}" x2="${W - R}" y1="${Y(v).toFixed(1)}" y2="${Y(v).toFixed(1)}" class="g-rejilla"/><text x="0" y="${(Y(v) + 4).toFixed(1)}">${v.toFixed(3).replace(".", ",")}</text>`).join("");
+  const pr = (v) => v.toFixed(3).replace(".", ",");
+
+  // Línea por tramos: si falta un día, la línea se corta en lugar de unir fechas separadas
+  let linea = "", area = "", tramo = [];
+  const cerrar = () => {
+    if (!tramo.length) return;
+    const d = tramo.map(([x, y], k) => `${k ? "L" : "M"}${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
+    linea += d + " ";
+    if (tramo.length > 1) area += `${d} L${tramo[tramo.length - 1][0].toFixed(1)},${H - B} L${tramo[0][0].toFixed(1)},${H - B} Z `;
+    tramo = [];
+  };
+  hist.forEach((r, k) => {
+    if (k && Math.round((t(r.fecha) - t(hist[k - 1].fecha)) / DIA) > 1) cerrar();
+    tramo.push([X(t(r.fecha)), Y(r.precio)]);
+  });
+  cerrar();
+
+  // Un punto por día con su precio (al pasar el ratón o tocarlo se ve la fecha y el precio)
+  const radio = nDias <= 45 ? 3.6 : 0;
+  const puntos = hist.map((r, k) => {
+    const ult = k === hist.length - 1;
+    return `<circle cx="${X(t(r.fecha)).toFixed(1)}" cy="${Y(r.precio).toFixed(1)}" r="${ult ? 5 : radio || 2}" class="${ult ? "g-punto" : "g-dia"}"><title>${fechaCorta(r.fecha)}: ${pr(r.precio)} €</title></circle>`;
+  }).join("");
+
+  // Fechas del eje: todas si caben (hasta 10 días); si no, unas 6 repartidas
+  const paso = nDias <= 10 ? 1 : Math.ceil(nDias / 6);
+  const etiquetas = [];
+  for (let k = 0; k < nDias; k += paso) etiquetas.push(x0 + k * DIA);
+  if (Math.round((x1 - etiquetas[etiquetas.length - 1]) / DIA) >= Math.max(1, paso / 2)) etiquetas.push(x1);
+  else etiquetas[etiquetas.length - 1] = x1;
+  // En móvil el texto es más grande: si hay muchas fechas se ocultan las alternas (class g-alt)
+  const ejeX = etiquetas.map((ms, k) => {
+    const alt = etiquetas.length > 5 && k % 2 === 1 && k !== etiquetas.length - 1 ? ' class="g-alt"' : "";
+    return `<text x="${X(ms).toFixed(1)}" y="${H - 10}" text-anchor="middle"${alt}>${fechaCorta(new Date(ms).toISOString().slice(0, 10))}</text>`;
+  }).join("");
+
+  const marcas = [y0 + (y1 - y0) * 0.12, (y0 + y1) / 2, y1 - (y1 - y0) * 0.12]
+    .map((v) => `<line x1="${L}" x2="${W - R}" y1="${Y(v).toFixed(1)}" y2="${Y(v).toFixed(1)}" class="g-rejilla"/><text x="0" y="${(Y(v) + 4).toFixed(1)}">${pr(v)}</text>`).join("");
   const ult = hist[hist.length - 1];
-  return `<svg class="grafica" viewBox="0 0 ${W} ${H}" role="img" aria-label="Evolución del precio del GLP desde el ${fechaCorta(hist[0].fecha)} hasta el ${fechaCorta(ult.fecha)}">
-                ${marcas}${area}<path d="${linea}" class="g-linea"/>
-                <circle cx="${X(xs[xs.length - 1]).toFixed(1)}" cy="${Y(ult.precio).toFixed(1)}" r="4.5" class="g-punto"/>
-                <text x="${L}" y="${H - 8}">${fechaCorta(hist[0].fecha)}</text><text x="${W - R}" y="${H - 8}" text-anchor="end">${fechaCorta(ult.fecha)}</text>
+  return `<svg class="grafica" viewBox="0 0 ${W} ${H}" role="img" aria-label="Evolución del precio del GLP del ${fechaCorta(hist[0].fecha)} al ${fechaCorta(ult.fecha)}: de ${pr(hist[0].precio)} € a ${pr(ult.precio)} €">
+                ${marcas}<path d="${area}" class="g-area"/><path d="${linea}" class="g-linea"/>
+                ${puntos}
+                ${ejeX}
             </svg>`;
 }
 

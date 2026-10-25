@@ -854,6 +854,8 @@ input[type="range"]::-moz-range-thumb { width: 18px; height: 18px; border-radius
 .g-linea { fill: none; stroke: var(--verde); stroke-width: 2.5; vector-effect: non-scaling-stroke; stroke-linejoin: round; stroke-linecap: round; }
 .g-area { fill: var(--verde); opacity: .08; }
 .g-punto { fill: var(--verde); stroke: var(--blanco); stroke-width: 2; }
+.g-dia { fill: var(--blanco); stroke: var(--verde); stroke-width: 2; }
+.grafica circle { cursor: default; }
 .ficha-vacio { padding: 18px; border-radius: var(--r-m); background: var(--fondo); color: var(--gris); }
 .ficha-cifras { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--linea); }
 .ficha-cifras span { display: block; font-size: 13px; color: var(--gris); }
@@ -872,6 +874,7 @@ input[type="range"]::-moz-range-thumb { width: 18px; height: 18px; border-radius
     .ficha-acciones .btn { flex: 1 1 100%; }
     .ficha-cifras { grid-template-columns: repeat(2, 1fr); }
     .grafica text { font-size: 24px; }
+    .grafica text.g-alt { display: none; }
     .seo-resumen strong.precio-barato, .seo-resumen strong.precio-medio, .seo-resumen strong.precio-caro { font-size: 22px; }
 }
 
