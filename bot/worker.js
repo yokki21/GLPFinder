@@ -11,7 +11,9 @@
 // Resumen diario en el canal: Settings → Triggers → Cron Triggers → "30 6,7 * * *".
 // Cloudflare usa hora UTC; el Worker solo publica en la ejecución que cae a las 8:30 de Madrid,
 // así sale a la misma hora en verano y en invierno. Canal: variable TELEGRAM_CANAL (por defecto @glpfinder).
+// Justo después publica otro mensaje con los mayores cambios de precio desde ayer en cada comunidad.
 // Para publicarlo a mano: https://<tu-worker>.workers.dev/publicar?clave=<WEBHOOK_SECRET>
+// (añade &tipo=cambios para el de cambios, o &tipo=todo para los dos)
 
 const SITE = "https://glpfinder.es/";
 const CARTOCIUDAD = "https://www.cartociudad.es/geocoder/api/geocoder";
@@ -25,7 +27,10 @@ export default {
   async scheduled(event, env, ctx) {
     const hora = +new Intl.DateTimeFormat("es-ES", { timeZone: "Europe/Madrid", hour: "numeric", hour12: false }).format(new Date(event.scheduledTime));
     if (hora !== 8) return; // la otra ejecución del cron es la de la otra estación del año
-    ctx.waitUntil(publicarResumen(env));
+    ctx.waitUntil((async () => {
+      await publicarResumen(env);
+      await publicarCambios(env);
+    })().catch((e) => console.error("Error en la publicación diaria", e)));
   },
 
   async fetch(request, env, ctx) {
@@ -34,8 +39,17 @@ export default {
       if (url.pathname === "/configurar") return configurar(url, env);
       if (url.pathname === "/publicar") {
         if (!env.WEBHOOK_SECRET || url.searchParams.get("clave") !== env.WEBHOOK_SECRET) return texto("Clave incorrecta.", 401);
-        const r = await publicarResumen(env);
-        return texto(r.ok ? "✅ Resumen publicado en el canal." : `❌ Telegram ha respondido: ${r.description}`, r.ok ? 200 : 500);
+        const tipo = url.searchParams.get("tipo") || "resumen";
+        const salida = [];
+        if (tipo === "resumen" || tipo === "todo") {
+          const r = await publicarResumen(env);
+          salida.push(r.ok ? "✅ Resumen publicado en el canal." : `❌ Resumen: Telegram ha respondido ${r.description}`);
+        }
+        if (tipo === "cambios" || tipo === "todo") {
+          const r = await publicarCambios(env);
+          salida.push(r.sinCambios ? "ℹ️ Hoy no hay cambios de precio que publicar." : r.ok ? "✅ Cambios publicados en el canal." : `❌ Cambios: Telegram ha respondido ${r.description}`);
+        }
+        return texto(salida.join("\n") || "Tipo desconocido: usa resumen, cambios o todo.");
       }
       if (url.pathname === "/webhook" && request.method === "POST") {
         if (request.headers.get("X-Telegram-Bot-Api-Secret-Token") !== env.WEBHOOK_SECRET) return new Response("No autorizado", { status: 401 });
@@ -166,7 +180,7 @@ async function geocodificar(q) {
 }
 
 // ---------- Datos de precios (se reutilizan mientras el Worker siga vivo) ----------
-let cache = { t: 0, est: null, fecha: "", mediaAyer: null };
+let cache = { t: 0, est: null, fecha: "", mediaAyer: null, cambios: [] };
 async function estaciones() {
   if (cache.est && Date.now() - cache.t < 20 * 60 * 1000) return cache;
   const res = await fetch(`${SITE}data/precios.json`, { cf: { cacheTtl: 900, cacheEverything: true } });
@@ -183,7 +197,7 @@ async function estaciones() {
       municipio: (f[i.Municipio] || f[i.Localidad] || "").trim(), precio, lat, lng, ccaa: f[i.IDCCAA],
     });
   }
-  cache = { t: Date.now(), est, fecha: d.Fecha || "", mediaAyer: d.mediaGlpAyer ?? null };
+  cache = { t: Date.now(), est, fecha: d.Fecha || "", mediaAyer: d.mediaGlpAyer ?? null, cambios: Array.isArray(d.cambios) ? d.cambios : [] };
   return cache;
 }
 
@@ -309,5 +323,52 @@ async function publicarResumen(env) {
     link_preview_options: { is_disabled: true }, reply_markup: { inline_keyboard: botones },
   });
   if (!r.ok) console.error("No se pudo publicar el resumen:", r.description);
+  return r;
+}
+
+// ---------- Mayores cambios de precio desde ayer, por comunidad ----------
+async function publicarCambios(env) {
+  cache.t = 0;
+  const { est, cambios } = await estaciones();
+  const porId = new Map(est.map((e) => [e.id, e]));
+  const lista = cambios.map(([id, antes]) => {
+    const e = porId.get(id);
+    return e && CCAA[e.ccaa] ? { ...e, antes, dif: e.precio - antes } : null;
+  }).filter(Boolean);
+  if (!lista.length) return { ok: true, sinCambios: true };
+
+  const cts = (d) => {
+    const c = Math.round(Math.abs(d) * 1000) / 10;
+    return (Number.isInteger(c) ? String(c) : c.toFixed(1).replace(".", ",")) + (c === 1 ? " ct" : " cts");
+  };
+  const linea = (e) => `${e.dif < 0 ? "🟢 ▼" : "🔴 ▲"} ${cts(e.dif)} · <a href="${ficha(e)}">${esc(e.rotulo)} ${esc(e.municipio)}</a>: ${eur(e.precio)} (antes ${eur(e.antes)})`;
+
+  const porCCAA = {};
+  for (const e of lista) (porCCAA[e.ccaa] ||= []).push(e);
+  const bloques = Object.entries(porCCAA)
+    .sort((a, b) => CCAA[a[0]].localeCompare(CCAA[b[0]], "es"))
+    .map(([c, l]) => {
+      const bajada = l.filter((e) => e.dif < 0).sort((a, b) => a.dif - b.dif)[0];
+      const subida = l.filter((e) => e.dif > 0).sort((a, b) => b.dif - a.dif)[0];
+      const resumen = `${l.length} ${l.length === 1 ? "cambio" : "cambios"}`;
+      return [`<b>${esc(CCAA[c])}</b> (${resumen})`, bajada && linea(bajada), subida && linea(subida)].filter(Boolean).join("\n");
+    });
+
+  const bajan = lista.filter((e) => e.dif < 0).length, suben = lista.length - bajan;
+  const text = [
+    "📊 <b>Cambios de precio del GLP desde ayer</b>",
+    "",
+    `${lista.length} ${lista.length === 1 ? "gasolinera ha cambiado" : "gasolineras han cambiado"} el precio: ${bajan} ${bajan === 1 ? "baja" : "bajan"} y ${suben} ${suben === 1 ? "sube" : "suben"}. La mayor bajada y la mayor subida de cada comunidad:`,
+    "",
+    bloques.join("\n\n"),
+    "",
+    "<i>Precios oficiales del Ministerio para la Transición Ecológica.</i>",
+  ].join("\n");
+  const r = await tg(env, "sendMessage", {
+    chat_id: env.TELEGRAM_CANAL || "@glpfinder", text, parse_mode: "HTML",
+    link_preview_options: { is_disabled: true },
+    reply_markup: { inline_keyboard: [[{ text: "🗺 Ver el mapa", url: SITE }]] },
+  });
+  if (!r.ok) console.error("No se pudieron publicar los cambios:", r.description);
   return r;
 }

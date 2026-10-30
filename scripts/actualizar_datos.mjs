@@ -86,6 +86,22 @@ async function guardarEnHistorial(estaciones, fecha, soloSiFalta = false) {
   return n;
 }
 
+// Gasolineras cuyo precio de hoy es distinto del último registrado antes de hoy (como mucho hace 3 días).
+// Devuelve [IDEESS, precio anterior, fecha anterior] para el mensaje de cambios del canal de Telegram.
+async function cambiosDesdeAyer(estaciones, hoy) {
+  const limite = new Date(Date.parse(hoy + "T12:00:00Z") - 3 * 864e5).toISOString().slice(0, 10);
+  const cambios = [];
+  for (const e of estaciones) {
+    const precio = aNumero(e[CAMPO_GLP]);
+    if (!(precio > 0) || !/^\d+$/.test(e.IDEESS)) continue;
+    let registros = [];
+    try { registros = JSON.parse(await readFile(path.join(DIR_HISTORIAL, `${e.IDEESS}.json`), "utf8")); } catch { continue; }
+    const previo = registros.filter((r) => r.fecha < hoy && r.fecha >= limite).pop();
+    if (previo && Math.abs(previo.precio - precio) >= 0.0005) cambios.push([e.IDEESS, previo.precio, previo.fecha]);
+  }
+  return cambios;
+}
+
 // Cuántas gasolineras tienen registro en cada fecha
 async function fechasEnHistorial() {
   const cuenta = {};
@@ -147,6 +163,7 @@ async function main() {
     },
     mediaGlpAyer: await mediaHistorial(ayer),
     totalEstaciones: todas.length,
+    cambios: await cambiosDesdeAyer(conGLP, hoy),
     campos: CAMPOS,
     filas: conGLP.map((e) => CAMPOS.map((c) => e[c])),
   };
