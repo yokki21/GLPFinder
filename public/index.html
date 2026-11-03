@@ -24,7 +24,7 @@
     <link rel="icon" type="image/svg+xml" href="img/favicon.svg">
     <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
     <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
-    <link rel="stylesheet" href="styles.css?v=20">
+    <link rel="stylesheet" href="styles.css?v=21">
     <link rel="preconnect" href="https://www.ign.es" crossorigin>
     <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
     
@@ -219,25 +219,25 @@
                 </svg>
             </button>
             <div class="layers-dropdown-container">
-                <button class="btn-layers" onclick="toggleCapasDropdown()" title="Cambiar tipo de mapa" aria-label="Cambiar tipo de mapa">
+                <button class="btn-layers" id="btnCapas" type="button" onclick="toggleCapasDropdown()" title="Cambiar tipo de mapa" aria-label="Cambiar tipo de mapa" aria-haspopup="true" aria-expanded="false" aria-controls="capasDropdown">
                     <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
                         <polygon points="12 2 2 7 2 12 12 17 22 12 22 7 12 2"/>
                         <polyline points="2 12 2 16 12 21 22 16 22 12"/>
                     </svg>
                 </button>
                 <div class="layers-dropdown" id="capasDropdown" style="display: none;">
-                    <div class="layers-option" onclick="cambiarCapa('satelite')">
-                        <input type="radio" name="mapLayer" id="layer-satelite" checked style="pointer-events: none;">
-                        <label for="layer-satelite" style="pointer-events: none;">Satélite</label>
-                    </div>
-                    <div class="layers-option" onclick="cambiarCapa('calles')">
-                        <input type="radio" name="mapLayer" id="layer-calles" style="pointer-events: none;">
-                        <label for="layer-calles" style="pointer-events: none;">Callejero</label>
-                    </div>
-                    <div class="layers-option layers-option--sep" id="opcionNombres" onclick="alternarNombres()">
-                        <input type="checkbox" id="layer-nombres" checked style="pointer-events: none;">
-                        <label for="layer-nombres" style="pointer-events: none;">Nombres y carreteras</label>
-                    </div>
+                    <button type="button" class="layers-option" onclick="cambiarCapa('satelite')">
+                        <input type="radio" name="mapLayer" id="layer-satelite" checked tabindex="-1" aria-hidden="true" style="pointer-events: none;">
+                        <span>Satélite</span>
+                    </button>
+                    <button type="button" class="layers-option" onclick="cambiarCapa('calles')">
+                        <input type="radio" name="mapLayer" id="layer-calles" tabindex="-1" aria-hidden="true" style="pointer-events: none;">
+                        <span>Callejero</span>
+                    </button>
+                    <button type="button" class="layers-option layers-option--sep" id="opcionNombres" onclick="alternarNombres()">
+                        <input type="checkbox" id="layer-nombres" checked tabindex="-1" aria-hidden="true" style="pointer-events: none;">
+                        <span>Nombres y carreteras</span>
+                    </button>
                 </div>
             </div>
         </div>
@@ -339,25 +339,36 @@
         let capaActual = 'satelite';
         actualizarNombres();
 
-        function toggleCapasDropdown() {
+        function toggleCapasDropdown(abrir) {
             const dd = document.getElementById('capasDropdown');
-            dd.style.display = dd.style.display === 'none' ? 'flex' : 'none';
+            const ab = typeof abrir === 'boolean' ? abrir : dd.style.display === 'none';
+            dd.style.display = ab ? 'flex' : 'none';
+            document.getElementById('btnCapas').setAttribute('aria-expanded', String(ab));
         }
+        // Accesibilidad: Escape cierra el menú de capas; Intro o espacio activan la estrella de favoritas
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && document.getElementById('capasDropdown').style.display !== 'none') {
+                toggleCapasDropdown(false);
+                document.getElementById('btnCapas').focus();
+            }
+            const estrella = e.target.closest && e.target.closest('.star-btn');
+            if (estrella && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); estrella.click(); }
+        });
 
         function cambiarCapa(nombre) {
-            if (capaActual === nombre) { document.getElementById('capasDropdown').style.display = 'none'; return; }
+            if (capaActual === nombre) { toggleCapasDropdown(false); return; }
             map.removeLayer(capasDisponibles[capaActual]);
             capasDisponibles[nombre].addTo(map);
             capaActual = nombre;
             document.getElementById('layer-satelite').checked = (nombre === 'satelite');
             document.getElementById('layer-calles').checked   = (nombre === 'calles');
-            document.getElementById('capasDropdown').style.display = 'none';
+            toggleCapasDropdown(false);
             actualizarNombres();
         }
 
         document.addEventListener('click', (e) => {
-            if (!e.target.closest('.layers-dropdown-container')) {
-                document.getElementById('capasDropdown').style.display = 'none';
+            if (!e.target.closest('.layers-dropdown-container') && document.getElementById('capasDropdown').style.display !== 'none') {
+                toggleCapasDropdown(false);
             }
         });
 
@@ -1375,6 +1386,8 @@
             window.idPopupForzado = id;
             window.actualizarPinesVisibles();
             window.isRefreshingMap = false;
+            // El popup se vuelve a abrir al repintar: se devuelve el foco a la estrella (uso con teclado)
+            setTimeout(() => { const st = [...document.querySelectorAll(`.leaflet-popup #star-${id}`)].pop(); if (st) st.focus({ preventScroll: true }); }, 350);
 
             try {
                 if (esFav) await quitarFavorita(id);

@@ -22,3 +22,8 @@
     document.addEventListener('click', e => { if (!header.contains(e.target)) cerrar(); });
     document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrar(); });
 })();
+
+// Service worker: modo sin conexión e instalación como app
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+    window.addEventListener('load', () => { navigator.serviceWorker.register('/sw.js').catch(() => {}); });
+}
